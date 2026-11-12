@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-12T21:08:31.088667+00:00",
+  "asset": "BTC",
+  "sources": {
+    "binance_spot": {
+      "status": "error",
+      "retrieved_at": "2026-11-12T21:08:31.187292+00:00",
+      "error": "HTTP Error 451: "
+    },
+    "okx_spot": {
+      "status": "ok",
+      "retrieved_at": "2026-11-12T21:08:31.378510+00:00",
+      "latency_ms": 191,
+      "data": {
+        "code": "0",
+        "data": [
+          {
+            "instType": "SPOT",
+            "instId": "BTC-USDT",
+            "last": "71429.1",
+            "lastSz": "0.00011881",
+            "askPx": "71429.2",
+            "askSz": "1.641917",
+            "bidPx": "71429.1",
+            "bidSz": "0.33561923",
+            "open24h": "74675.6",
+            "high24h": "74803.3",
+            "low24h": "71238.6",
+            "volCcy24h": "631785932.813404305",
+            "vol24h": "8709.04833806",
+            "ts": "1794517710772",
+            "sodUtc0": "74018.7",
+            "sodUtc8": "71712.1"
+          }
+        ],
+        "msg": ""
+      }
+    },
+    "binance_futures_price": {
+      "status": "error",
+      "retrieved_at": "2026-11-12T21:08:31.504029+00:00",
+      "error": "HTTP Error 451: "
+    },
+    "binance_open_interest": {
+      "status": "error",
+      "retrieved_at": "2026-11-12T21:08:31.539250+00:00",
+      "error": "HTTP Error 451: "
+    },
+    "okx_futures_ticker": {
+      "status": "ok",
+      "retrieved_at": "2026-11-12T21:08:31.844832+00:00",
+      "latency_ms": 305,
+      "data": {
+        "code": "0",
+        "data": [
+          {
+            "instType": "SWAP",
+            "instId": "BTC-USDT-SWAP",
+            "last": "71413.8",
+            "lastSz": "1.32",
+            "askPx": "71413.8",
+            "askSz": "2104.74",
+            "bidPx": "71413.7",
+            "bidSz": "608.68",
+            "open24h": "74636.9",
+            "high24h": "74789",
+            "low24h": "71200",
+            "volCcy24h": "100663.8888",
+            "vol24h": "10066388.88",
+            "ts": "1794517711254",
+            "sodUtc0": "73980",
+            "sodUtc8": "71682.7"
+          }
+        ],
+        "msg": ""
+      }
+    },
+    "okx_funding": {
+      "status": "ok",
+      "retrieved_at": "2026-11-12T21:08:32.043234+00:00",
+      "latency_ms": 198,
+      "data": {
+        "code": "0",
+        "data": [
+          {
+            "formulaType": "withRate",
+            "fundingRate": "0.0001000000000000",
+            "fundingTime": "1794528000000",
+            "impactValue": "20000.0000000000000000",
+            "instId": "BTC-USDT-SWAP",
+            "instType": "SWAP",
+            "interestRate": "0.0001000000000000",
+            "maxFundingRate": "0.00375",
+            "method": "current_period",
+            "minFundingRate": "-0.00375",
+            "nextFundingRate": "",
+            "nextFundingTime": "1794556800000",
+            "premium": "-0.0002785632296536",
+            "prevFundingTime": "1794499200000",
+            "settFundingRate": "0.0000736920850367",
+            "settState": "settled",
+            "ts": "1794517706615"
+          }
+        ],
+        "msg": ""
+      }
+    },
+    "okx_open_interest": {
+      "status": "ok",
+      "retrieved_at": "2026-11-12T21:08:32.356088+00:00",
+      "latency_ms": 313,
+      "data": {
+        "code": "0",
+        "data": [
+          {
+            "instId": "BTC-USDT-SWAP",
+            "instType": "SWAP",
+            "oi": "3716798.67000001607",
+            "oiCcy": "37167.9867000001607",
+            "oiUsd": "2654466990.93928147688867",
+            "ts": "1794517712277"
+          }
+        ],
+        "msg": ""
+      }
+    }
+  },
+  "summary": {
+    "successful_sources": 4,
+    "total_sources": 7
+  }
+}
