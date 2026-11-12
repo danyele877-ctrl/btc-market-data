@@ -2,6 +2,12 @@
 name: Update BTC Market Data
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "collector.py"
+      - "quality_check.py"
+      - ".github/workflows/update-data.yml"
   workflow_dispatch:
   schedule:
     - cron: "*/15 * * * *"
