@@ -1,4 +1,3 @@
-
 import json
 import os
 import time
@@ -7,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 TIMEOUT = 12
-MAX_WORKERS = 11
-USER_AGENT = "BTC-Market-Data/1.1"
+MAX_WORKERS = 15
+USER_AGENT = "BTC-Market-Data/1.2"
 
 
 def utc_now():
@@ -98,6 +97,19 @@ def main():
 
         "edge_open_interest_by_exchange":
             "https://edgeornot.com/api/oi-by-exchange",
+
+        # SwoleCharts free public API: BTC derivatives history and snapshot.
+        "swole_funding_btc_1d":
+            "https://swolecharts.com/api/series/funding?base=BTC&range=1d&step=1h",
+
+        "swole_open_interest_btc_1d":
+            "https://swolecharts.com/api/series/oi?base=BTC&range=1d&step=1h",
+
+        "swole_liquidations_btc_1d":
+            "https://swolecharts.com/api/series/liquidations?base=BTC&range=1d&step=1h",
+
+        "swole_btc_snapshot":
+            "https://swolecharts.com/api/coin/BTC",
     }
 
     results = {}
