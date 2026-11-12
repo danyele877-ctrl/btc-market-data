@@ -76,6 +76,14 @@ def fetch_fred():
     raw = request_bytes(url, "text/csv,text/plain,*/*")
     return {"data": parse_fred_csv(raw), "latency_ms": round((time.time()-started)*1000), "endpoint": url}
 
+def fetch_coinboss_tickers():
+    result = fetch_json("https://www.coinboss.com/api/market/tickers?coin=BTC")
+    payload = result["data"]
+    if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+        payload["data"] = [row for row in payload["data"] if row.get("coin") == "BTC"]
+    result["data"] = payload
+    return result
+
 def collect(item):
     name, fetcher = item
     try:
@@ -119,7 +127,7 @@ def main():
         "coinboss_open_interest_btc": lambda: fetch_json("https://www.coinboss.com/api/sd/oi?coin=BTC"),
         "coinboss_liquidations_overview": lambda: fetch_json("https://www.coinboss.com/api/liquidations/overview"),
         "coinboss_liquidations_btc": lambda: fetch_json("https://www.coinboss.com/api/liquidations?symbol=BTCUSDT&limit=100"),
-        "coinboss_market_tickers_btc": lambda: fetch_json("https://www.coinboss.com/api/market/tickers?coin=BTC"),
+        "coinboss_market_tickers_btc": fetch_coinboss_tickers,
         # TFTC publishes a free open JSON ETF-flow dataset; FRED CSV requires no API key.
         "bitcoin_etf_flows_tftc": lambda: fetch_json("https://www.tftc.io/bitcoin-etf-flows/latest.json"),
         "fred_macro": fetch_fred,
