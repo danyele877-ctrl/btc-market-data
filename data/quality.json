@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-12T22:26:41.777497+00:00",
-  "snapshot_generated_at": "2026-11-12T22:26:41.673256+00:00",
+  "generated_at": "2026-11-12T22:28:03.829172+00:00",
+  "snapshot_generated_at": "2026-11-12T22:28:03.750809+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
-  "successful_sources": 17,
+  "successful_sources": 18,
   "total_sources": 21,
   "required_sources": [
     "okx_spot",
@@ -24,7 +24,7 @@
     "binance_spot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 15,
+      "age_seconds": 14,
       "reason": null
     },
     "okx_spot": {
@@ -138,14 +138,14 @@
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 15,
+      "age_seconds": 14,
       "reason": null
     },
     "fred_macro": {
-      "status": "warning",
+      "status": "ok",
       "required": false,
       "age_seconds": 14,
-      "reason": "source_error"
+      "reason": null
     }
   }
 }
