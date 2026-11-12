@@ -129,6 +129,22 @@ def main():
 
         "swole_btc_snapshot":
             "https://swolecharts.com/api/coin/BTC",
+
+        # CoinBoss public API: independently collected BTC derivatives and liquidation data.
+        "coinboss_funding_btc":
+            "https://www.coinboss.com/api/sd/funding?coin=BTC",
+
+        "coinboss_open_interest_btc":
+            "https://www.coinboss.com/api/sd/oi?coin=BTC",
+
+        "coinboss_liquidations_overview":
+            "https://www.coinboss.com/api/liquidations/overview",
+
+        "coinboss_liquidations_btc":
+            "https://www.coinboss.com/api/liquidations?symbol=BTCUSDT&limit=100",
+
+        "coinboss_market_tickers_btc":
+            "https://www.coinboss.com/api/market/tickers?coin=BTC",
     }
 
     results = {}
