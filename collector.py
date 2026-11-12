@@ -46,8 +46,8 @@ def parse_fred_csv(raw):
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
-        # FRED CSV responses may contain Windows-1252 punctuation.
-        text = raw.decode("cp1252")
+        # FRED CSV is numeric/date data; latin-1 preserves every byte safely.
+        text = raw.decode("latin-1")
     reader = csv.DictReader(io.StringIO(text))
     rows = []
     for row in reader:
