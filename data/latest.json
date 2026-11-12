@@ -1,42 +1,42 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-11-12T22:28:03.750809+00:00",
+  "generated_at": "2026-11-12T22:28:28.660159+00:00",
   "asset": "BTC",
-  "collection_duration_ms": 15125,
+  "collection_duration_ms": 15128,
   "sources": {
     "binance_spot": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.369489+00:00",
-      "latency_ms": 744,
+      "retrieved_at": "2026-11-12T22:28:14.014690+00:00",
+      "latency_ms": 482,
       "endpoint": "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT",
       "data": {
         "symbol": "BTCUSDT",
-        "priceChange": "-2899.16000000",
-        "priceChangePercent": "-3.897",
-        "weightedAvgPrice": "72522.33598966",
-        "prevClosePrice": "74398.01000000",
+        "priceChange": "-2897.16000000",
+        "priceChangePercent": "-3.894",
+        "weightedAvgPrice": "72522.29645507",
+        "prevClosePrice": "74396.01000000",
         "lastPrice": "71498.84000000",
-        "lastQty": "0.02830000",
+        "lastQty": "0.00380000",
         "bidPrice": "71498.84000000",
-        "bidQty": "2.79976000",
+        "bidQty": "1.00352000",
         "askPrice": "71498.85000000",
-        "askQty": "1.17544000",
-        "openPrice": "74398.00000000",
-        "highPrice": "74398.01000000",
+        "askQty": "2.65835000",
+        "openPrice": "74396.00000000",
+        "highPrice": "74396.00000000",
         "lowPrice": "71255.02000000",
-        "volume": "15401.34745000",
-        "quoteVolume": "1116941694.46237140",
-        "openTime": 1794436069013,
-        "closeTime": 1794522469013,
-        "firstId": 6841232518,
-        "lastId": 6844853167,
-        "count": 3620650
+        "volume": "15401.16228000",
+        "quoteVolume": "1116927656.62280780",
+        "openTime": 1794436093003,
+        "closeTime": 1794522493003,
+        "firstId": 6841232593,
+        "lastId": 6844853205,
+        "count": 3620613
       }
     },
     "okx_spot": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:48.899023+00:00",
-      "latency_ms": 273,
+      "retrieved_at": "2026-11-12T22:28:13.742656+00:00",
+      "latency_ms": 209,
       "endpoint": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT",
       "data": {
         "code": "0",
@@ -44,18 +44,18 @@
           {
             "instType": "SPOT",
             "instId": "BTC-USDT",
-            "last": "71503.4",
-            "lastSz": "0.00186508",
-            "askPx": "71503.5",
-            "askSz": "1.22390794",
-            "bidPx": "71503.4",
-            "bidSz": "0.67958392",
-            "open24h": "74399.6",
-            "high24h": "74399.6",
+            "last": "71503.8",
+            "lastSz": "0.0000102",
+            "askPx": "71504.1",
+            "askSz": "0.94425776",
+            "bidPx": "71504",
+            "bidSz": "1.34491695",
+            "open24h": "74342.9",
+            "high24h": "74342.9",
             "low24h": "71238.6",
-            "volCcy24h": "627046103.50546789",
-            "vol24h": "8652.32063122",
-            "ts": "1794522467671",
+            "volCcy24h": "626952241.182730833",
+            "vol24h": "8651.08057389",
+            "ts": "1794522492573",
             "sodUtc0": "74018.7",
             "sodUtc8": "71712.1"
           }
@@ -65,8 +65,8 @@
     },
     "okx_futures_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:48.887146+00:00",
-      "latency_ms": 260,
+      "retrieved_at": "2026-11-12T22:28:13.744451+00:00",
+      "latency_ms": 211,
       "endpoint": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -77,15 +77,15 @@
             "last": "71478",
             "lastSz": "0.01",
             "askPx": "71478",
-            "askSz": "146.06",
+            "askSz": "958.27",
             "bidPx": "71477.9",
-            "bidSz": "1412.73",
-            "open24h": "74369.9",
-            "high24h": "74370",
+            "bidSz": "1059.09",
+            "open24h": "74314.1",
+            "high24h": "74314.2",
             "low24h": "71200",
-            "volCcy24h": "99564.9244",
-            "vol24h": "9956492.44",
-            "ts": "1794522468372",
+            "volCcy24h": "99476.9257",
+            "vol24h": "9947692.57",
+            "ts": "1794522492575",
             "sodUtc0": "73980",
             "sodUtc8": "71682.7"
           }
@@ -95,8 +95,8 @@
     },
     "okx_funding": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:48.879618+00:00",
-      "latency_ms": 252,
+      "retrieved_at": "2026-11-12T22:28:13.742880+00:00",
+      "latency_ms": 209,
       "endpoint": "https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -126,8 +126,8 @@
     },
     "okx_open_interest": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:48.891395+00:00",
-      "latency_ms": 264,
+      "retrieved_at": "2026-11-12T22:28:13.742458+00:00",
+      "latency_ms": 208,
       "endpoint": "https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -135,10 +135,10 @@
           {
             "instId": "BTC-USDT-SWAP",
             "instType": "SWAP",
-            "oi": "3725634.85000001623",
-            "oiCcy": "37256.3485000001623",
-            "oiUsd": "2663009278.0830116008794",
-            "ts": "1794522468805"
+            "oi": "3725586.58000001626",
+            "oiCcy": "37255.8658000001626",
+            "oiUsd": "2662971050.06583162230654",
+            "ts": "1794522493681"
           }
         ],
         "msg": ""
@@ -146,60 +146,60 @@
     },
     "deribit_btc_perpetual": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:48.856999+00:00",
-      "latency_ms": 227,
+      "retrieved_at": "2026-11-12T22:28:13.826037+00:00",
+      "latency_ms": 291,
       "endpoint": "https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL",
       "data": {
         "jsonrpc": "2.0",
         "result": [
           {
-            "high": 74341.0,
+            "high": 74340.5,
             "low": 71165.5,
-            "last": 71443.0,
+            "last": 71438.0,
             "instrument_name": "BTC-PERPETUAL",
-            "bid_price": 71443.0,
-            "ask_price": 71443.5,
-            "open_interest": 692629300,
-            "mark_price": 71437.6,
-            "creation_timestamp": 1794522468803,
-            "current_funding": 9.7e-05,
-            "estimated_delivery_price": 71412.82,
-            "funding_8h": 3.769e-05,
-            "price_change": -3.9083,
-            "volume": 25955.69078381,
+            "bid_price": 71438.5,
+            "ask_price": 71439.0,
+            "open_interest": 692745030,
+            "mark_price": 71439.91,
+            "creation_timestamp": 1794522493748,
+            "current_funding": 7.836e-05,
+            "estimated_delivery_price": 71416.46,
+            "funding_8h": 3.77e-05,
+            "price_change": -3.9043,
+            "volume": 25955.0443836,
             "base_currency": "BTC",
             "quote_currency": "USD",
             "volume_delayed": 0.0,
-            "volume_realtime": 25955.69078381,
+            "volume_realtime": 25955.0443836,
             "volume_delayed_usd": 0.0,
-            "volume_realtime_usd": 1889940960.0,
-            "volume_usd": 1889940960.0,
+            "volume_realtime_usd": 1889884710.0,
+            "volume_usd": 1889884710.0,
             "volume_delayed_notional": 0.0,
-            "volume_notional": 1889940960.0,
-            "volume_realtime_notional": 1889940960.0,
-            "mid_price": 71443.25
+            "volume_notional": 1889884710.0,
+            "volume_realtime_notional": 1889884710.0,
+            "mid_price": 71438.75
           }
         ],
-        "usIn": 1794522468803583,
-        "usOut": 1794522468803798,
-        "usDiff": 215,
+        "usIn": 1794522493748319,
+        "usOut": 1794522493749062,
+        "usDiff": 743,
         "testnet": false
       }
     },
     "edge_liquidations_24h": {
       "status": "error",
-      "retrieved_at": "2026-11-12T22:28:03.746349+00:00",
+      "retrieved_at": "2026-11-12T22:28:28.659476+00:00",
       "error": "RuntimeError: https://edgeornot.com/api/liquidations?hours=24&coin=btc: TimeoutError: The read operation timed out"
     },
     "edge_btc_open_interest": {
       "status": "error",
-      "retrieved_at": "2026-11-12T22:28:03.750138+00:00",
+      "retrieved_at": "2026-11-12T22:28:28.659170+00:00",
       "error": "RuntimeError: https://edgeornot.com/api/oi/btc?days=1: TimeoutError: The read operation timed out"
     },
     "edge_funding_all_exchanges": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.709214+00:00",
-      "latency_ms": 1067,
+      "retrieved_at": "2026-11-12T22:28:15.140201+00:00",
+      "latency_ms": 1597,
       "endpoint": "https://edgeornot.com/api/funding",
       "data": {
         "pairs": [
@@ -8681,13 +8681,13 @@
     },
     "edge_open_interest_by_exchange": {
       "status": "error",
-      "retrieved_at": "2026-11-12T22:28:03.729790+00:00",
+      "retrieved_at": "2026-11-12T22:28:28.656444+00:00",
       "error": "RuntimeError: https://edgeornot.com/api/oi-by-exchange: TimeoutError: The read operation timed out"
     },
     "swole_funding_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.102966+00:00",
-      "latency_ms": 458,
+      "retrieved_at": "2026-11-12T22:28:13.874644+00:00",
+      "latency_ms": 329,
       "endpoint": "https://swolecharts.com/api/series/funding?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "funding",
@@ -8762,8 +8762,8 @@
     },
     "swole_open_interest_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:48.871498+00:00",
-      "latency_ms": 226,
+      "retrieved_at": "2026-11-12T22:28:13.872531+00:00",
+      "latency_ms": 325,
       "endpoint": "https://swolecharts.com/api/series/oi?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "oi",
@@ -8838,8 +8838,8 @@
     },
     "swole_liquidations_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.216434+00:00",
-      "latency_ms": 359,
+      "retrieved_at": "2026-11-12T22:28:14.404643+00:00",
+      "latency_ms": 662,
       "endpoint": "https://swolecharts.com/api/series/liquidations?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "liquidations",
@@ -8942,8 +8942,8 @@
     },
     "swole_btc_snapshot": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.241270+00:00",
-      "latency_ms": 370,
+      "retrieved_at": "2026-11-12T22:28:14.192238+00:00",
+      "latency_ms": 450,
       "endpoint": "https://swolecharts.com/api/coin/BTC",
       "data": {
         "long_short": {
@@ -18277,20 +18277,20 @@
             ]
           }
         },
-        "server_ts": 1794522469001,
+        "server_ts": 1794522480966,
         "uptime_since": 1791290081265,
         "market": {
           "base": "BTC",
           "cat": [
             "layer-1"
           ],
-          "oi_1h": 0.0017666529681286125,
-          "oi_4h": -0.0020508450211490503,
-          "oi_24h": 0.0011165542639330894,
-          "perp_vol24h": 39242735574.66889,
-          "spot_vol24h": 2108122738.9753282,
-          "oi_usd": 21189872965.858376,
-          "funding_avg": 9.997135290251291e-05,
+          "oi_1h": 0.0017773954599400454,
+          "oi_4h": -0.0020401434664567564,
+          "oi_24h": 0.0011272897843803698,
+          "perp_vol24h": 39242675202.82199,
+          "spot_vol24h": 2108134379.372999,
+          "oi_usd": 21190100196.457584,
+          "funding_avg": 9.99713532097081e-05,
           "funding_spread": 4.000000000000016e-06,
           "venues": [
             "aster",
@@ -18312,8 +18312,8 @@
               "venue": "binance",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 71486.4,
-              "price_ts": 1794522360.0,
+              "price": 71479.6,
+              "price_ts": 1794522420.0,
               "vol24h": 11560710130.18,
               "funding": 0.0001,
               "oi_usd": 7238260789.55521,
@@ -18335,17 +18335,17 @@
               "venue": "mexc",
               "symbol": "BTC_USDT",
               "quote": "USDT",
-              "price": 71486.3,
+              "price": 71479.6,
               "price_ts": null,
-              "vol24h": 2906138651.95726,
+              "vol24h": 2906577028.69776,
               "funding": 0.0001,
-              "oi_usd": 4414211613.4191,
+              "oi_usd": 4413875564.470561,
               "px_1h": -0.002100573328025934,
               "px_4h": -0.006507492654737157,
               "px_24h": -0.03909177226255378,
-              "oi_1h": -0.0018994212315264214,
-              "oi_4h": -0.0030478997217886494,
-              "oi_24h": -0.12201362553125628,
+              "oi_1h": -0.001975405502196992,
+              "oi_4h": -0.003123796560087766,
+              "oi_24h": -0.12208046564310648,
               "url": "https://www.mexc.com/futures/BTC_USDT",
               "hip3": false,
               "stale": false,
@@ -18358,8 +18358,8 @@
               "venue": "bybit",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 71487.4,
-              "price_ts": 1794522360.0,
+              "price": 71483.3,
+              "price_ts": 1794522420.0,
               "vol24h": 4914782604.7715,
               "funding": 0.0001,
               "oi_usd": 2597739435.35,
@@ -18427,7 +18427,7 @@
               "venue": "binance",
               "symbol": "BTCUSD_PERP",
               "quote": "USD",
-              "price": 71397.89377607,
+              "price": 71397.50283403,
               "price_ts": null,
               "vol24h": 765565000.0,
               "funding": 0.0001,
@@ -18519,17 +18519,17 @@
               "venue": "kucoin",
               "symbol": "XBTUSDTM",
               "quote": "USDT",
-              "price": 71477.17,
+              "price": 71491.1,
               "price_ts": null,
-              "vol24h": 455424887.2446,
+              "vol24h": 454930582.6572,
               "funding": 0.0001,
-              "oi_usd": 848155890.23153,
+              "oi_usd": 848237469.0518001,
               "px_1h": -0.0022320041610087715,
               "px_4h": -0.006200002225213885,
               "px_24h": -0.038958949976706236,
-              "oi_1h": -0.0017734880352442417,
-              "oi_4h": 0.006016389573052061,
-              "oi_24h": 0.15198932257452258,
+              "oi_1h": -0.0016774748587204957,
+              "oi_4h": 0.006113152009272982,
+              "oi_24h": 0.15210012523589866,
               "url": "https://www.kucoin.com/trade/futures/XBTUSDTM",
               "hip3": false,
               "stale": false,
@@ -18542,17 +18542,17 @@
               "venue": "aster",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 71464.32319566,
+              "price": 71487.5,
               "price_ts": null,
               "vol24h": 428534793.06,
               "funding": 0.0001,
-              "oi_usd": 444520596.5335645,
+              "oi_usd": 444664760.3125,
               "px_1h": -0.002029511017744623,
               "px_4h": -0.006590445522459687,
               "px_24h": -0.03918609254131733,
-              "oi_1h": -8.870141759609318e-05,
-              "oi_4h": -0.0043976399617391415,
-              "oi_24h": -0.05740227933768749,
+              "oi_1h": 0.00023558274949997404,
+              "oi_4h": -0.004074753239145301,
+              "oi_24h": -0.05709658270521112,
               "url": "https://www.asterdex.com/en/trade/pro/futures/BTCUSDT",
               "hip3": false,
               "stale": true,
@@ -18567,9 +18567,9 @@
               "venue": "bybit",
               "symbol": "BTCUSD",
               "quote": "USD",
-              "price": 71416.6,
-              "price_ts": 1794522360.0,
-              "vol24h": 240217348.0,
+              "price": 71399.0,
+              "price_ts": 1794522420.0,
+              "vol24h": 240212852.0,
               "funding": 0.0001,
               "oi_usd": 397586115.0,
               "px_1h": -0.0022341432452119836,
@@ -18613,17 +18613,17 @@
               "venue": "kucoin",
               "symbol": "XBTUSDM",
               "quote": "USD",
-              "price": 71439.6,
+              "price": 71442.8,
               "price_ts": null,
-              "vol24h": 6145184.0,
+              "vol24h": 6145236.0,
               "funding": 0.0001,
-              "oi_usd": 102659636.0,
+              "oi_usd": 102661124.0,
               "px_1h": -0.00199276678759297,
               "px_4h": -0.005967020623593333,
               "px_24h": -0.04025963554265444,
-              "oi_1h": -0.0004273563068578623,
-              "oi_4h": 0.0025290853605468566,
-              "oi_24h": 0.029419728902065012,
+              "oi_1h": -0.00041286800208917285,
+              "oi_4h": 0.002543616517456604,
+              "oi_24h": 0.02943464982538302,
               "url": "https://www.kucoin.com/trade/futures/XBTUSDM",
               "hip3": false,
               "stale": false,
@@ -18638,8 +18638,8 @@
               "venue": "binance",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 71506.0,
-              "price_ts": 1794522360.0,
+              "price": 71498.85,
+              "price_ts": 1794522420.0,
               "vol24h": 1116860038.8104486,
               "funding": null,
               "oi_usd": null,
@@ -18660,7 +18660,7 @@
               "quote": "USDT",
               "price": 71515.7,
               "price_ts": 1794522360.0,
-              "vol24h": 565431194.8780293,
+              "vol24h": 565442831.4177233,
               "funding": null,
               "oi_usd": null,
               "px_1h": -0.002105213194716904,
@@ -18700,7 +18700,7 @@
               "quote": "USDC",
               "price": 71453.8,
               "price_ts": 1794522360.0,
-              "vol24h": 60610337.6108389,
+              "vol24h": 60610341.4688159,
               "funding": null,
               "oi_usd": null,
               "px_1h": -0.002068229204514327,
@@ -18902,7 +18902,7 @@
             "oi_usd": 397430978.0,
             "confluence": [],
             "out": {
-              "5": null,
+              "5": 0.0006306584073771937,
               "15": null,
               "60": null
             },
@@ -18916,7 +18916,7 @@
               "bybit:perp"
             ],
             "sig": 1,
-            "rev": 2581324
+            "rev": 2581454
           },
           {
             "kind": "volume",
@@ -18943,7 +18943,7 @@
               "binance:spot"
             ],
             "out": {
-              "5": null,
+              "5": 0.0007714040113009357,
               "15": null,
               "60": null
             },
@@ -18959,7 +18959,7 @@
               "binance:spot"
             ],
             "sig": 2,
-            "rev": 2581343
+            "rev": 2581452
           },
           {
             "kind": "trade",
@@ -24630,15 +24630,15 @@
               "short": 0.0
             }
           ],
-          "server_ts": 1794522469001,
+          "server_ts": 1794522480966,
           "uptime_since": 1791290081265
         }
       }
     },
     "coinboss_funding_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.917633+00:00",
-      "latency_ms": 1038,
+      "retrieved_at": "2026-11-12T22:28:14.629635+00:00",
+      "latency_ms": 887,
       "endpoint": "https://www.coinboss.com/api/sd/funding?coin=BTC",
       "data": {
         "success": true,
@@ -25736,8 +25736,8 @@
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:50.174786+00:00",
-      "latency_ms": 1288,
+      "retrieved_at": "2026-11-12T22:28:14.817412+00:00",
+      "latency_ms": 1073,
       "endpoint": "https://www.coinboss.com/api/sd/oi?coin=BTC",
       "data": {
         "success": true,
@@ -27919,43 +27919,43 @@
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.709630+00:00",
-      "latency_ms": 818,
+      "retrieved_at": "2026-11-12T22:28:14.445254+00:00",
+      "latency_ms": 619,
       "endpoint": "https://www.coinboss.com/api/liquidations/overview",
       "data": {
         "success": true,
         "data": {
           "1h": {
-            "long_usd": 599110.42,
-            "short_usd": 438545.14999999985,
-            "total_usd": 1037655.5699999998,
-            "cnt": 1093
+            "long_usd": 599312.87,
+            "short_usd": 438545.1499999999,
+            "total_usd": 1037858.0199999999,
+            "cnt": 1095
           },
           "4h": {
-            "long_usd": 6355620.389999992,
-            "short_usd": 4459750.619999995,
-            "total_usd": 10815371.009999987,
-            "cnt": 5945
+            "long_usd": 6355822.839999992,
+            "short_usd": 4459750.6199999945,
+            "total_usd": 10815573.459999986,
+            "cnt": 5947
           },
           "12h": {
-            "long_usd": 475666086.37000066,
+            "long_usd": 475666288.82000065,
             "short_usd": 26686651.200000048,
-            "total_usd": 502352737.5700007,
-            "cnt": 66988
+            "total_usd": 502352940.0200007,
+            "cnt": 66990
           },
           "24h": {
-            "long_usd": 575647923.0600003,
+            "long_usd": 575648125.5100003,
             "short_usd": 35975202.52000006,
-            "total_usd": 611623125.5800004,
-            "cnt": 104346
+            "total_usd": 611623328.0300004,
+            "cnt": 104348
           }
         }
       }
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.963752+00:00",
-      "latency_ms": 1065,
+      "retrieved_at": "2026-11-12T22:28:14.741260+00:00",
+      "latency_ms": 869,
       "endpoint": "https://www.coinboss.com/api/liquidations?symbol=BTCUSDT&limit=100",
       "data": {
         "success": true,
@@ -29365,8 +29365,8 @@
     },
     "coinboss_market_tickers_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:50.104246+00:00",
-      "latency_ms": 1001,
+      "retrieved_at": "2026-11-12T22:28:14.693488+00:00",
+      "latency_ms": 819,
       "endpoint": "https://www.coinboss.com/api/market/tickers?coin=BTC",
       "data": {
         "success": true,
@@ -29386,8 +29386,8 @@
     },
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.404861+00:00",
-      "latency_ms": 188,
+      "retrieved_at": "2026-11-12T22:28:14.284224+00:00",
+      "latency_ms": 269,
       "endpoint": "https://www.tftc.io/bitcoin-etf-flows/latest.json",
       "data": {
         "name": "US Spot Bitcoin ETF Flows, latest session",
@@ -29471,8 +29471,8 @@
     },
     "fred_macro": {
       "status": "ok",
-      "retrieved_at": "2026-11-12T22:27:49.451068+00:00",
-      "latency_ms": 208,
+      "retrieved_at": "2026-11-12T22:28:14.387615+00:00",
+      "latency_ms": 194,
       "endpoint": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=<one-series-per-request>",
       "data": {
         "provider": "FRED",

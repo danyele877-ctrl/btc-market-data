@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-12T22:28:03.829172+00:00",
-  "snapshot_generated_at": "2026-11-12T22:28:03.750809+00:00",
+  "generated_at": "2026-11-12T22:28:28.733519+00:00",
+  "snapshot_generated_at": "2026-11-12T22:28:28.660159+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 18,
@@ -24,7 +24,7 @@
     "binance_spot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 14,
+      "age_seconds": 15,
       "reason": null
     },
     "okx_spot": {
@@ -96,7 +96,7 @@
     "swole_liquidations_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 15,
+      "age_seconds": 14,
       "reason": null
     },
     "swole_btc_snapshot": {
