@@ -105,20 +105,11 @@ def main():
         # Binance public market-data-only domain avoids regional restrictions on api.binance.com.
         "binance_spot": lambda: fetch_json("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT"),
         "okx_spot": lambda: fetch_json("https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT"),
-        # Bybit documents api.bytick.com as an alternate mainnet host.
-        "bybit_spot": lambda: fetch_json(["https://api.bytick.com/v5/market/tickers?category=spot&symbol=BTCUSDT",
-                                            "https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT"]),
-        "bybit_futures_ticker": lambda: fetch_json(["https://api.bytick.com/v5/market/tickers?category=linear&symbol=BTCUSDT",
-                                                      "https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT"]),
-        "bybit_open_interest": lambda: fetch_json(["https://api.bytick.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=5min&limit=1",
-                                                     "https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=5min&limit=1"]),
-        "bybit_funding_history": lambda: fetch_json(["https://api.bytick.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1",
-                                                       "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1"]),
-        "binance_futures_price": lambda: fetch_json("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT"),
-        "binance_open_interest": lambda: fetch_json("https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT"),
         "okx_futures_ticker": lambda: fetch_json("https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT-SWAP"),
         "okx_funding": lambda: fetch_json("https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP"),
         "okx_open_interest": lambda: fetch_json("https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP"),
+        # Deribit public BTC perpetual summary; its OI field is reported with an 8-hour delay.
+        "deribit_btc_perpetual": lambda: fetch_json("https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL"),
         "edge_liquidations_24h": lambda: fetch_json("https://edgeornot.com/api/liquidations?hours=24&coin=btc"),
         "edge_btc_open_interest": lambda: fetch_json("https://edgeornot.com/api/oi/btc?days=1"),
         "edge_funding_all_exchanges": lambda: fetch_json("https://edgeornot.com/api/funding"),
