@@ -42,43 +42,87 @@ def fetch_json(urls):
             errors.append(f"{url}: {type(exc).__name__}: {exc}")
     raise RuntimeError(" | ".join(errors)[-900:])
 
-def parse_fred_csv(raw):
+FRED_SERIES = ["DGS10", "DTWEXBGS", "FEDFUNDS", "CPIAUCSL", "CPILFESL", "UNRATE"]
+
+def parse_fred_csv(raw, expected_series):
+    # fredgraph.csv can return a ZIP when daily and monthly series are mixed.
+    # Requesting one series per URL guarantees a plain CSV payload.
+    if raw.startswith(b"PK\\x03\\x04"):
+        raise ValueError(f"FRED returned ZIP instead of CSV for {expected_series}")
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
-        # FRED CSV is numeric/date data; latin-1 preserves every byte safely.
         text = raw.decode("latin-1")
-    reader = csv.DictReader(io.StringIO(text, newline=""))
-    rows = []
-    for row in reader:
-        date = row.get("observation_date") or row.get("DATE")
-        if not date:
+
+    rows = list(csv.reader(io.StringIO(text, newline="")))
+    if not rows or len(rows[0]) < 2:
+        preview = repr(text[:160])
+        raise ValueError(f"FRED invalid CSV for {expected_series}: {preview}")
+
+    header = [cell.strip() for cell in rows[0]]
+    date_col = 0
+    value_col = 1
+    series_name = header[value_col] or expected_series
+    observations = []
+    for row in rows[1:]:
+        if len(row) <= value_col:
             continue
-        values = {}
-        for key, value in row.items():
-            if key in ("observation_date", "DATE") or value in (None, "", "."):
-                continue
-            try:
-                values[key] = float(value)
-            except (TypeError, ValueError):
-                pass
-        if values:
-            rows.append({"date": date, "values": values})
-    if not rows:
-        raise ValueError("FRED CSV contains no numeric observations")
-    latest = rows[-1]
-    return {
-        "provider": "FRED",
-        "series": list(latest["values"].keys()),
-        "latest_observation": latest,
-        "observations": rows[-45:]
-    }
+        date = row[date_col].strip()
+        value = row[value_col].strip()
+        if not date or value in ("", ".", "NA", "NaN"):
+            continue
+        try:
+            number = float(value)
+        except ValueError:
+            continue
+        observations.append({"date": date, "value": number})
+
+    if not observations:
+        raise ValueError(
+            f"FRED CSV for {expected_series} has no numeric rows; "
+            f"header={header!r}, first_data={rows[1:3]!r}"
+        )
+    return series_name, observations
 
 def fetch_fred():
-    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10,DTWEXBGS,FEDFUNDS,CPIAUCSL,CPILFESL,UNRATE"
     started = time.time()
-    raw = request_bytes(url, "text/csv,text/plain,*/*")
-    return {"data": parse_fred_csv(raw), "latency_ms": round((time.time()-started)*1000), "endpoint": url}
+
+    def fetch_one(series):
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}"
+        raw = request_bytes(url, "text/csv,text/plain,*/*")
+        name, observations = parse_fred_csv(raw, series)
+        return name, observations, url
+
+    with ThreadPoolExecutor(max_workers=len(FRED_SERIES)) as executor:
+        results = list(executor.map(fetch_one, FRED_SERIES))
+
+    by_date = {}
+    series_names = []
+    latest_by_series = {}
+    for name, observations, _url in results:
+        series_names.append(name)
+        latest_by_series[name] = observations[-1]
+        for item in observations[-45:]:
+            by_date.setdefault(item["date"], {})[name] = item["value"]
+
+    merged = [
+        {"date": date, "values": values}
+        for date, values in sorted(by_date.items())
+    ]
+    latest_date = max(item["date"] for item in merged)
+    latest_values = next(item["values"] for item in merged if item["date"] == latest_date)
+    payload = {
+        "provider": "FRED",
+        "series": series_names,
+        "latest_observation": {"date": latest_date, "values": latest_values},
+        "latest_by_series": latest_by_series,
+        "observations": merged[-45:]
+    }
+    return {
+        "data": payload,
+        "latency_ms": round((time.time()-started)*1000),
+        "endpoint": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=<one-series-per-request>"
+    }
 
 def fetch_coinboss_tickers():
     result = fetch_json("https://www.coinboss.com/api/market/tickers?coin=BTC")
