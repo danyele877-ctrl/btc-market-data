@@ -59,8 +59,13 @@ def main():
         ),
         "okx_open_interest": (
             "https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP"
-        )
-    }
+        ),
+    
+        "edge_liquidations_24h": "https://edgeornot.com/api/liquidations?hours=24&coin=btc",
+        "edge_btc_open_interest": "https://edgeornot.com/api/oi/btc?days=1",
+        "edge_funding_all_exchanges": "https://edgeornot.com/api/funding",
+        "edge_open_interest_by_exchange": "https://edgeornot.com/api/oi-by-exchange",
+}
 
     output = {
         "schema_version": 1,
