@@ -47,7 +47,7 @@ FRED_SERIES = ["DGS10", "DTWEXBGS", "FEDFUNDS", "CPIAUCSL", "CPILFESL", "UNRATE"
 def parse_fred_csv(raw, expected_series):
     # fredgraph.csv can return a ZIP when daily and monthly series are mixed.
     # Requesting one series per URL guarantees a plain CSV payload.
-    if raw.startswith(b"PK\\x03\\x04"):
+    if raw[:2] == b"PK":
         raise ValueError(f"FRED returned ZIP instead of CSV for {expected_series}")
     try:
         text = raw.decode("utf-8-sig")
