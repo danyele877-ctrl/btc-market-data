@@ -48,7 +48,7 @@ def parse_fred_csv(raw):
     except UnicodeDecodeError:
         # FRED CSV is numeric/date data; latin-1 preserves every byte safely.
         text = raw.decode("latin-1")
-    reader = csv.DictReader(io.StringIO(text))
+    reader = csv.DictReader(io.StringIO(text, newline=""))
     rows = []
     for row in reader:
         date = row.get("observation_date") or row.get("DATE")
