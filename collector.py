@@ -6,7 +6,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-TIMEOUT = 8
+TIMEOUT = 12
 MAX_WORKERS = 11
 USER_AGENT = "BTC-Market-Data/1.1"
 
@@ -21,14 +21,25 @@ def fetch_json(url):
         headers={"User-Agent": USER_AGENT}
     )
     started = time.time()
+    last_error = None
 
-    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-        data = json.loads(response.read().decode("utf-8"))
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+                data = json.loads(response.read().decode("utf-8"))
 
-    return {
-        "data": data,
-        "latency_ms": round((time.time() - started) * 1000)
-    }
+            return {
+                "data": data,
+                "latency_ms": round((time.time() - started) * 1000),
+                "attempts": attempt + 1
+            }
+
+        except Exception as exc:
+            last_error = exc
+            if attempt == 0:
+                time.sleep(1)
+
+    raise last_error
 
 
 def collect(item):
