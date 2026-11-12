@@ -43,7 +43,11 @@ def fetch_json(urls):
     raise RuntimeError(" | ".join(errors)[-900:])
 
 def parse_fred_csv(raw):
-    text = raw.decode("utf-8-sig")
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        # FRED CSV responses may contain Windows-1252 punctuation.
+        text = raw.decode("cp1252")
     reader = csv.DictReader(io.StringIO(text))
     rows = []
     for row in reader:
