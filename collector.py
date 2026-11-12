@@ -71,6 +71,19 @@ def main():
         "okx_spot":
             "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT",
 
+        # Bybit public market data: independent fallback for spot and derivatives.
+        "bybit_spot":
+            "https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT",
+
+        "bybit_futures_ticker":
+            "https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT",
+
+        "bybit_open_interest":
+            "https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=5min&limit=1",
+
+        "bybit_funding_history":
+            "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1",
+
         "binance_futures_price":
             "https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT",
 
