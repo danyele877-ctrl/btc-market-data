@@ -27,6 +27,12 @@ def fetch_json(url):
             with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
                 data = json.loads(response.read().decode("utf-8"))
 
+            # Bybit may return HTTP 200 with an application-level error.
+            if isinstance(data, dict) and "retCode" in data and data.get("retCode") != 0:
+                raise RuntimeError(
+                    f"Bybit retCode={data.get('retCode')}: {data.get('retMsg', '')}"
+                )
+
             return {
                 "data": data,
                 "latency_ms": round((time.time() - started) * 1000),
