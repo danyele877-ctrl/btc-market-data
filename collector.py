@@ -154,10 +154,7 @@ def main():
         "okx_open_interest": lambda: fetch_json("https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP"),
         # Deribit public BTC perpetual summary; its OI field is reported with an 8-hour delay.
         "deribit_btc_perpetual": lambda: fetch_json("https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL"),
-        "edge_liquidations_24h": lambda: fetch_json("https://edgeornot.com/api/liquidations?hours=24&coin=btc"),
-        "edge_btc_open_interest": lambda: fetch_json("https://edgeornot.com/api/oi/btc?days=1"),
         "edge_funding_all_exchanges": lambda: fetch_json("https://edgeornot.com/api/funding"),
-        "edge_open_interest_by_exchange": lambda: fetch_json("https://edgeornot.com/api/oi-by-exchange"),
         "swole_funding_btc_1d": lambda: fetch_json("https://swolecharts.com/api/series/funding?base=BTC&range=1d&step=1h"),
         "swole_open_interest_btc_1d": lambda: fetch_json("https://swolecharts.com/api/series/oi?base=BTC&range=1d&step=1h"),
         "swole_liquidations_btc_1d": lambda: fetch_json("https://swolecharts.com/api/series/liquidations?base=BTC&range=1d&step=1h"),
