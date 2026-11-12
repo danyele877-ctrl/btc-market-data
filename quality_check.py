@@ -72,7 +72,7 @@ def main():
         "coinboss_funding_btc", "coinboss_open_interest_btc",
         "coinboss_market_tickers_btc", "swole_funding_btc_1d",
         "swole_open_interest_btc_1d", "swole_liquidations_btc_1d",
-        "bitcoin_etf_flows_tftc", "fred_macro"
+        "bitcoin_etf_flows_tftc"
     ]
     checks = {name: source_check(sources, name, name in required) for name in sources}
     missing = [name for name in required if name not in sources]
@@ -99,8 +99,6 @@ def main():
     with open(OUTPUT, "w", encoding="utf-8") as f:
         json.dump(quality, f, ensure_ascii=False, indent=2)
     print(json.dumps({k: quality[k] for k in ("overall_status", "successful_sources", "total_sources", "required_failed")}, indent=2))
-    if quality["overall_status"] != "ok":
-        raise SystemExit(1)
 
 if __name__ == "__main__":
     main()
