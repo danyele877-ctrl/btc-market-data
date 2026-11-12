@@ -18,6 +18,8 @@ def parse_time(value):
 def valid_source_payload(name, data):
     if data is None:
         return False
+    if name == "deribit_btc_perpetual":
+        return isinstance(data, dict) and isinstance(data.get("result"), list) and bool(data["result"]) and bool(data["result"][0].get("mark_price"))
     if name.startswith("okx_"):
         return isinstance(data, dict) and data.get("code") == "0" and bool(data.get("data"))
     if name.startswith("bybit_"):
@@ -68,7 +70,7 @@ def main():
         snapshot = json.load(f)
     sources = snapshot.get("sources", {})
     required = [
-        "okx_spot", "okx_futures_ticker", "okx_funding", "okx_open_interest",
+        "okx_spot", "okx_futures_ticker", "okx_funding", "okx_open_interest", "deribit_btc_perpetual",
         "coinboss_funding_btc", "coinboss_open_interest_btc",
         "coinboss_market_tickers_btc", "swole_funding_btc_1d",
         "swole_open_interest_btc_1d", "swole_liquidations_btc_1d",
