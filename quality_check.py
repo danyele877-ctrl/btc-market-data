@@ -74,7 +74,17 @@ def main():
         "coinboss_funding_btc", "coinboss_open_interest_btc",
         "coinboss_market_tickers_btc", "swole_funding_btc_1d",
         "swole_open_interest_btc_1d", "swole_liquidations_btc_1d",
-        "bitcoin_etf_flows_tftc"
+        "bitcoin_etf_flows_tftc",
+        "okx_eea_btc_usdc_ticker",
+        "okx_eea_zec_usdc_ticker",
+        "okx_eea_zec_xperp_ticker",
+        "okx_eea_zec_xperp_book",
+        "okx_eea_zec_xperp_trades",
+        "okx_eea_zec_xperp_mark",
+        "okx_eea_zec_index",
+        "okx_eea_zec_xperp_funding",
+        "okx_eea_zec_xperp_oi",
+        "okx_eea_zec_xperp_spec"
     ]
     checks = {name: source_check(sources, name, name in required) for name in sources}
     missing = [name for name in required if name not in sources]
