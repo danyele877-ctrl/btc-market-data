@@ -20,6 +20,27 @@ def valid_source_payload(name, data):
         return False
     if name == "deribit_btc_perpetual":
         return isinstance(data, dict) and isinstance(data.get("result"), list) and bool(data["result"]) and bool(data["result"][0].get("mark_price"))
+    if name.startswith("okx_eea_"):
+        if not isinstance(data, dict) or data.get("code") != "0":
+            return False
+        rows = data.get("data")
+        if not isinstance(rows, list) or not rows:
+            return False
+        expected = {
+            "okx_eea_btc_usdc_ticker": "BTC-USDC",
+            "okx_eea_zec_usdc_ticker": "ZEC-USDC",
+            "okx_eea_zec_xperp_ticker": "ZEC-USD_UM_XPERP-310530",
+            "okx_eea_zec_xperp_book": "ZEC-USD_UM_XPERP-310530",
+            "okx_eea_zec_xperp_trades": "ZEC-USD_UM_XPERP-310530",
+            "okx_eea_zec_xperp_mark": "ZEC-USD_UM_XPERP-310530",
+            "okx_eea_zec_xperp_funding": "ZEC-USD_UM_XPERP-310530",
+            "okx_eea_zec_xperp_oi": "ZEC-USD_UM_XPERP-310530",
+            "okx_eea_zec_xperp_spec": "ZEC-USD_UM_XPERP-310530",
+        }
+        if name == "okx_eea_zec_index":
+            return any("ZEC" in str(row.get("instId", "")).upper() for row in rows)
+        inst_id = expected.get(name)
+        return inst_id is None or any(row.get("instId") == inst_id for row in rows)
     if name.startswith("okx_"):
         return isinstance(data, dict) and data.get("code") == "0" and bool(data.get("data"))
     if name.startswith("bybit_"):
