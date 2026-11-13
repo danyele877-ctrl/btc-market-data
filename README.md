@@ -34,7 +34,7 @@ All feeds are public endpoints. Do not add API keys, passwords, exchange credent
 
 The scheduled GitHub Actions collector remains unchanged. It is still a 15-minute job and is not the always-on process. The separate `candle_service.py` process maintains a public, read-only OKX WebSocket connection and serves its own JSON feed without changing the schema of `data/latest.json`.
 
-It subscribes to completed 1-minute and 5-minute candles for `BTC-USDC`, `ZEC-USDC`, and `ZEC-USD_UM_XPERP` when OKX's public instrument metadata reports them as live. Spot pairs that are absent or not live are listed in `unavailable_instruments` and are not subscribed. The ZEC X-Perp is the `FUTURES` instrument `ZEC-USD_UM_XPERP`; this is not `ZEC-USDT-SWAP`.
+It subscribes to completed 1-minute and 5-minute candles for `BTC-USDC`, `ZEC-USDC`, and the `ZEC-USD_UM_XPERP` futures family when OKX's public instrument metadata reports them as live. Spot pairs that are absent or not live are listed in `unavailable_instruments` and are not subscribed. The EEA catalog may list that X-Perp family under a dated exchange instrument ID (currently `ZEC-USD_UM_XPERP-310530`); discovery resolves it by `instFamily` and keeps the stable `ZEC-USD_UM_XPERP` candle key. It does not substitute `ZEC-USDT-SWAP`.
 
 ### Feed endpoints
 

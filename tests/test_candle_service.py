@@ -86,6 +86,29 @@ class InstrumentDiscoveryTests(unittest.TestCase):
         )
         self.assertEqual(unavailable, ["ZEC-USDC"])
 
+    def test_resolves_eea_dated_id_for_the_requested_xperp_family(self):
+        active, unavailable = service.resolve_instruments(
+            [],
+            [
+                {
+                    "instId": "ZEC-USD_UM_XPERP-310530",
+                    "instFamily": "ZEC-USD_UM_XPERP",
+                    "state": "live",
+                }
+            ],
+        )
+        self.assertEqual(
+            active,
+            [
+                {
+                    "instType": "FUTURES",
+                    "instId": "ZEC-USD_UM_XPERP-310530",
+                    "stream_key": "ZEC-USD_UM_XPERP",
+                }
+            ],
+        )
+        self.assertEqual(unavailable, ["BTC-USDC", "ZEC-USDC"])
+
     def test_discovery_continues_when_one_regional_instrument_is_missing(self):
         async def run_case():
             feed = service.CandleFeed()
@@ -132,6 +155,29 @@ class FeedStateTests(unittest.TestCase):
                 candles = feed.state["instruments"]["BTC-USDC"]["1m"]
                 self.assertEqual(len(candles), 1)
                 self.assertTrue((Path(directory) / "candles.json").exists())
+
+        asyncio.run(run_case())
+
+    def test_eea_futures_id_stores_candles_under_the_family_key(self):
+        async def run_case():
+            with TemporaryDirectory() as directory:
+                feed = service.CandleFeed(Path(directory) / "candles.json")
+                feed.state["service"]["active_instruments"] = [
+                    {
+                        "instType": "FUTURES",
+                        "instId": "ZEC-USD_UM_XPERP-310530",
+                        "stream_key": "ZEC-USD_UM_XPERP",
+                    }
+                ]
+                row = ["1794570000000", "100", "105", "99", "103", "12", "12", "1236", "1"]
+                message = {
+                    "arg": {"instId": "ZEC-USD_UM_XPERP-310530", "channel": "candle1m"},
+                    "data": [row],
+                }
+                await feed.handle_message(json.dumps(message))
+                candles = feed.state["instruments"]["ZEC-USD_UM_XPERP"]["1m"]
+                self.assertEqual(len(candles), 1)
+                self.assertNotIn("ZEC-USD_UM_XPERP-310530", feed.state["instruments"])
 
         asyncio.run(run_case())
 

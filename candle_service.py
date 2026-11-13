@@ -68,11 +68,22 @@ def resolve_instruments(
     for inst_type, inst_id in DESIRED_INSTRUMENTS:
         match = next(
             (row for row in rows[inst_type]
-             if row.get("instId") == inst_id and row.get("state") == "live"),
+             if row.get("state") == "live"
+             and (
+                 row.get("instId") == inst_id
+                 or (inst_type == "FUTURES" and row.get("instFamily") == inst_id)
+             )),
             None,
         )
         if match:
-            active.append({"instType": inst_type, "instId": inst_id})
+            resolved_id = str(match.get("instId", inst_id))
+            item = {"instType": inst_type, "instId": resolved_id}
+            if resolved_id != inst_id:
+                # EEA metadata may expose the same X-Perp family under its
+                # dated exchange instrument ID; keep candle storage on the
+                # stable family key while subscribing with the listed ID.
+                item["stream_key"] = inst_id
+            active.append(item)
         else:
             unavailable.append(inst_id)
     return active, unavailable
@@ -162,7 +173,10 @@ class CandleFeed:
                     "stale": age is None or age < -60 or age > stale_after,
                 }
         connected = bool(service.get("connected"))
-        active_ids = {item["instId"] for item in service.get("active_instruments", [])}
+        active_ids = {
+            item.get("stream_key", item["instId"])
+            for item in service.get("active_instruments", [])
+        }
         active_streams = [
             streams[f"{inst_id}:{bar}"]
             for inst_id in active_ids for bar in ("1m", "5m")
@@ -211,8 +225,13 @@ class CandleFeed:
         if payload.get("event"):
             return
         arg = payload.get("arg") or {}
-        inst_id = arg.get("instId")
+        exchange_inst_id = arg.get("instId")
         channel = arg.get("channel")
+        stream_ids = {
+            item["instId"]: item.get("stream_key", item["instId"])
+            for item in self.state["service"].get("active_instruments", [])
+        }
+        inst_id = stream_ids.get(exchange_inst_id, exchange_inst_id)
         if inst_id not in self.state["instruments"] or channel not in BAR_SECONDS:
             return
         rows = payload.get("data")
@@ -229,13 +248,23 @@ class CandleFeed:
             await self.persist()
 
     async def discover(self) -> list[dict[str, str]]:
-        metadata_rows = await asyncio.gather(*(
-            asyncio.to_thread(fetch_instruments, inst_type, inst_id)
+        spot_instruments = [
+            (inst_type, inst_id)
             for inst_type, inst_id in DESIRED_INSTRUMENTS
-        ))
+            if inst_type == "SPOT"
+        ]
+        metadata_requests = [
+            asyncio.to_thread(fetch_instruments, inst_type, inst_id)
+            for inst_type, inst_id in spot_instruments
+        ]
+        # The EEA catalog can expose a futures family under its dated
+        # exchange ID. Fetch the public futures catalog and resolve by family.
+        metadata_requests.append(asyncio.to_thread(fetch_instruments, "FUTURES"))
+        metadata_rows = await asyncio.gather(*metadata_requests)
         rows_by_type: dict[str, list[dict[str, Any]]] = {"SPOT": [], "FUTURES": []}
-        for (inst_type, _inst_id), rows in zip(DESIRED_INSTRUMENTS, metadata_rows):
+        for (inst_type, _inst_id), rows in zip(spot_instruments, metadata_rows):
             rows_by_type[inst_type].extend(rows)
+        rows_by_type["FUTURES"].extend(metadata_rows[-1])
         active, unavailable = resolve_instruments(rows_by_type["SPOT"], rows_by_type["FUTURES"])
         self.state["service"]["active_instruments"] = active
         self.state["service"]["unavailable_instruments"] = unavailable
