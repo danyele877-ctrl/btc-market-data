@@ -41,7 +41,7 @@ The continuous candle service now bootstraps at least 200 completed 1H and 4H ca
 
 Important limitations:
 - The GitHub Actions collector remains a 15-minute snapshot, not a live trading feed.
-- The Render candle service uses WebSocket for live 1m/5m candles; code changes are not deployed automatically because the Render blueprint has auto-deploy disabled.
+- The Render candle service uses WebSocket for live 1m/5m candles; code changes are deployed automatically only after GitHub Actions checks pass; the Render build filter ignores collector-only, data, documentation, and test changes.
 - Funding interval and contract-value discrepancies are deliberately not auto-resolved by code. The raw current API metadata and timestamps are preserved for manual reconciliation.
 - A successful REST request is not proof that a field is semantically comparable; inspect each endpoint's instrument ID, timestamp, venue and payload.
 - Public API access only; no credentials, account access, orders or trading actions.
@@ -72,6 +72,6 @@ The default port is `8080`; set `PORT` to override it. Set `CANDLE_DATA_FILE` if
 
 ### Always-on deployment option
 
-`render.yaml` defines an opt-in Render web service using the Dockerfile and an always-on paid `starter` plan. To deploy, connect this GitHub repository to Render, select **Blueprint** deployment, review the plan, and create the service. `autoDeployTrigger` is set to `off`, so later repository changes require a manual deploy. Render provides the HTTPS service URL; append `/candles.json` for the data and `/healthz` for status.
+`render.yaml` defines an opt-in Render web service using the Dockerfile and an always-on paid `starter` plan. To deploy, connect this GitHub repository to Render, select **Blueprint** deployment, review the plan, and create the service. `autoDeployTrigger` is set to `checksPass`, with a build filter limited to `candle_service.py`, `Dockerfile`, and `requirements.txt`; Render waits for successful GitHub Actions checks before deploying runtime changes. Render provides the HTTPS service URL; append `/candles.json` for the data and `/healthz` for status.
 
 No secret is needed for OKX. The feed endpoint contains public market data and is read-only. Keep the existing GitHub Actions workflow enabled for the BTC snapshot; the continuous feed runs independently and does not overwrite `data/latest.json`. Deployment requires the owner to connect the repository to a Render account and approve the paid always-on service.
