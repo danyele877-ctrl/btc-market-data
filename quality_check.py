@@ -39,6 +39,11 @@ def valid_source_payload(name, data):
         }
         if name == "okx_eea_zec_index":
             return any("ZEC" in str(row.get("instId", "")).upper() for row in rows)
+        if name == "okx_eea_zec_xperp_book":
+            # OKX order-book payloads contain asks/bids and ts but no instId;
+            # the request URL is pinned to the exact contract in collector.py.
+            book = rows[0]
+            return isinstance(book, dict) and bool(book.get("asks")) and bool(book.get("bids")) and bool(book.get("ts"))
         inst_id = expected.get(name)
         return inst_id is None or any(row.get("instId") == inst_id for row in rows)
     if name.startswith("okx_"):
