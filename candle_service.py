@@ -355,7 +355,18 @@ class CandleFeed:
                 active = await self.discover()
                 if not active:
                     raise RuntimeError("No configured OKX instruments are live")
-                await self.bootstrap_history(active)
+                # Historical warm-up must never prevent the live 1m/5m feed
+                # from connecting. Keep the diagnostic visible and retry history
+                # periodically while the WebSocket remains active.
+                try:
+                    await self.bootstrap_history(active)
+                    last_history_refresh = time.monotonic()
+                except Exception as history_exc:
+                    last_history_refresh = time.monotonic()
+                    self.state["service"]["last_error"] = (
+                        f"History bootstrap: {type(history_exc).__name__}: {str(history_exc)}"
+                    )[:500]
+                    await self.persist()
                 subscriptions = [
                     {"channel": channel, "instId": item["instId"]}
                     for item in active for channel in WS_CHANNELS
@@ -366,7 +377,6 @@ class CandleFeed:
                 ) as websocket:
                     await websocket.send(json.dumps({"op": "subscribe", "args": subscriptions}))
                     self.state["service"]["connected"] = True
-                    self.state["service"]["last_error"] = None
                     self.state["service"]["status"] = "connecting"
                     await self.persist()
                     delay = RECONNECT_MIN_SECONDS
@@ -379,11 +389,26 @@ class CandleFeed:
                         if message == "ping":
                             await websocket.send("pong")
                             self.state["service"]["last_message_at"] = iso_utc()
-                            continue
-                        if message == "pong":
+                        elif message == "pong":
                             self.state["service"]["last_message_at"] = iso_utc()
-                            continue
-                        await self.handle_message(message)
+                        else:
+                            await self.handle_message(message)
+                        # Refresh the completed 1H/4H history every 15 minutes.
+                        # Without this, the 1H/4H health checks inevitably go stale
+                        # even while the live WebSocket is healthy.
+                        if (
+                            any(x.get("instId") == EXPECTED_XPERP_INST_ID for x in active)
+                            and time.monotonic() - last_history_refresh >= 900
+                        ):
+                            try:
+                                await self.bootstrap_history(active)
+                                self.state["service"]["last_error"] = None
+                            except Exception as history_exc:
+                                self.state["service"]["last_error"] = (
+                                    f"History refresh: {type(history_exc).__name__}: {str(history_exc)}"
+                                )[:500]
+                            last_history_refresh = time.monotonic()
+                            await self.persist()
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
