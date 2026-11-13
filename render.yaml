@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: btc-market-data-candles
+    runtime: docker
+    plan: starter
+    autoDeployTrigger: "off"
+    healthCheckPath: /healthz

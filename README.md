@@ -29,3 +29,33 @@ Repository → Actions → Update BTC Market Data → Run workflow.
 - Three Edge or Not endpoints for liquidations and open interest were removed from the collector after repeated timeouts in GitHub Actions. Their roles are covered by the remaining CoinBoss and SwoleCharts feeds; Edge or Not cross-exchange funding remains enabled.
 
 All feeds are public endpoints. Do not add API keys, passwords, exchange credentials or personal data to this public repository.
+
+## Continuous OKX candle feed
+
+The scheduled GitHub Actions collector remains unchanged. It is still a 15-minute job and is not the always-on process. The separate `candle_service.py` process maintains a public, read-only OKX WebSocket connection and serves its own JSON feed without changing the schema of `data/latest.json`.
+
+It subscribes to completed 1-minute and 5-minute candles for `BTC-USDC`, `ZEC-USDC`, and `ZEC-USD_UM_XPERP` when OKX's public instrument metadata reports them as live. Spot pairs that are absent or not live are listed in `unavailable_instruments` and are not subscribed. The ZEC X-Perp is the `FUTURES` instrument `ZEC-USD_UM_XPERP`; this is not `ZEC-USDT-SWAP`.
+
+### Feed endpoints
+
+- `GET /candles.json` (also `/`): feed state, candle arrays, connection state, UTC timestamps, and staleness metadata.
+- `GET /healthz`: process and WebSocket health, each stream's latest completed candle time, age, threshold, and stale flag.
+
+Each candle has `ts_ms`, UTC `timestamp` and `completed_at`, and string-valued OHLCV fields to avoid losing decimal precision. Open candles are ignored. The service keeps the latest 500 completed candles per instrument and interval in memory. A process restart creates a short warm-up while subscriptions resume; no historical data is fabricated.
+
+The WebSocket client sends subscriptions after each connection, uses OKX's application-level text ping/pong heartbeat and reconnects with exponential backoff if the pong does not arrive. All timestamps are UTC. The collector follows OKX's [official WebSocket candlestick channel](https://www.okx.com/docs-v5/en/#websocket-api-public-channel) and resolves live instruments from the [public instruments metadata](https://www.okx.com/docs-v5/en/#rest-api-public-data). Only public market endpoints are used; no OKX API keys or trading permissions are used or supported.
+
+### Run locally
+
+```sh
+python -m pip install -r requirements.txt
+python candle_service.py
+```
+
+The default port is `8080`; set `PORT` to override it. Set `CANDLE_DATA_FILE` if you want a local JSON copy. Run the unit tests with `python -m unittest discover -s tests`.
+
+### Always-on deployment option
+
+`render.yaml` defines an opt-in Render web service using the Dockerfile and an always-on paid `starter` plan. To deploy, connect this GitHub repository to Render, select **Blueprint** deployment, review the plan, and create the service. `autoDeployTrigger` is set to `off`, so later repository changes require a manual deploy. Render provides the HTTPS service URL; append `/candles.json` for the data and `/healthz` for status.
+
+No secret is needed for OKX. The feed endpoint contains public market data and is read-only. Keep the existing GitHub Actions workflow enabled for the BTC snapshot; the continuous feed runs independently and does not overwrite `data/latest.json`. Deployment requires the owner to connect the repository to a Render account and approve the paid always-on service.
