@@ -15,7 +15,7 @@ import websockets
 
 OKX_REST = "https://eea.okx.com"
 OKX_WS = "wss://wseea.okx.com/ws/v5/business"
-BAR_SECONDS = {"candle1m": 60, "candle5m": 300, "candle1H": 3600, "candle4H": 14400}
+BAR_SECONDS = {"candle1m": 60, "candle5m": 300, "1H": 3600, "4H": 14400}
 HISTORY_LIMIT = 300
 EXPECTED_XPERP_INST_ID = "ZEC-USD_UM_XPERP-310530"
 MAX_CANDLES = int(os.getenv("MAX_CANDLES", "500"))
