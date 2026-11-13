@@ -37,7 +37,7 @@ The collector now records independent, timestamped public EEA REST snapshots for
 - Exact ZEC X-Perp ticker, L2 book, recent trades, mark price, ZEC index references, funding, open interest and instrument metadata
 - The exact futures ID is pinned to `ZEC-USD_UM_XPERP-310530`; no USDT swap or alternate contract is substituted.
 
-The continuous candle service now bootstraps up to 300 completed 1H and 4H candles for that exact ZEC X-Perp before subscribing to the 1m/5m WebSocket channels. It refuses to mark history ready unless at least 200 valid completed candles exist on each requested timeframe. The feed keeps the stable family key `ZEC-USD_UM_XPERP` separate from the dated exchange `instId`.
+The continuous candle service now bootstraps at least 200 completed 1H and 4H candles for that exact ZEC X-Perp using paginated requests (100 rows per OKX history page) before subscribing to the 1m/5m WebSocket channels. It refuses to mark history ready unless at least 200 valid completed candles exist on each requested timeframe. The feed keeps the stable family key `ZEC-USD_UM_XPERP` separate from the dated exchange `instId`.
 
 Important limitations:
 - The GitHub Actions collector remains a 15-minute snapshot, not a live trading feed.
@@ -59,7 +59,7 @@ It subscribes to completed 1-minute and 5-minute candles for `BTC-USDC`, `ZEC-US
 
 Each candle has `ts_ms`, UTC `timestamp` and `completed_at`, and string-valued OHLCV fields to avoid losing decimal precision. Open candles are ignored. The service keeps the latest 500 completed candles per instrument and interval in memory. A process restart creates a short warm-up while subscriptions resume; no historical data is fabricated.
 
-For OKX Europe accounts, the service uses the EEA API hosts (eea.okx.com for REST and wseea.okx.com for WebSocket). The WebSocket client sends subscriptions after each connection, uses OKX's application-level text ping/pong heartbeat and reconnects with exponential backoff if the pong does not arrive. All timestamps are UTC. The collector follows OKX's [official WebSocket candlestick channel](https://www.okx.com/docs-v5/en/#websocket-api-public-channel) and resolves live instruments from the [public instruments metadata](https://www.okx.com/docs-v5/en/#rest-api-public-data). Only public market endpoints are used; no OKX API keys or trading permissions are used or supported.
+For OKX Europe accounts, the service uses the EEA API hosts (eea.okx.com for REST and wseea.okx.com for WebSocket). The WebSocket client subscribes only to the live `candle1m` and `candle5m` channels (1H/4H are REST history intervals, not WebSocket channels), sends subscriptions after each connection, uses OKX's application-level text ping/pong heartbeat and reconnects with exponential backoff if the pong does not arrive. All timestamps are UTC. The collector follows OKX's [official WebSocket candlestick channel](https://www.okx.com/docs-v5/en/#websocket-api-public-channel) and resolves live instruments from the [public instruments metadata](https://www.okx.com/docs-v5/en/#rest-api-public-data). Only public market endpoints are used; no OKX API keys or trading permissions are used or supported.
 
 ### Run locally
 
