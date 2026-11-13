@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-13T21:44:18.025253+00:00",
-  "snapshot_generated_at": "2026-11-13T21:44:17.928009+00:00",
+  "generated_at": "2026-11-13T21:44:31.982075+00:00",
+  "snapshot_generated_at": "2026-11-13T21:44:31.900199+00:00",
   "snapshot_age_seconds": 0,
-  "overall_status": "ok",
+  "overall_status": "degraded",
   "successful_sources": 27,
   "total_sources": 28,
   "required_sources": [
@@ -17,9 +17,21 @@
     "swole_funding_btc_1d",
     "swole_open_interest_btc_1d",
     "swole_liquidations_btc_1d",
-    "bitcoin_etf_flows_tftc"
+    "bitcoin_etf_flows_tftc",
+    "okx_eea_btc_usdc_ticker",
+    "okx_eea_zec_usdc_ticker",
+    "okx_eea_zec_xperp_ticker",
+    "okx_eea_zec_xperp_book",
+    "okx_eea_zec_xperp_trades",
+    "okx_eea_zec_xperp_mark",
+    "okx_eea_zec_index",
+    "okx_eea_zec_xperp_funding",
+    "okx_eea_zec_xperp_oi",
+    "okx_eea_zec_xperp_spec"
   ],
-  "required_failed": [],
+  "required_failed": [
+    "okx_eea_zec_xperp_mark"
+  ],
   "checks": {
     "binance_spot": {
       "status": "ok",
@@ -30,37 +42,37 @@
     "okx_spot": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_futures_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_open_interest": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "deribit_btc_perpetual": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "edge_funding_all_exchanges": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "swole_funding_btc_1d": {
@@ -96,7 +108,7 @@
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_overview": {
@@ -108,7 +120,7 @@
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
@@ -131,61 +143,61 @@
     },
     "okx_eea_btc_usdc_ticker": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_usdc_ticker": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_ticker": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_book": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_trades": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_mark": {
       "status": "warning",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": "source_error"
     },
     "okx_eea_zec_index": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
-      "required": false,
+      "required": true,
       "age_seconds": 1,
       "reason": null
     }
