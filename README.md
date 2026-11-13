@@ -30,6 +30,22 @@ Repository → Actions → Update BTC Market Data → Run workflow.
 
 All feeds are public endpoints. Do not add API keys, passwords, exchange credentials or personal data to this public repository.
 
+## BTC + ZEC OKX Europe radar extension
+
+The collector now records independent, timestamped public EEA REST snapshots for:
+- BTC-USDC and ZEC-USDC spot tickers
+- Exact ZEC X-Perp ticker, L2 book, recent trades, mark price, ZEC index references, funding, open interest and instrument metadata
+- The exact futures ID is pinned to `ZEC-USD_UM_XPERP-310530`; no USDT swap or alternate contract is substituted.
+
+The continuous candle service now bootstraps up to 300 completed 1H and 4H candles for that exact ZEC X-Perp before subscribing to the 1m/5m WebSocket channels. It refuses to mark history ready unless at least 200 valid completed candles exist on each requested timeframe. The feed keeps the stable family key `ZEC-USD_UM_XPERP` separate from the dated exchange `instId`.
+
+Important limitations:
+- The GitHub Actions collector remains a 15-minute snapshot, not a live trading feed.
+- The Render candle service uses WebSocket for live 1m/5m candles; code changes are not deployed automatically because the Render blueprint has auto-deploy disabled.
+- Funding interval and contract-value discrepancies are deliberately not auto-resolved by code. The raw current API metadata and timestamps are preserved for manual reconciliation.
+- A successful REST request is not proof that a field is semantically comparable; inspect each endpoint's instrument ID, timestamp, venue and payload.
+- Public API access only; no credentials, account access, orders or trading actions.
+
 ## Continuous OKX candle feed
 
 The scheduled GitHub Actions collector remains unchanged. It is still a 15-minute job and is not the always-on process. The separate `candle_service.py` process maintains a public, read-only OKX WebSocket connection and serves its own JSON feed without changing the schema of `data/latest.json`.
