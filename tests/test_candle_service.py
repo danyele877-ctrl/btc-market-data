@@ -25,6 +25,13 @@ class CandleParsingTests(unittest.TestCase):
             datetime.fromtimestamp(expected_close, timezone.utc).isoformat().replace("+00:00", "Z"),
         )
 
+    def test_websocket_channels_are_only_live_minute_intervals(self):
+        self.assertEqual(service.WS_CHANNELS, ("candle1m", "candle5m"))
+        self.assertIn("1H", service.BAR_SECONDS)
+        self.assertIn("4H", service.BAR_SECONDS)
+        self.assertNotIn("1H", service.WS_CHANNELS)
+        self.assertNotIn("4H", service.WS_CHANNELS)
+
     def test_malformed_rows_and_unknown_bars_are_ignored(self):
         self.assertIsNone(service.parse_candle([], "candle1m"))
         self.assertIsNone(service.parse_candle(["1"] * 9, "candle15m"))
