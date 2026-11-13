@@ -81,6 +81,11 @@ class InstrumentDiscoveryTests(unittest.TestCase):
         ]
         futures = [
             {
+                "instId": "ZEC-USD_UM_XPERP-310627",
+                "instFamily": "ZEC-USD_UM_XPERP",
+                "state": "live",
+            },
+            {
                 "instId": "ZEC-USD_UM_XPERP-310530",
                 "instFamily": "ZEC-USD_UM_XPERP",
                 "state": "live",
