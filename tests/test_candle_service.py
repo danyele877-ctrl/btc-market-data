@@ -97,7 +97,7 @@ class InstrumentDiscoveryTests(unittest.TestCase):
             active,
             [
                 {"instType": "SPOT", "instId": "BTC-USDC"},
-                {"instType": "FUTURES", "instId": "ZEC-USD_UM_XPERP"},
+                {"instType": "FUTURES", "instId": "ZEC-USD_UM_XPERP-310530", "stream_key": "ZEC-USD_UM_XPERP"},
             ],
         )
         self.assertEqual(unavailable, ["ZEC-USDC"])
