@@ -49,6 +49,11 @@ def fetch_instruments(inst_type: str, inst_id: str | None = None) -> list[dict[s
     )
     with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
         payload = json.loads(response.read().decode("utf-8"))
+    # OKX returns 51001 when an instrument is not listed for this regional
+    # API host. Treat it as unavailable so one regional listing cannot stop
+    # discovery and subscriptions for the other configured public markets.
+    if payload.get("code") == "51001":
+        return []
     if payload.get("code") != "0" or not isinstance(payload.get("data"), list):
         raise RuntimeError(f"OKX instrument metadata error: {payload.get('code')} {payload.get('msg')}")
     return payload["data"]

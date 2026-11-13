@@ -55,6 +55,14 @@ class InstrumentDiscoveryTests(unittest.TestCase):
             "https://eea.okx.com/api/v5/public/instruments?instType=FUTURES&instId=ZEC-USD_UM_XPERP",
         )
 
+    def test_regional_unknown_instrument_is_treated_as_unavailable(self):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = (
+            b'{"code":"51001","msg":"Instrument ID, Instrument ID code, or Spread ID doesn\'t exist.","data":[]}'
+        )
+        with patch("candle_service.urllib.request.urlopen", return_value=response):
+            self.assertEqual(service.fetch_instruments("FUTURES", "ZEC-USD_UM_XPERP"), [])
+
     def test_uses_okx_eea_endpoints(self):
         self.assertEqual(service.OKX_REST, "https://eea.okx.com")
         self.assertEqual(service.OKX_WS, "wss://wseea.okx.com/ws/v5/business")
@@ -77,6 +85,31 @@ class InstrumentDiscoveryTests(unittest.TestCase):
             ],
         )
         self.assertEqual(unavailable, ["ZEC-USDC"])
+
+    def test_discovery_continues_when_one_regional_instrument_is_missing(self):
+        async def run_case():
+            feed = service.CandleFeed()
+            with patch(
+                "candle_service.fetch_instruments",
+                side_effect=[
+                    [{"instId": "BTC-USDC", "state": "live"}],
+                    [{"instId": "ZEC-USDC", "state": "live"}],
+                    [],
+                ],
+            ):
+                active = await feed.discover()
+            self.assertEqual(
+                active,
+                [
+                    {"instType": "SPOT", "instId": "BTC-USDC"},
+                    {"instType": "SPOT", "instId": "ZEC-USDC"},
+                ],
+            )
+            self.assertEqual(
+                feed.state["service"]["unavailable_instruments"], ["ZEC-USD_UM_XPERP"]
+            )
+
+        asyncio.run(run_case())
 
 
 class FeedStateTests(unittest.TestCase):
