@@ -1,0 +1,59 @@
+name: Render Candle Feed Bridge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "capture_render_feed.py"
+      - ".github/workflows/render-bridge.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-candle-feed-bridge
+  cancel-in-progress: false
+
+jobs:
+  publish-render-feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Capture Render health and completed candles
+        run: python capture_render_feed.py
+
+      - name: Publish only the Render bridge snapshot
+        run: |
+          set -e
+          cp data/render_feed.json /tmp/render-feed.json
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            git reset --hard "origin/${GITHUB_REF_NAME}"
+            cp /tmp/render-feed.json data/render_feed.json
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/render_feed.json
+            if git diff --cached --quiet; then
+              echo "Render bridge snapshot unchanged."
+              exit 0
+            fi
+            git commit -m "Refresh Render candle feed bridge"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            echo "Push attempt ${attempt} failed; refreshing branch."
+            sleep 2
+          done
+          echo "Unable to publish Render bridge after 3 attempts."
+          exit 1
