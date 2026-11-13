@@ -15,7 +15,9 @@ import websockets
 
 OKX_REST = "https://eea.okx.com"
 OKX_WS = "wss://wseea.okx.com/ws/v5/business"
-BAR_SECONDS = {"candle1m": 60, "candle5m": 300}
+BAR_SECONDS = {"candle1m": 60, "candle5m": 300, "candle1H": 3600, "candle4H": 14400}
+HISTORY_LIMIT = 300
+EXPECTED_XPERP_INST_ID = "ZEC-USD_UM_XPERP-310530"
 MAX_CANDLES = int(os.getenv("MAX_CANDLES", "500"))
 RECONNECT_MIN_SECONDS = 1
 RECONNECT_MAX_SECONDS = 60
@@ -78,11 +80,11 @@ def resolve_instruments(
         if match:
             resolved_id = str(match.get("instId", inst_id))
             item = {"instType": inst_type, "instId": resolved_id}
-            if resolved_id != inst_id:
-                # EEA metadata may expose the same X-Perp family under its
-                # dated exchange instrument ID; keep candle storage on the
-                # stable family key while subscribing with the listed ID.
-                item["stream_key"] = inst_id
+            if inst_type == "FUTURES":
+                if resolved_id != EXPECTED_XPERP_INST_ID:
+                    unavailable.append(inst_id)
+                    continue
+                item["stream_key"] = "ZEC-USD_UM_XPERP"
             active.append(item)
         else:
             unavailable.append(inst_id)
@@ -128,7 +130,7 @@ def merge_candles(target: list[dict[str, Any]], candles: list[dict[str, Any]]) -
 def new_state() -> dict[str, Any]:
     streams: dict[str, dict[str, list[dict[str, Any]]]] = {}
     for _, inst_id in DESIRED_INSTRUMENTS:
-        streams[inst_id] = {"1m": [], "5m": []}
+        streams[inst_id] = {"1m": [], "5m": [], "1H": [], "4H": []}
     return {
         "schema_version": 1,
         "generated_at": iso_utc(),
@@ -163,9 +165,11 @@ class CandleFeed:
                 newest = candles[-1] if candles else None
                 completed = parse_iso(newest.get("completed_at")) if newest else None
                 age = (now - completed).total_seconds() if completed else None
-                stale_after = BAR_SECONDS[f"candle{bar}"] * 3
+                interval = {"1m": 60, "5m": 300, "1H": 3600, "4H": 14400}[bar]
+                stale_after = interval * 3
                 streams[f"{inst_id}:{bar}"] = {
                     "candle_count": len(candles),
+                    "history_ready_200": len(candles) >= 200,
                     "last_candle_at": newest.get("timestamp") if newest else None,
                     "last_completed_at": newest.get("completed_at") if newest else None,
                     "age_seconds": round(age, 1) if age is not None else None,
@@ -181,12 +185,20 @@ class CandleFeed:
             streams[f"{inst_id}:{bar}"]
             for inst_id in active_ids for bar in ("1m", "5m")
         ]
+        history_streams = [
+            streams[f"{inst_id}:{bar}"]
+            for inst_id in active_ids if inst_id == "ZEC-USD_UM_XPERP"
+            for bar in ("1H", "4H")
+        ]
         streams_fresh = bool(active_streams) and all(not item["stale"] for item in active_streams)
+        history_ready = bool(history_streams) and all(
+            item["history_ready_200"] and not item["stale"] for item in history_streams
+        )
         coverage_complete = not service.get("unavailable_instruments")
         status = (
             "ok"
             if connected and message_age is not None and message_age <= WS_STALE_SECONDS
-            and streams_fresh and coverage_complete
+            and streams_fresh and history_ready and coverage_complete
             else "degraded"
         )
         return {
@@ -200,6 +212,7 @@ class CandleFeed:
             "active_instruments": service.get("active_instruments", []),
             "unavailable_instruments": service.get("unavailable_instruments", []),
             "streams": streams,
+            "history_ready_200": history_ready,
             "last_error": service.get("last_error"),
         }
 
@@ -247,6 +260,47 @@ class CandleFeed:
             self.state["service"]["status"] = "ok"
             await self.persist()
 
+    async def bootstrap_history(self, active: list[dict[str, str]]) -> None:
+        """Load 300 completed 1H/4H candles for the exact EEA ZEC X-Perp."""
+        if not any(x.get("instId") == EXPECTED_XPERP_INST_ID for x in active):
+            raise RuntimeError(
+                f"Expected exact EEA instrument {EXPECTED_XPERP_INST_ID} not found; "
+                "refusing to substitute another contract"
+            )
+
+        async def load(bar_name: str, interval: str) -> None:
+            query = urllib.parse.urlencode({
+                "instId": EXPECTED_XPERP_INST_ID, "bar": interval, "limit": str(HISTORY_LIMIT)
+            })
+            request = urllib.request.Request(
+                f"{OKX_REST}/api/v5/market/history-candles?{query}",
+                headers={"User-Agent": "btc-market-data-candle-feed/1.0", "Accept": "application/json"},
+            )
+            def fetch():
+                with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+                    status = response.status
+                    payload = json.loads(response.read().decode("utf-8"))
+                if status != 200 or payload.get("code") != "0":
+                    raise RuntimeError(
+                        f"OKX history {interval} HTTP {status} API {payload.get('code')} {payload.get('msg')}"
+                    )
+                return payload
+            payload = await asyncio.to_thread(fetch)
+            parsed = [
+                candle for candle in (parse_candle(row, interval) for row in payload.get("data", []))
+                if candle is not None
+            ]
+            parsed.sort(key=lambda x: x["ts_ms"])
+            if len(parsed) < 200:
+                raise RuntimeError(
+                    f"Only {len(parsed)} completed valid {interval} candles for {EXPECTED_XPERP_INST_ID}; need 200"
+                )
+            async with self.lock:
+                merge_candles(self.state["instruments"]["ZEC-USD_UM_XPERP"][bar_name], parsed)
+                await self.persist()
+
+        await asyncio.gather(load("1H", "1H"), load("4H", "4H"))
+
     async def discover(self) -> list[dict[str, str]]:
         spot_instruments = [
             (inst_type, inst_id)
@@ -277,6 +331,7 @@ class CandleFeed:
                 active = await self.discover()
                 if not active:
                     raise RuntimeError("No configured OKX instruments are live")
+                await self.bootstrap_history(active)
                 subscriptions = [
                     {"channel": channel, "instId": item["instId"]}
                     for item in active for channel in BAR_SECONDS
