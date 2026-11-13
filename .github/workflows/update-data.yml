@@ -9,6 +9,7 @@ on:
       - "quality_check.py"
       - "candle_service.py"
       - "requirements.txt"
+      - "tests/**"
       - ".github/workflows/update-data.yml"
   workflow_dispatch:
   schedule:
