@@ -13,8 +13,8 @@ from typing import Any
 
 import websockets
 
-OKX_REST = "https://www.okx.com"
-OKX_WS = "wss://ws.okx.com/ws/v5/business"
+OKX_REST = "https://eea.okx.com"
+OKX_WS = "wss://wseea.okx.com/ws/v5/business"
 BAR_SECONDS = {"candle1m": 60, "candle5m": 300}
 MAX_CANDLES = int(os.getenv("MAX_CANDLES", "500"))
 RECONNECT_MIN_SECONDS = 1

@@ -40,6 +40,10 @@ class CandleParsingTests(unittest.TestCase):
 
 
 class InstrumentDiscoveryTests(unittest.TestCase):
+    def test_uses_okx_eea_endpoints(self):
+        self.assertEqual(service.OKX_REST, "https://eea.okx.com")
+        self.assertEqual(service.OKX_WS, "wss://wseea.okx.com/ws/v5/business")
+
     def test_metadata_selects_live_xperp_id_and_only_available_spot_pairs(self):
         spot = [
             {"instId": "BTC-USDC", "state": "live"},
