@@ -80,7 +80,11 @@ class InstrumentDiscoveryTests(unittest.TestCase):
             {"instId": "ZEC-USDC", "state": "suspend"},
         ]
         futures = [
-            {"instId": "ZEC-USD_UM_XPERP", "state": "live"},
+            {
+                "instId": "ZEC-USD_UM_XPERP-310530",
+                "instFamily": "ZEC-USD_UM_XPERP",
+                "state": "live",
+            },
             {"instId": "ZEC-USDT-SWAP", "state": "live"},
         ]
         active, unavailable = service.resolve_instruments(spot, futures)
