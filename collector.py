@@ -42,6 +42,17 @@ def fetch_json(urls):
             errors.append(f"{url}: {type(exc).__name__}: {exc}")
     raise RuntimeError(" | ".join(errors)[-900:])
 
+OKX_EEA = "https://eea.okx.com/api/v5"
+ZEC_XPERP = "ZEC-USD_UM_XPERP-310530"
+
+def fetch_okx_index_zec():
+    result = fetch_json(f"{OKX_EEA}/market/index-tickers?quoteCcy=USD")
+    payload = result["data"]
+    rows = payload.get("data", []) if isinstance(payload, dict) else []
+    payload["data"] = [row for row in rows if "ZEC" in str(row.get("instId", "")).upper()]
+    result["data"] = payload
+    return result
+
 FRED_SERIES = ["DGS10", "DTWEXBGS", "FEDFUNDS", "CPIAUCSL", "CPILFESL", "UNRATE"]
 
 def parse_fred_csv(raw, expected_series):
@@ -167,6 +178,20 @@ def main():
         # TFTC publishes a free open JSON ETF-flow dataset; FRED CSV requires no API key.
         "bitcoin_etf_flows_tftc": lambda: fetch_json("https://www.tftc.io/bitcoin-etf-flows/latest.json"),
         "fred_macro": fetch_fred,
+
+        # OKX Europe (EEA) exact markets requested by the BTC+ZEC Futures radar.
+        # These are separate from the global OKX BTC-USDT and BTC-USDT-SWAP
+        # context above. Never substitute another ZEC contract.
+        "okx_eea_btc_usdc_ticker": lambda: fetch_json(f"{OKX_EEA}/market/ticker?instId=BTC-USDC"),
+        "okx_eea_zec_usdc_ticker": lambda: fetch_json(f"{OKX_EEA}/market/ticker?instId=ZEC-USDC"),
+        "okx_eea_zec_xperp_ticker": lambda: fetch_json(f"{OKX_EEA}/market/ticker?instId={ZEC_XPERP}"),
+        "okx_eea_zec_xperp_book": lambda: fetch_json(f"{OKX_EEA}/market/books?instId={ZEC_XPERP}&sz=50"),
+        "okx_eea_zec_xperp_trades": lambda: fetch_json(f"{OKX_EEA}/market/trades?instId={ZEC_XPERP}&limit=100"),
+        "okx_eea_zec_xperp_mark": lambda: fetch_json(f"{OKX_EEA}/market/mark-price?instType=FUTURES&instId={ZEC_XPERP}"),
+        "okx_eea_zec_index": fetch_okx_index_zec,
+        "okx_eea_zec_xperp_funding": lambda: fetch_json(f"{OKX_EEA}/public/funding-rate?instId={ZEC_XPERP}"),
+        "okx_eea_zec_xperp_oi": lambda: fetch_json(f"{OKX_EEA}/public/open-interest?instType=FUTURES&instId={ZEC_XPERP}"),
+        "okx_eea_zec_xperp_spec": lambda: fetch_json(f"{OKX_EEA}/public/instruments?instType=FUTURES&instId={ZEC_XPERP}"),
     }
     results = {}
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
