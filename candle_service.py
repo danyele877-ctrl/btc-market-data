@@ -70,13 +70,12 @@ def resolve_instruments(
     active: list[dict[str, str]] = []
     unavailable: list[str] = []
     for inst_type, inst_id in DESIRED_INSTRUMENTS:
+        # For the X-Perp, match only the exact dated exchange instrument.
+        # A family match alone could silently select a different expiry.
+        expected_id = EXPECTED_XPERP_INST_ID if inst_type == "FUTURES" else inst_id
         match = next(
             (row for row in rows[inst_type]
-             if row.get("state") == "live"
-             and (
-                 row.get("instId") == inst_id
-                 or (inst_type == "FUTURES" and row.get("instFamily") == inst_id)
-             )),
+             if row.get("state") == "live" and row.get("instId") == expected_id),
             None,
         )
         if match:
