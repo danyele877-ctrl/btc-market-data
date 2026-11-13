@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-13T23:44:51.794622+00:00",
-  "snapshot_generated_at": "2026-11-13T23:44:51.695683+00:00",
+  "generated_at": "2026-11-13T23:49:53.293961+00:00",
+  "snapshot_generated_at": "2026-11-13T23:49:53.197109+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -34,7 +34,7 @@
     "binance_spot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_spot": {
@@ -82,7 +82,7 @@
     "swole_open_interest_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "swole_liquidations_btc_1d": {
@@ -94,7 +94,7 @@
     "swole_btc_snapshot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_funding_btc": {
@@ -106,19 +106,19 @@
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 2,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
@@ -130,13 +130,13 @@
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "fred_macro": {
       "status": "ok",
       "required": false,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_btc_usdc_ticker": {
