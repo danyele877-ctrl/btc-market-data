@@ -38,8 +38,11 @@ def iso_utc(value: datetime | None = None) -> str:
     value = value or utc_now()
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
-def fetch_instruments(inst_type: str) -> list[dict[str, Any]]:
-    query = urllib.parse.urlencode({"instType": inst_type})
+def fetch_instruments(inst_type: str, inst_id: str | None = None) -> list[dict[str, Any]]:
+    params = {"instType": inst_type}
+    if inst_id:
+        params["instId"] = inst_id
+    query = urllib.parse.urlencode(params)
     request = urllib.request.Request(
         f"{OKX_REST}/api/v5/public/instruments?{query}",
         headers={"User-Agent": "btc-market-data-candle-feed/1.0", "Accept": "application/json"},
@@ -221,11 +224,14 @@ class CandleFeed:
             await self.persist()
 
     async def discover(self) -> list[dict[str, str]]:
-        spot, futures = await asyncio.gather(
-            asyncio.to_thread(fetch_instruments, "SPOT"),
-            asyncio.to_thread(fetch_instruments, "FUTURES"),
-        )
-        active, unavailable = resolve_instruments(spot, futures)
+        metadata_rows = await asyncio.gather(*(
+            asyncio.to_thread(fetch_instruments, inst_type, inst_id)
+            for inst_type, inst_id in DESIRED_INSTRUMENTS
+        ))
+        rows_by_type: dict[str, list[dict[str, Any]]] = {"SPOT": [], "FUTURES": []}
+        for (inst_type, _inst_id), rows in zip(DESIRED_INSTRUMENTS, metadata_rows):
+            rows_by_type[inst_type].extend(rows)
+        active, unavailable = resolve_instruments(rows_by_type["SPOT"], rows_by_type["FUTURES"])
         self.state["service"]["active_instruments"] = active
         self.state["service"]["unavailable_instruments"] = unavailable
         return active

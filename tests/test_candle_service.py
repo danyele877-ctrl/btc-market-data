@@ -1,6 +1,7 @@
 import asyncio
 import json
 import unittest
+from unittest.mock import MagicMock, Mock, patch
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -40,6 +41,20 @@ class CandleParsingTests(unittest.TestCase):
 
 
 class InstrumentDiscoveryTests(unittest.TestCase):
+    def test_metadata_request_targets_the_exact_instrument(self):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = (
+            b'{"code":"0","data":[{"instId":"ZEC-USD_UM_XPERP","state":"live"}]}'
+        )
+        with patch("candle_service.urllib.request.urlopen", return_value=response) as urlopen:
+            rows = service.fetch_instruments("FUTURES", "ZEC-USD_UM_XPERP")
+        self.assertEqual(rows[0]["instId"], "ZEC-USD_UM_XPERP")
+        request = urlopen.call_args.args[0]
+        self.assertEqual(
+            request.full_url,
+            "https://eea.okx.com/api/v5/public/instruments?instType=FUTURES&instId=ZEC-USD_UM_XPERP",
+        )
+
     def test_uses_okx_eea_endpoints(self):
         self.assertEqual(service.OKX_REST, "https://eea.okx.com")
         self.assertEqual(service.OKX_WS, "wss://wseea.okx.com/ws/v5/business")
