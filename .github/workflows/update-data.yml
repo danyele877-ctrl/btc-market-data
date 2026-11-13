@@ -6,7 +6,6 @@ on:
     branches: [main]
     paths:
       - "collector.py"
-      - "capture_render_feed.py"
       - "quality_check.py"
       - "candle_service.py"
       - "Dockerfile"
@@ -16,7 +15,7 @@ on:
       - ".github/workflows/update-data.yml"
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
 
 permissions:
   contents: write
@@ -49,15 +48,11 @@ jobs:
       - name: Validate source freshness and payloads
         run: python quality_check.py
 
-      - name: Capture Render live candle feed for automation access
-        run: python capture_render_feed.py
-
       - name: Save market data
         run: |
           set -e
           cp data/latest.json /tmp/btc-latest.json
           cp data/quality.json /tmp/btc-quality.json
-          cp data/render_feed.json /tmp/render-feed.json
 
           # Rebase-free publication: always build the data commit on the newest main.
           # Retry if another scheduled run pushes between fetch and push.
@@ -66,11 +61,10 @@ jobs:
             git reset --hard "origin/${GITHUB_REF_NAME}"
             cp /tmp/btc-latest.json data/latest.json
             cp /tmp/btc-quality.json data/quality.json
-            cp /tmp/render-feed.json data/render_feed.json
 
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/latest.json data/quality.json data/render_feed.json
+            git add data/latest.json data/quality.json
             if git diff --cached --quiet; then
               echo "No data changes to publish."
               exit 0
