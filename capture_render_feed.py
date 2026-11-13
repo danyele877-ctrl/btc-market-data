@@ -39,6 +39,33 @@ def get(path):
             "error": f"{type(exc).__name__}: {exc}"[:500],
         }
 
+def get_url(url):
+    """Fetch a public JSON endpoint and retain its own source timestamp."""
+    started = time.time()
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "btc-market-data-github-bridge/1.0",
+        "Accept": "application/json",
+        "Cache-Control": "no-cache",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+            return {
+                "http_status": response.status,
+                "retrieved_at": now(),
+                "latency_ms": round((time.time() - started) * 1000),
+                "endpoint": url,
+                "payload": payload,
+            }
+    except Exception as exc:
+        return {
+            "http_status": None,
+            "retrieved_at": now(),
+            "latency_ms": round((time.time() - started) * 1000),
+            "endpoint": url,
+            "error": f"{type(exc).__name__}: {exc}"[:500],
+        }
+
 def trim_arrays(value, limit=320):
     if isinstance(value, dict):
         return {key: trim_arrays(item, limit) for key, item in value.items()}
@@ -117,8 +144,34 @@ def main():
         market: {bar: get_okx_history(inst_id, bar) for bar in ("1H", "4H")}
         for market, inst_id in HISTORY_MARKETS.items()
     }
+    # Capture short-lived derivatives context in the same fast bridge snapshot.
+    # These are independent public OKX EEA requests, each with its own retrieval time.
+    market_paths = {
+        "btc_spot_ticker": "/market/ticker?instId=BTC-USDC",
+        "zec_spot_ticker": "/market/ticker?instId=ZEC-USDC",
+        "zec_xperp_ticker": "/market/ticker?instId=ZEC-USD_UM_XPERP-310530",
+        "zec_xperp_book": "/market/books?instId=ZEC-USD_UM_XPERP-310530&sz=50",
+        "zec_xperp_trades": "/market/trades?instId=ZEC-USD_UM_XPERP-310530&limit=100",
+        "zec_xperp_mark": "/public/mark-price?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
+        "zec_index": "/market/index-tickers?quoteCcy=USD",
+        "zec_xperp_funding": "/public/funding-rate?instId=ZEC-USD_UM_XPERP-310530",
+        "zec_xperp_open_interest": "/public/open-interest?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
+        "zec_xperp_instrument": "/public/instruments?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
+    }
+    okx_market = {
+        name: get_url(f"{OKX_EEA}{path}")
+        for name, path in market_paths.items()
+    }
+    # Keep only the ZEC USD index row; never mix unrelated index instruments.
+    index_payload = okx_market.get("zec_index", {}).get("payload")
+    if isinstance(index_payload, dict) and isinstance(index_payload.get("data"), list):
+        index_payload["data"] = [
+            row for row in index_payload["data"]
+            if "ZEC" in str(row.get("instId", "")).upper()
+        ]
     output = {
-        "bridge_schema_version": 2,
+        "bridge_schema_version": 3,
+        "okx_market": okx_market,
         "okx_history": okx_history,
         "captured_at": now(),
         "status": status,
