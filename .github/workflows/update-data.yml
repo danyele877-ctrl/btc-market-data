@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "collector.py"
+      - "capture_render_feed.py"
       - "quality_check.py"
       - "candle_service.py"
       - "Dockerfile"
