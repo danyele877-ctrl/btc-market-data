@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-13T16:46:51.143712+00:00",
-  "snapshot_generated_at": "2026-11-13T16:46:51.057285+00:00",
+  "generated_at": "2026-11-13T17:43:58.530892+00:00",
+  "snapshot_generated_at": "2026-11-13T17:43:58.451043+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 18,
@@ -60,7 +60,7 @@
     "edge_funding_all_exchanges": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "swole_funding_btc_1d": {
@@ -84,7 +84,7 @@
     "swole_btc_snapshot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_funding_btc": {
@@ -102,7 +102,7 @@
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_liquidations_btc": {
