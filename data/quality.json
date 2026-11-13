@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-13T21:44:44.239980+00:00",
-  "snapshot_generated_at": "2026-11-13T21:44:44.139364+00:00",
+  "generated_at": "2026-11-13T21:44:57.437787+00:00",
+  "snapshot_generated_at": "2026-11-13T21:44:57.356744+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "degraded",
   "successful_sources": 26,
@@ -97,13 +97,13 @@
     "swole_btc_snapshot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_open_interest_btc": {
@@ -115,19 +115,19 @@
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "bitcoin_etf_flows_tftc": {
@@ -151,7 +151,7 @@
     "okx_eea_zec_usdc_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_ticker": {
@@ -163,43 +163,43 @@
     "okx_eea_zec_xperp_book": {
       "status": "warning",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": "invalid_payload"
     },
     "okx_eea_zec_xperp_trades": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_mark": {
       "status": "warning",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": "source_error"
     },
     "okx_eea_zec_index": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     }
   }

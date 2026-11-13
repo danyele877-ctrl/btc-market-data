@@ -1,42 +1,42 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-11-13T21:44:44.139364+00:00",
+  "generated_at": "2026-11-13T21:44:57.356744+00:00",
   "asset": "BTC",
-  "collection_duration_ms": 1226,
+  "collection_duration_ms": 1499,
   "sources": {
     "binance_spot": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.409712+00:00",
-      "latency_ms": 496,
+      "retrieved_at": "2026-11-13T21:44:56.293399+00:00",
+      "latency_ms": 436,
       "endpoint": "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT",
       "data": {
         "symbol": "BTCUSDT",
-        "priceChange": "-3454.90000000",
-        "priceChangePercent": "-4.826",
-        "weightedAvgPrice": "69241.17996201",
-        "prevClosePrice": "71588.05000000",
-        "lastPrice": "68133.16000000",
-        "lastQty": "0.00270000",
-        "bidPrice": "68133.15000000",
-        "bidQty": "2.08614000",
-        "askPrice": "68133.16000000",
-        "askQty": "0.37826000",
-        "openPrice": "71588.06000000",
+        "priceChange": "-3459.25000000",
+        "priceChangePercent": "-4.832",
+        "weightedAvgPrice": "69241.09869533",
+        "prevClosePrice": "71594.28000000",
+        "lastPrice": "68135.04000000",
+        "lastQty": "0.01448000",
+        "bidPrice": "68135.04000000",
+        "bidQty": "0.24030000",
+        "askPrice": "68135.05000000",
+        "askQty": "7.33098000",
+        "openPrice": "71594.29000000",
         "highPrice": "71634.01000000",
         "lowPrice": "67568.00000000",
-        "volume": "29082.50245000",
-        "quoteVolume": "2013706785.88591470",
-        "openTime": 1794519883011,
-        "closeTime": 1794606283011,
-        "firstId": 6844814096,
-        "lastId": 6850888807,
-        "count": 6074712
+        "volume": "29083.93171000",
+        "quoteVolume": "2013803385.98031530",
+        "openTime": 1794519896008,
+        "closeTime": 1794606296008,
+        "firstId": 6844814238,
+        "lastId": 6850889147,
+        "count": 6074910
       }
     },
     "okx_spot": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.143983+00:00",
-      "latency_ms": 230,
+      "retrieved_at": "2026-11-13T21:44:56.089465+00:00",
+      "latency_ms": 231,
       "endpoint": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT",
       "data": {
         "code": "0",
@@ -44,18 +44,18 @@
           {
             "instType": "SPOT",
             "instId": "BTC-USDT",
-            "last": "68133.5",
-            "lastSz": "0.0262521",
-            "askPx": "68133.6",
-            "askSz": "0.22865065",
-            "bidPx": "68133.5",
-            "bidSz": "0.97717974",
+            "last": "68145",
+            "lastSz": "0.00653795",
+            "askPx": "68145.1",
+            "askSz": "0.27301542",
+            "bidPx": "68145",
+            "bidSz": "1.22631036",
             "open24h": "71593.1",
             "high24h": "71643.2",
             "low24h": "67510.4",
-            "volCcy24h": "1084049960.49066673",
-            "vol24h": "15664.30839082",
-            "ts": "1794606282078",
+            "volCcy24h": "1084169202.149240611",
+            "vol24h": "15666.05834338",
+            "ts": "1794606294969",
             "sodUtc0": "71461",
             "sodUtc8": "68897.2"
           }
@@ -65,8 +65,8 @@
     },
     "okx_futures_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.143760+00:00",
-      "latency_ms": 229,
+      "retrieved_at": "2026-11-13T21:44:56.082927+00:00",
+      "latency_ms": 224,
       "endpoint": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -74,18 +74,18 @@
           {
             "instType": "SWAP",
             "instId": "BTC-USDT-SWAP",
-            "last": "68103.1",
-            "lastSz": "0.99",
-            "askPx": "68103.2",
-            "askSz": "166.62",
-            "bidPx": "68103.1",
-            "bidSz": "455.5",
+            "last": "68103.2",
+            "lastSz": "0.78",
+            "askPx": "68103.3",
+            "askSz": "976.33",
+            "bidPx": "68103.2",
+            "bidSz": "312.92",
             "open24h": "71567.5",
             "high24h": "71619.6",
             "low24h": "67445",
-            "volCcy24h": "153641.4415",
-            "vol24h": "15364144.15",
-            "ts": "1794606282073",
+            "volCcy24h": "153643.8962",
+            "vol24h": "15364389.62",
+            "ts": "1794606295374",
             "sodUtc0": "71428.4",
             "sodUtc8": "68872.5"
           }
@@ -95,8 +95,8 @@
     },
     "okx_funding": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.144257+00:00",
-      "latency_ms": 229,
+      "retrieved_at": "2026-11-13T21:44:56.088939+00:00",
+      "latency_ms": 230,
       "endpoint": "https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -126,8 +126,8 @@
     },
     "okx_open_interest": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.154787+00:00",
-      "latency_ms": 235,
+      "retrieved_at": "2026-11-13T21:44:56.076426+00:00",
+      "latency_ms": 216,
       "endpoint": "https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -135,10 +135,10 @@
           {
             "instId": "BTC-USDT-SWAP",
             "instType": "SWAP",
-            "oi": "3381517.17000001557",
-            "oiCcy": "33815.1717000001557",
-            "oiUsd": "2302968742.55983060388622",
-            "ts": "1794606283091"
+            "oi": "3381682.4400000156",
+            "oiCcy": "33816.824400000156",
+            "oiUsd": "2303338306.8976906255032",
+            "ts": "1794606296026"
           }
         ],
         "msg": ""
@@ -146,8 +146,8 @@
     },
     "deribit_btc_perpetual": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.193039+00:00",
-      "latency_ms": 270,
+      "retrieved_at": "2026-11-13T21:44:56.069787+00:00",
+      "latency_ms": 207,
       "endpoint": "https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL",
       "data": {
         "jsonrpc": "2.0",
@@ -155,41 +155,41 @@
           {
             "high": 71580.5,
             "low": 67463.5,
-            "last": 68090.5,
+            "last": 68085.5,
             "instrument_name": "BTC-PERPETUAL",
-            "bid_price": 68091.0,
-            "ask_price": 68091.5,
+            "bid_price": 68085.5,
+            "ask_price": 68086.0,
             "open_interest": 702510760,
-            "mark_price": 68082.41,
-            "creation_timestamp": 1794606283114,
-            "current_funding": 0.00012954,
-            "estimated_delivery_price": 68056.58,
-            "funding_8h": 4.542e-05,
-            "price_change": -4.8211,
-            "volume": 40068.25441036,
+            "mark_price": 68089.71,
+            "creation_timestamp": 1794606295998,
+            "current_funding": 0.0001364,
+            "estimated_delivery_price": 68063.41,
+            "funding_8h": 4.549e-05,
+            "price_change": -4.8281,
+            "volume": 40072.03476131,
             "base_currency": "BTC",
             "quote_currency": "USD",
             "volume_delayed": 0.0,
-            "volume_realtime": 40068.25441036,
+            "volume_realtime": 40072.03476131,
             "volume_delayed_usd": 0.0,
-            "volume_realtime_usd": 2778154320.0,
-            "volume_usd": 2778154320.0,
+            "volume_realtime_usd": 2778411740.0,
+            "volume_usd": 2778411740.0,
             "volume_delayed_notional": 0.0,
-            "volume_notional": 2778154320.0,
-            "volume_realtime_notional": 2778154320.0,
-            "mid_price": 68091.25
+            "volume_notional": 2778411740.0,
+            "volume_realtime_notional": 2778411740.0,
+            "mid_price": 68085.75
           }
         ],
-        "usIn": 1794606283114594,
-        "usOut": 1794606283114819,
-        "usDiff": 225,
+        "usIn": 1794606295998200,
+        "usOut": 1794606295998449,
+        "usDiff": 249,
         "testnet": false
       }
     },
     "edge_funding_all_exchanges": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.995789+00:00",
-      "latency_ms": 1067,
+      "retrieved_at": "2026-11-13T21:44:57.356089+00:00",
+      "latency_ms": 1492,
       "endpoint": "https://edgeornot.com/api/funding",
       "data": {
         "pairs": [
@@ -8879,14 +8879,14 @@
     },
     "swole_funding_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.676857+00:00",
-      "latency_ms": 747,
+      "retrieved_at": "2026-11-13T21:44:56.191573+00:00",
+      "latency_ms": 325,
       "endpoint": "https://swolecharts.com/api/series/funding?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "funding",
         "step": 3600000,
         "start": 1794517200000,
-        "end": 1794606226256,
+        "end": 1794606292478,
         "source": "market_1h",
         "fields": [
           "v"
@@ -8955,14 +8955,14 @@
     },
     "swole_open_interest_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.686332+00:00",
-      "latency_ms": 756,
+      "retrieved_at": "2026-11-13T21:44:56.324094+00:00",
+      "latency_ms": 457,
       "endpoint": "https://swolecharts.com/api/series/oi?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "oi",
         "step": 3600000,
         "start": 1794517200000,
-        "end": 1794606225970,
+        "end": 1794606292294,
         "source": "market_1h",
         "fields": [
           "v"
@@ -9031,8 +9031,8 @@
     },
     "swole_liquidations_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.674314+00:00",
-      "latency_ms": 740,
+      "retrieved_at": "2026-11-13T21:44:56.170709+00:00",
+      "latency_ms": 297,
       "endpoint": "https://swolecharts.com/api/series/liquidations?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "liquidations",
@@ -9135,8 +9135,8 @@
     },
     "swole_btc_snapshot": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.859460+00:00",
-      "latency_ms": 911,
+      "retrieved_at": "2026-11-13T21:44:56.331859+00:00",
+      "latency_ms": 457,
       "endpoint": "https://swolecharts.com/api/coin/BTC",
       "data": {
         "long_short": {
@@ -18470,20 +18470,20 @@
             ]
           }
         },
-        "server_ts": 1794606270558,
+        "server_ts": 1794606290163,
         "uptime_since": 1791290081265,
         "market": {
           "base": "BTC",
           "cat": [
             "layer-1"
           ],
-          "oi_1h": -0.012668850552931765,
-          "oi_4h": -0.014383448763207629,
-          "oi_24h": -0.08554759044632865,
-          "perp_vol24h": 60214444769.160385,
-          "spot_vol24h": 3801756466.0761485,
-          "oi_usd": 19351308910.31515,
-          "funding_avg": 7.550641025931914e-05,
+          "oi_1h": -0.012617500826225703,
+          "oi_4h": -0.014332188210381624,
+          "oi_24h": -0.08550003104202686,
+          "perp_vol24h": 60223775445.44924,
+          "spot_vol24h": 3802265988.436659,
+          "oi_usd": 19352315345.111122,
+          "funding_avg": 7.539784462395676e-05,
           "funding_spread": 5.2468000000000007e-05,
           "venues": [
             "aster",
@@ -18551,15 +18551,15 @@
               "quote": "USDT",
               "price": 68096.0,
               "price_ts": 1794606180.0,
-              "vol24h": 7622154459.7067,
+              "vol24h": 7625442173.159,
               "funding": 6.774e-05,
-              "oi_usd": 2360123897.85,
+              "oi_usd": 2361202382.31,
               "px_1h": -0.009507296381651043,
               "px_4h": -0.010375301240654555,
               "px_24h": -0.04704542755551833,
-              "oi_1h": -0.01763013123392887,
-              "oi_4h": -0.007002456599750406,
-              "oi_24h": -0.0955883903402136,
+              "oi_1h": -0.017181226564813135,
+              "oi_4h": -0.006548695498330703,
+              "oi_24h": -0.09517510955128972,
               "url": "https://www.bybit.com/trade/usdt/BTCUSDT?affiliate_id=932&group_id=4043&group_type=1",
               "hip3": false,
               "stale": false,
@@ -18572,17 +18572,17 @@
               "venue": "gate",
               "symbol": "BTC_USDT",
               "quote": "USDT",
-              "price": 68111.6,
+              "price": 68119.4,
               "price_ts": null,
-              "vol24h": 9718098912.0,
-              "funding": 8.2e-05,
-              "oi_usd": 2086412240.2160003,
+              "vol24h": 9720628569.0,
+              "funding": 8.1e-05,
+              "oi_usd": 2086682751.99784,
               "px_1h": -0.009413002509233825,
               "px_4h": -0.00981227158064013,
               "px_24h": -0.04701068773948225,
-              "oi_1h": -0.019346372450073868,
-              "oi_4h": -0.018545100510180768,
-              "oi_24h": -0.10143093856698182,
+              "oi_1h": -0.019219226742699824,
+              "oi_4h": -0.018417850914660416,
+              "oi_24h": -0.10131443545545438,
               "url": "https://www.gate.com/futures/USDT/BTC_USDT",
               "hip3": false,
               "stale": false,
@@ -18641,7 +18641,7 @@
               "venue": "binance",
               "symbol": "BTCUSD_PERP",
               "quote": "USD",
-              "price": 68013.75373887,
+              "price": 68036.4,
               "price_ts": null,
               "vol24h": 1569651800.0,
               "funding": 7.643e-05,
@@ -18733,17 +18733,17 @@
               "venue": "aster",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 68077.66947464,
+              "price": 68108.7,
               "price_ts": null,
               "vol24h": 798697697.63,
               "funding": 9.227e-05,
-              "oi_usd": 429640350.5398763,
+              "oi_usd": 429836185.1784,
               "px_1h": -0.009310432755539666,
               "px_4h": -0.009514159323448124,
               "px_24h": -0.04668666842356861,
-              "oi_1h": -0.01169390938794157,
-              "oi_4h": -0.01858595927864426,
-              "oi_24h": -0.03346328358375683,
+              "oi_1h": -0.011243428966904334,
+              "oi_4h": -0.01813862032720437,
+              "oi_24h": -0.03302272587486976,
               "url": "https://www.asterdex.com/en/trade/pro/futures/BTCUSDT",
               "hip3": false,
               "stale": false,
@@ -18758,15 +18758,15 @@
               "quote": "USD",
               "price": 68027.9,
               "price_ts": 1794606180.0,
-              "vol24h": 543178433.0,
+              "vol24h": 543191548.0,
               "funding": 0.0001,
-              "oi_usd": 372920825.5,
+              "oi_usd": 372934945.0,
               "px_1h": -0.009768506741287153,
               "px_4h": -0.010611304685037792,
               "px_24h": -0.047084480404664286,
-              "oi_1h": -0.029126369633797666,
-              "oi_4h": -0.03505366420520939,
-              "oi_24h": -0.06341245349163216,
+              "oi_1h": -0.029089610490068973,
+              "oi_4h": -0.035017129480258036,
+              "oi_24h": -0.06337699248500916,
               "url": "https://www.bybit.com/trade/inverse/BTCUSD?affiliate_id=932&group_id=4043&group_type=1",
               "hip3": false,
               "stale": false,
@@ -18779,17 +18779,17 @@
               "venue": "lighter",
               "symbol": "BTC",
               "quote": "USDC",
-              "price": 68062.3,
+              "price": 68106.8,
               "price_ts": null,
-              "vol24h": 1398773436.825739,
+              "vol24h": 1402273627.662297,
               "funding": 9.599999999999999e-05,
-              "oi_usd": 130160013.42809401,
+              "oi_usd": 129607497.843704,
               "px_1h": -0.009779592524238434,
               "px_4h": -0.010058457799913878,
               "px_24h": -0.04716101925814975,
-              "oi_1h": -0.006719888139216423,
-              "oi_4h": 0.008711303276472071,
-              "oi_24h": -0.15040778629940932,
+              "oi_1h": -0.01093625787530994,
+              "oi_4h": 0.004429429753783021,
+              "oi_24h": -0.15401421600145693,
               "url": "https://app.lighter.xyz/trade/BTC",
               "hip3": false,
               "stale": false,
@@ -18849,7 +18849,7 @@
               "quote": "USDT",
               "price": 68130.1,
               "price_ts": 1794606180.0,
-              "vol24h": 1088323283.078226,
+              "vol24h": 1088779701.851104,
               "funding": null,
               "oi_usd": null,
               "px_1h": -0.009535117653974856,
@@ -18889,7 +18889,7 @@
               "quote": "USDC",
               "price": 68064.4,
               "price_ts": 1794606180.0,
-              "vol24h": 106526071.51199906,
+              "vol24h": 106579175.09963135,
               "funding": null,
               "oi_usd": null,
               "px_1h": -0.009678796999471273,
@@ -25162,36 +25162,36 @@
               "short": 0.0
             }
           ],
-          "server_ts": 1794606270558,
+          "server_ts": 1794606290163,
           "uptime_since": 1791290081265
         }
       }
     },
     "coinboss_funding_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.786690+00:00",
-      "latency_ms": 836,
+      "retrieved_at": "2026-11-13T21:44:56.741091+00:00",
+      "latency_ms": 866,
       "endpoint": "https://www.coinboss.com/api/sd/funding?coin=BTC",
       "data": {
         "success": true,
         "coin": "BTC",
-        "now": 1794606256862,
+        "now": 1794606283527,
         "unit": "fraction",
-        "avg_8h": 7.18382608695652e-05,
-        "oi_weighted_8h": 7.490317911949163e-05,
-        "apr_pct": 8.2019,
+        "avg_8h": 7.170434782608696e-05,
+        "oi_weighted_8h": 7.468701122168928e-05,
+        "apr_pct": 8.1782,
         "apr_basis": "oi_weighted_8h",
         "n_exchanges": 23,
         "n_normalized": 23,
         "n_unknown_interval": 0,
         "settled_cum_7d": {
           "avg": 0.0015562719999999998,
-          "oi_weighted": 0.0014670812478584302,
+          "oi_weighted": 0.0014670701686719982,
           "n": 15
         },
         "settled_cum_30d": {
           "avg": 0.006648272666666667,
-          "oi_weighted": 0.006354323345112121,
+          "oi_weighted": 0.00635432255708959,
           "n": 15
         },
         "by_exchange": [
@@ -25208,9 +25208,9 @@
             "next_funding_time": 1794614400000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 6700405629.16,
-            "updated_at": 1794606242000,
-            "age_s": 15,
+            "oi_usd": 6699966531.36,
+            "updated_at": 1794606277000,
+            "age_s": 7,
             "is_stale": false,
             "settled": {
               "last_rate": 4.045e-05,
@@ -25233,16 +25233,16 @@
             "margin": "usdt",
             "kind": "linear",
             "primary": true,
-            "rate": 6.822e-05,
+            "rate": 6.774e-05,
             "interval_h": 8,
-            "rate_8h": 6.822e-05,
-            "apr_pct": 7.4701,
+            "rate_8h": 6.774e-05,
+            "apr_pct": 7.4175,
             "next_funding_time": 1794614400000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 4722177782.39,
-            "updated_at": 1794606218000,
-            "age_s": 39,
+            "oi_usd": 4722110648.44,
+            "updated_at": 1794606278000,
+            "age_s": 6,
             "is_stale": false,
             "settled": {
               "last_rate": 4.596e-05,
@@ -25265,16 +25265,16 @@
             "margin": "usdt",
             "kind": "linear",
             "primary": true,
-            "rate": 8.1e-05,
+            "rate": 8e-05,
             "interval_h": 8,
-            "rate_8h": 8.1e-05,
-            "apr_pct": 8.8695,
+            "rate_8h": 8e-05,
+            "apr_pct": 8.76,
             "next_funding_time": 1794614400000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 4397937379.89,
-            "updated_at": 1794606222000,
-            "age_s": 35,
+            "oi_usd": 4400459969.58,
+            "updated_at": 1794606282000,
+            "age_s": 2,
             "is_stale": false,
             "settled": {
               "last_rate": 3.8e-05,
@@ -25306,7 +25306,7 @@
             "predicted_rate": null,
             "oi_usd": 4192740266.92,
             "updated_at": 1794606002000,
-            "age_s": 255,
+            "age_s": 282,
             "is_stale": false,
             "settled": {
               "last_rate": 3.1e-05,
@@ -25338,7 +25338,7 @@
             "predicted_rate": null,
             "oi_usd": 2718737556.03,
             "updated_at": 1794606226000,
-            "age_s": 31,
+            "age_s": 58,
             "is_stale": false,
             "settled": {
               "last_rate": 1.25e-05,
@@ -25368,9 +25368,9 @@
             "next_funding_time": 1794614400000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 2566412983.23,
-            "updated_at": 1794606218000,
-            "age_s": 39,
+            "oi_usd": 2565265140.4,
+            "updated_at": 1794606278000,
+            "age_s": 6,
             "is_stale": false,
             "settled": {
               "last_rate": 4.4e-05,
@@ -25400,9 +25400,9 @@
             "next_funding_time": 1794614400000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 2302128936.21,
+            "oi_usd": 2302968742.56,
             "updated_at": 1794606242000,
-            "age_s": 15,
+            "age_s": 42,
             "is_stale": false,
             "settled": {
               "last_rate": 3.817e-05,
@@ -25434,7 +25434,7 @@
             "predicted_rate": null,
             "oi_usd": 1355661812.45,
             "updated_at": 1794606223000,
-            "age_s": 34,
+            "age_s": 61,
             "is_stale": false,
             "settled": {
               "last_rate": 0.0001,
@@ -25466,7 +25466,7 @@
             "predicted_rate": null,
             "oi_usd": 934975974.1,
             "updated_at": 1794606004000,
-            "age_s": 253,
+            "age_s": 280,
             "is_stale": false,
             "settled": {
               "last_rate": 7.42e-05,
@@ -25493,12 +25493,12 @@
             "interval_h": 8,
             "rate_8h": 7.6e-05,
             "apr_pct": 8.322,
-            "next_funding_time": 1794614400123,
+            "next_funding_time": 1794614400113,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 735825226.93,
-            "updated_at": 1794606222000,
-            "age_s": 35,
+            "oi_usd": 736089991.49,
+            "updated_at": 1794606282000,
+            "age_s": 2,
             "is_stale": false,
             "settled": {
               "last_rate": 6.5e-05,
@@ -25530,7 +25530,7 @@
             "predicted_rate": null,
             "oi_usd": 702458950,
             "updated_at": 1794606230000,
-            "age_s": 27,
+            "age_s": 54,
             "is_stale": false,
             "settled": {
               "last_rate": 6.81e-06,
@@ -25560,9 +25560,9 @@
             "next_funding_time": 1794614400000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 653290372.8,
+            "oi_usd": 653225253.2,
             "updated_at": 1794606242000,
-            "age_s": 15,
+            "age_s": 42,
             "is_stale": false,
             "settled": {
               "last_rate": 4.2e-05,
@@ -25594,7 +25594,7 @@
             "predicted_rate": null,
             "oi_usd": 608628382.36,
             "updated_at": 1794606227000,
-            "age_s": 30,
+            "age_s": 57,
             "is_stale": false,
             "settled": null
           },
@@ -25604,16 +25604,16 @@
             "margin": "usdt",
             "kind": "linear",
             "primary": true,
-            "rate": 9.387e-05,
+            "rate": 9.227e-05,
             "interval_h": 8,
-            "rate_8h": 9.387e-05,
-            "apr_pct": 10.2788,
+            "rate_8h": 9.227e-05,
+            "apr_pct": 10.1036,
             "next_funding_time": 1794614400000,
             "next_derived": false,
             "predicted_rate": null,
             "oi_usd": 430805324.64,
-            "updated_at": 1794605965000,
-            "age_s": 292,
+            "updated_at": 1794606265000,
+            "age_s": 19,
             "is_stale": false,
             "settled": {
               "last_rate": 9.882e-05,
@@ -25645,7 +25645,7 @@
             "predicted_rate": null,
             "oi_usd": 417366184.5,
             "updated_at": 1794606016000,
-            "age_s": 241,
+            "age_s": 268,
             "is_stale": false,
             "settled": {
               "last_rate": -2.9e-07,
@@ -25677,7 +25677,7 @@
             "predicted_rate": null,
             "oi_usd": 170993223.21,
             "updated_at": 1794606229000,
-            "age_s": 28,
+            "age_s": 55,
             "is_stale": false,
             "settled": {
               "last_rate": 1.448e-05,
@@ -25709,7 +25709,7 @@
             "predicted_rate": null,
             "oi_usd": 166053807.45,
             "updated_at": 1794606114000,
-            "age_s": 143,
+            "age_s": 170,
             "is_stale": false,
             "settled": null
           },
@@ -25728,7 +25728,7 @@
             "predicted_rate": null,
             "oi_usd": 130845269.55,
             "updated_at": 1794606227000,
-            "age_s": 30,
+            "age_s": 57,
             "is_stale": false,
             "settled": null
           },
@@ -25747,7 +25747,7 @@
             "predicted_rate": null,
             "oi_usd": 34919139.11,
             "updated_at": 1794606232000,
-            "age_s": 25,
+            "age_s": 52,
             "is_stale": false,
             "settled": null
           },
@@ -25766,7 +25766,7 @@
             "predicted_rate": null,
             "oi_usd": 17189942.62,
             "updated_at": 1794606224000,
-            "age_s": 33,
+            "age_s": 60,
             "is_stale": false,
             "settled": {
               "last_rate": 2.263e-05,
@@ -25798,7 +25798,7 @@
             "predicted_rate": null,
             "oi_usd": 16611030.95,
             "updated_at": 1794606231000,
-            "age_s": 26,
+            "age_s": 53,
             "is_stale": false,
             "settled": null
           },
@@ -25816,8 +25816,8 @@
             "next_derived": false,
             "predicted_rate": null,
             "oi_usd": null,
-            "updated_at": 1794605965000,
-            "age_s": 292,
+            "updated_at": 1794606265000,
+            "age_s": 19,
             "is_stale": false,
             "settled": null
           },
@@ -25836,7 +25836,7 @@
             "predicted_rate": null,
             "oi_usd": null,
             "updated_at": 1794606225000,
-            "age_s": 32,
+            "age_s": 59,
             "is_stale": false,
             "settled": null
           }
@@ -25855,9 +25855,9 @@
             "next_funding_time": 1794614400000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 1581730134.08,
+            "oi_usd": 1582886897.32,
             "updated_at": 1794606185515,
-            "age_s": 71,
+            "age_s": 98,
             "is_stale": false,
             "settled": null
           },
@@ -25876,7 +25876,7 @@
             "predicted_rate": null,
             "oi_usd": 1291518100,
             "updated_at": 1794605996000,
-            "age_s": 261,
+            "age_s": 288,
             "is_stale": false,
             "settled": {
               "last_rate": 2.908e-05,
@@ -25908,7 +25908,7 @@
             "predicted_rate": null,
             "oi_usd": 816907000,
             "updated_at": 1794605996000,
-            "age_s": 261,
+            "age_s": 288,
             "is_stale": false,
             "settled": {
               "last_rate": 7.58234e-05,
@@ -25940,7 +25940,7 @@
             "predicted_rate": null,
             "oi_usd": 746105024,
             "updated_at": 1794605996000,
-            "age_s": 261,
+            "age_s": 288,
             "is_stale": false,
             "settled": {
               "last_rate": 5.681e-05,
@@ -25972,7 +25972,7 @@
             "predicted_rate": null,
             "oi_usd": 170129900,
             "updated_at": 1794606186372,
-            "age_s": 70,
+            "age_s": 97,
             "is_stale": false,
             "settled": null
           },
@@ -25991,7 +25991,7 @@
             "predicted_rate": null,
             "oi_usd": 169047442.12,
             "updated_at": 1794606230000,
-            "age_s": 27,
+            "age_s": 54,
             "is_stale": false,
             "settled": null
           },
@@ -26010,7 +26010,7 @@
             "predicted_rate": null,
             "oi_usd": 165115657.94,
             "updated_at": 1794606185416,
-            "age_s": 71,
+            "age_s": 98,
             "is_stale": false,
             "settled": null
           },
@@ -26029,7 +26029,7 @@
             "predicted_rate": null,
             "oi_usd": 127784277.98,
             "updated_at": 1794606186372,
-            "age_s": 70,
+            "age_s": 97,
             "is_stale": false,
             "settled": null
           },
@@ -26048,7 +26048,7 @@
             "predicted_rate": null,
             "oi_usd": 109388125.75,
             "updated_at": 1794606185067,
-            "age_s": 72,
+            "age_s": 98,
             "is_stale": false,
             "settled": null
           },
@@ -26067,7 +26067,7 @@
             "predicted_rate": null,
             "oi_usd": 91529981.92,
             "updated_at": 1794606185019,
-            "age_s": 72,
+            "age_s": 99,
             "is_stale": false,
             "settled": null
           },
@@ -26086,7 +26086,7 @@
             "predicted_rate": null,
             "oi_usd": 88199597,
             "updated_at": 1794606185084,
-            "age_s": 72,
+            "age_s": 98,
             "is_stale": false,
             "settled": null
           },
@@ -26105,7 +26105,7 @@
             "predicted_rate": null,
             "oi_usd": 35135904.56,
             "updated_at": 1794606185084,
-            "age_s": 72,
+            "age_s": 98,
             "is_stale": false,
             "settled": null
           },
@@ -26124,7 +26124,7 @@
             "predicted_rate": null,
             "oi_usd": 20405300,
             "updated_at": 1794605996000,
-            "age_s": 261,
+            "age_s": 288,
             "is_stale": false,
             "settled": null
           },
@@ -26143,7 +26143,7 @@
             "predicted_rate": null,
             "oi_usd": 17910521.57,
             "updated_at": 1794606186372,
-            "age_s": 70,
+            "age_s": 97,
             "is_stale": false,
             "settled": null
           },
@@ -26162,7 +26162,7 @@
             "predicted_rate": 0.0001,
             "oi_usd": 16034358,
             "updated_at": 1794605996000,
-            "age_s": 261,
+            "age_s": 288,
             "is_stale": false,
             "settled": null
           },
@@ -26181,7 +26181,7 @@
             "predicted_rate": null,
             "oi_usd": 13122896.37,
             "updated_at": 1794606190540,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "settled": null
           },
@@ -26200,7 +26200,7 @@
             "predicted_rate": null,
             "oi_usd": 4590725.75,
             "updated_at": 1794606190675,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "settled": null
           },
@@ -26219,7 +26219,7 @@
             "predicted_rate": null,
             "oi_usd": null,
             "updated_at": 1794606185169,
-            "age_s": 72,
+            "age_s": 98,
             "is_stale": false,
             "settled": null
           }
@@ -26268,70 +26268,70 @@
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:44.138408+00:00",
-      "latency_ms": 995,
+      "retrieved_at": "2026-11-13T21:44:57.038816+00:00",
+      "latency_ms": 969,
       "endpoint": "https://www.coinboss.com/api/sd/oi?coin=BTC",
       "data": {
         "success": true,
         "coin": "BTC",
-        "now": 1794606256956,
-        "total_usd": 47724029264.18,
+        "now": 1794606283673,
+        "total_usd": 47727105368.28,
         "n_exchanges": 22,
         "n_contracts": 95,
-        "asof": 1794606241000,
-        "total_usd_single_adjusted": 42803544735.61501,
+        "asof": 1794606282000,
+        "total_usd_single_adjusted": 42806654406.69,
         "double_sided": {
           "exchanges": [
             "bybit",
             "gate"
           ],
-          "oi_usd": 9840969057.13
+          "oi_usd": 9840901923.18
         },
         "by_kind": {
-          "linear_usd": 43114199559.18,
+          "linear_usd": 43117275663.28,
           "inverse_usd": 4609829705
         },
         "by_margin": {
           "other": 8368908742.229999,
-          "usdt": 29705962184.12,
-          "usdc": 5039328632.830001,
+          "usdt": 29707881524.980003,
+          "usdc": 5040485396.070001,
           "coin": 4609829705
         },
         "by_contract_type": {
-          "perpetual_usd": 39440820121.54,
-          "delivery_usd": 8283209142.64
+          "perpetual_usd": 39443884851.2,
+          "delivery_usd": 8283220517.08
         },
         "change": {
           "h1": {
-            "pct": -1.3,
-            "cur": 40314871896.57,
+            "pct": -1.29,
+            "cur": 40317948000.67,
             "prev": 40844406310.04,
             "n_matched": 94,
             "n_total": 94,
             "matched_share_pct": 100,
             "prev_ts": 1794602700000,
-            "span_min": 59,
+            "span_min": 60,
             "basis": "15m_snapshot"
           },
           "h4": {
-            "pct": -1.31,
-            "cur": 40314871896.57,
+            "pct": -1.3,
+            "cur": 40317948000.67,
             "prev": 40848246744.03,
             "n_matched": 94,
             "n_total": 94,
             "matched_share_pct": 100,
             "prev_ts": 1794591900000,
-            "span_min": 239,
+            "span_min": 240,
             "basis": "15m_snapshot"
           },
           "h24": {
-            "pct": -6.28,
-            "cur": 47722261112.41,
+            "pct": -6.27,
+            "cur": 47725337216.51,
             "prev": 50919815255.85,
             "n_matched": 22,
             "n_total": 22,
             "prev_ts": 1794520800000,
-            "span_min": 1424,
+            "span_min": 1425,
             "basis": "hourly_snapshot_by_exchange",
             "frozen_excluded": {
               "n_baseline": 4,
@@ -26344,23 +26344,23 @@
         "by_exchange": [
           {
             "exchange": "binance",
-            "oi_usd": 9741115786.78,
+            "oi_usd": 9741844826.66,
             "share_pct": 20.41,
             "n_contracts": 9,
-            "linear_usd": 8361013386.78,
+            "linear_usd": 8361742426.66,
             "inverse_usd": 1380102400,
-            "perpetual_usd": 9591367485.36,
-            "delivery_usd": 149748301.42,
+            "perpetual_usd": 9592085150.8,
+            "delivery_usd": 149759675.86,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794606241000,
-            "age_s": 16,
+            "updated_at": 1794606279000,
+            "age_s": 5,
             "is_stale": false
           },
           {
             "exchange": "cme",
             "oi_usd": 7409157367.61,
-            "share_pct": 15.53,
+            "share_pct": 15.52,
             "n_contracts": 1,
             "linear_usd": 7409157367.61,
             "inverse_usd": 0,
@@ -26369,37 +26369,37 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794543014000,
-            "age_s": 63243,
+            "age_s": 63270,
             "is_stale": false
           },
           {
             "exchange": "bybit",
-            "oi_usd": 5632194432.21,
+            "oi_usd": 5632127298.26,
             "share_pct": 11.8,
             "n_contracts": 13,
-            "linear_usd": 4875303592.21,
+            "linear_usd": 4875236458.26,
             "inverse_usd": 756890840,
-            "perpetual_usd": 5577670932.14,
+            "perpetual_usd": 5577603798.19,
             "delivery_usd": 54523500.07,
             "oi_side": "double",
-            "oi_usd_single_adjusted": 2816097216.105001,
-            "updated_at": 1794606218000,
-            "age_s": 39,
+            "oi_usd_single_adjusted": 2816063649.1300006,
+            "updated_at": 1794606278000,
+            "age_s": 6,
             "is_stale": false
           },
           {
             "exchange": "mexc",
-            "oi_usd": 4713762079.44,
+            "oi_usd": 4716284669.13,
             "share_pct": 9.88,
             "n_contracts": 4,
-            "linear_usd": 4543632179.44,
+            "linear_usd": 4546154769.13,
             "inverse_usd": 170129900,
-            "perpetual_usd": 4713762079.44,
+            "perpetual_usd": 4716284669.13,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794606222000,
-            "age_s": 35,
+            "updated_at": 1794606282000,
+            "age_s": 2,
             "is_stale": false
           },
           {
@@ -26414,22 +26414,22 @@
             "oi_side": "mixed",
             "oi_usd_single_adjusted": 2104457740.0100002,
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false
           },
           {
             "exchange": "okx",
-            "oi_usd": 3393793922.9,
+            "oi_usd": 3394633729.25,
             "share_pct": 7.11,
             "n_contracts": 13,
-            "linear_usd": 2469497302.9,
+            "linear_usd": 2470337109.25,
             "inverse_usd": 924296620,
-            "perpetual_usd": 3284151594.15,
+            "perpetual_usd": 3284991400.5,
             "delivery_usd": 109642328.75,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794606241000,
-            "age_s": 16,
+            "updated_at": 1794606277000,
+            "age_s": 7,
             "is_stale": false
           },
           {
@@ -26444,22 +26444,22 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606226000,
-            "age_s": 31,
+            "age_s": 58,
             "is_stale": false
           },
           {
             "exchange": "bitget",
-            "oi_usd": 2657942965.15,
+            "oi_usd": 2656795122.32,
             "share_pct": 5.57,
             "n_contracts": 2,
-            "linear_usd": 2657942965.15,
+            "linear_usd": 2656795122.32,
             "inverse_usd": 0,
-            "perpetual_usd": 2657942965.15,
+            "perpetual_usd": 2656795122.32,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794606218000,
-            "age_s": 39,
+            "updated_at": 1794606278000,
+            "age_s": 6,
             "is_stale": false
           },
           {
@@ -26474,7 +26474,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606230000,
-            "age_s": 27,
+            "age_s": 54,
             "is_stale": false
           },
           {
@@ -26489,7 +26489,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606223000,
-            "age_s": 34,
+            "age_s": 61,
             "is_stale": false
           },
           {
@@ -26504,37 +26504,37 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false
           },
           {
             "exchange": "kucoin",
-            "oi_usd": 859230808.49,
+            "oi_usd": 859495573.05,
             "share_pct": 1.8,
             "n_contracts": 4,
-            "linear_usd": 770961131.49,
+            "linear_usd": 771225896.05,
             "inverse_usd": 88269677,
-            "perpetual_usd": 859160728.49,
+            "perpetual_usd": 859425493.05,
             "delivery_usd": 70080,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794606222000,
-            "age_s": 35,
+            "updated_at": 1794606282000,
+            "age_s": 2,
             "is_stale": false
           },
           {
             "exchange": "bingx",
-            "oi_usd": 653290372.8,
+            "oi_usd": 653225253.2,
             "share_pct": 1.37,
             "n_contracts": 1,
-            "linear_usd": 653290372.8,
+            "linear_usd": 653225253.2,
             "inverse_usd": 0,
-            "perpetual_usd": 653290372.8,
+            "perpetual_usd": 653225253.2,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794605964000,
-            "age_s": 293,
+            "updated_at": 1794606264000,
+            "age_s": 20,
             "is_stale": false
           },
           {
@@ -26549,7 +26549,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606227000,
-            "age_s": 30,
+            "age_s": 57,
             "is_stale": false
           },
           {
@@ -26564,7 +26564,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606000000,
-            "age_s": 257,
+            "age_s": 284,
             "is_stale": false
           },
           {
@@ -26579,7 +26579,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606225000,
-            "age_s": 32,
+            "age_s": 59,
             "is_stale": false
           },
           {
@@ -26594,7 +26594,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606229000,
-            "age_s": 28,
+            "age_s": 55,
             "is_stale": false
           },
           {
@@ -26609,7 +26609,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606114000,
-            "age_s": 143,
+            "age_s": 170,
             "is_stale": false
           },
           {
@@ -26624,7 +26624,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606227000,
-            "age_s": 30,
+            "age_s": 57,
             "is_stale": false
           },
           {
@@ -26639,7 +26639,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606232000,
-            "age_s": 25,
+            "age_s": 52,
             "is_stale": false
           },
           {
@@ -26654,7 +26654,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606224000,
-            "age_s": 33,
+            "age_s": 60,
             "is_stale": false
           },
           {
@@ -26669,7 +26669,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794606231000,
-            "age_s": 26,
+            "age_s": 53,
             "is_stale": false
           }
         ],
@@ -26687,7 +26687,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794543014000,
-            "age_s": 63243,
+            "age_s": 63270,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26696,7 +26696,7 @@
             "exchange": "binance",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 6700405629.16,
+            "oi_usd": 6699966531.36,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26704,8 +26704,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794606241000,
-            "age_s": 16,
+            "updated_at": 1794606279000,
+            "age_s": 5,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26714,16 +26714,16 @@
             "exchange": "bybit",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 4722177782.39,
+            "oi_usd": 4722110648.44,
             "oi_side": "double",
-            "oi_usd_single": 2361088891.195,
+            "oi_usd_single": 2361055324.22,
             "margin": "usdt",
             "kind": "linear",
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794606218000,
-            "age_s": 39,
+            "updated_at": 1794606278000,
+            "age_s": 6,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26732,7 +26732,7 @@
             "exchange": "mexc",
             "symbol": "BTC_USDT",
             "native_symbol": null,
-            "oi_usd": 4397937379.89,
+            "oi_usd": 4400459969.58,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26740,8 +26740,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794606222000,
-            "age_s": 35,
+            "updated_at": 1794606282000,
+            "age_s": 2,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26759,7 +26759,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606002000,
-            "age_s": 255,
+            "age_s": 282,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26777,7 +26777,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606226000,
-            "age_s": 31,
+            "age_s": 58,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26786,7 +26786,7 @@
             "exchange": "bitget",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 2566412983.23,
+            "oi_usd": 2565265140.4,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26794,8 +26794,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794606218000,
-            "age_s": 39,
+            "updated_at": 1794606278000,
+            "age_s": 6,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26804,7 +26804,7 @@
             "exchange": "okx",
             "symbol": "BTC-USDT-SWAP",
             "native_symbol": null,
-            "oi_usd": 2302128936.21,
+            "oi_usd": 2302968742.56,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26812,8 +26812,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794606241000,
-            "age_s": 16,
+            "updated_at": 1794606277000,
+            "age_s": 7,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26822,7 +26822,7 @@
             "exchange": "binance",
             "symbol": "BTCUSDC",
             "native_symbol": "BTCUSDC",
-            "oi_usd": 1581730134.08,
+            "oi_usd": 1582886897.32,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdc",
@@ -26830,8 +26830,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "contract_spec",
-            "updated_at": 1794606219000,
-            "age_s": 38,
+            "updated_at": 1794606279000,
+            "age_s": 5,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383584894
@@ -26849,7 +26849,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606223000,
-            "age_s": 34,
+            "age_s": 61,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26867,7 +26867,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044810
@@ -26885,7 +26885,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606004000,
-            "age_s": 253,
+            "age_s": 280,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26903,7 +26903,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383589281
@@ -26921,7 +26921,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383590179
@@ -26930,7 +26930,7 @@
             "exchange": "kucoin",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 735825226.93,
+            "oi_usd": 736089991.49,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26938,8 +26938,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794606222000,
-            "age_s": 35,
+            "updated_at": 1794606282000,
+            "age_s": 2,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26957,7 +26957,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606230000,
-            "age_s": 27,
+            "age_s": 54,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26966,7 +26966,7 @@
             "exchange": "bingx",
             "symbol": "BTC-USDT",
             "native_symbol": null,
-            "oi_usd": 653290372.8,
+            "oi_usd": 653225253.2,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26974,8 +26974,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794605964000,
-            "age_s": 293,
+            "updated_at": 1794606264000,
+            "age_s": 20,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26993,7 +26993,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606227000,
-            "age_s": 30,
+            "age_s": 57,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27011,7 +27011,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606000000,
-            "age_s": 257,
+            "age_s": 284,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27029,7 +27029,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606225000,
-            "age_s": 32,
+            "age_s": 59,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27047,7 +27047,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044818
@@ -27065,7 +27065,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606229000,
-            "age_s": 28,
+            "age_s": 55,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27083,7 +27083,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044821
@@ -27101,7 +27101,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606230000,
-            "age_s": 27,
+            "age_s": 54,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27119,7 +27119,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606114000,
-            "age_s": 143,
+            "age_s": 170,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27137,7 +27137,7 @@
             "expiry_ts": 1933056000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383595204
@@ -27155,7 +27155,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606227000,
-            "age_s": 30,
+            "age_s": 57,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27173,7 +27173,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044824
@@ -27191,7 +27191,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383597739
@@ -27209,7 +27209,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044833
@@ -27227,7 +27227,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044840
@@ -27245,7 +27245,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044836
@@ -27263,7 +27263,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044856
@@ -27281,7 +27281,7 @@
             "expiry_ts": 1813910400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044849
@@ -27299,7 +27299,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044846
@@ -27317,7 +27317,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383599745
@@ -27335,7 +27335,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044891
@@ -27353,7 +27353,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606232000,
-            "age_s": 25,
+            "age_s": 52,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27362,7 +27362,7 @@
             "exchange": "binance",
             "symbol": "BTCUSDT_261225",
             "native_symbol": null,
-            "oi_usd": 33658487.97,
+            "oi_usd": 33669862.41,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -27370,8 +27370,8 @@
             "contract_type": "delivery",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794606241000,
-            "age_s": 16,
+            "updated_at": 1794606279000,
+            "age_s": 5,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27389,7 +27389,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606241000,
-            "age_s": 16,
+            "age_s": 43,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27407,7 +27407,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794492244816
@@ -27425,7 +27425,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383608692
@@ -27443,7 +27443,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383613355
@@ -27461,7 +27461,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044896
@@ -27479,7 +27479,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606224000,
-            "age_s": 33,
+            "age_s": 60,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27497,7 +27497,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794606231000,
-            "age_s": 26,
+            "age_s": 53,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27515,7 +27515,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383623702
@@ -27533,7 +27533,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383615363
@@ -27551,7 +27551,7 @@
             "expiry_ts": 1821772800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044908
@@ -27569,7 +27569,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383617387
@@ -27587,7 +27587,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383617777
@@ -27605,7 +27605,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044941
@@ -27623,7 +27623,7 @@
             "expiry_ts": 1813910400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383636278
@@ -27641,7 +27641,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383624470
@@ -27659,7 +27659,7 @@
             "expiry_ts": 1801209600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044963
@@ -27677,7 +27677,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383627983
@@ -27695,7 +27695,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383630348
@@ -27713,7 +27713,7 @@
             "expiry_ts": 1821772800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383639142
@@ -27731,7 +27731,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383638011
@@ -27749,7 +27749,7 @@
             "expiry_ts": 1813910400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383641893
@@ -27767,7 +27767,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383640701
@@ -27785,7 +27785,7 @@
             "expiry_ts": 1794643200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045155
@@ -27803,7 +27803,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383664036
@@ -27821,7 +27821,7 @@
             "expiry_ts": 1821772800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383685347
@@ -27839,7 +27839,7 @@
             "expiry_ts": 1796371200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794499744824
@@ -27857,7 +27857,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045027
@@ -27875,7 +27875,7 @@
             "expiry_ts": 1830240000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383700707
@@ -27893,7 +27893,7 @@
             "expiry_ts": 1794729600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794470644808
@@ -27911,7 +27911,7 @@
             "expiry_ts": 1798214400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045082
@@ -27929,7 +27929,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045109
@@ -27947,7 +27947,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383721210
@@ -27965,7 +27965,7 @@
             "expiry_ts": 1794816000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794500344826
@@ -27983,7 +27983,7 @@
             "expiry_ts": 1796371200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794557944880
@@ -28001,7 +28001,7 @@
             "expiry_ts": 1801209600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383731179
@@ -28019,7 +28019,7 @@
             "expiry_ts": 1806076800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045169
@@ -28037,7 +28037,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383749331
@@ -28055,7 +28055,7 @@
             "expiry_ts": 1794643200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045290
@@ -28073,7 +28073,7 @@
             "expiry_ts": 1794902400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794586744936
@@ -28091,7 +28091,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045443
@@ -28109,7 +28109,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045298
@@ -28127,7 +28127,7 @@
             "expiry_ts": 1794816000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794501544825
@@ -28145,7 +28145,7 @@
             "expiry_ts": 1794729600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794470644806
@@ -28163,7 +28163,7 @@
             "expiry_ts": 1795795200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045340
@@ -28181,7 +28181,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383871677
@@ -28199,7 +28199,7 @@
             "expiry_ts": 1813910400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383880073
@@ -28217,7 +28217,7 @@
             "expiry_ts": 1794902400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794588244966
@@ -28235,7 +28235,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045501
@@ -28253,7 +28253,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045514
@@ -28271,7 +28271,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045526
@@ -28289,7 +28289,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045543
@@ -28307,7 +28307,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045618
@@ -28325,7 +28325,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045568
@@ -28343,7 +28343,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794557344884
@@ -28361,7 +28361,7 @@
             "expiry_ts": 1795190400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794560644888
@@ -28379,7 +28379,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794606191000,
-            "age_s": 66,
+            "age_s": 93,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794573244900
@@ -28417,56 +28417,56 @@
               "exchange": "deribit",
               "symbol": "BTC-13NOV26",
               "oi_usd": 20515580,
-              "age_s": 48907,
+              "age_s": 48934,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "bybit",
               "symbol": "BTCUSDT-13NOV26",
               "oi_usd": 9311831.19,
-              "age_s": 48907,
+              "age_s": 48934,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC-12NOV26",
               "oi_usd": 1412840,
-              "age_s": 135306,
+              "age_s": 135333,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC_USDC-13NOV26",
               "oi_usd": 1191170.44,
-              "age_s": 48907,
+              "age_s": 48934,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC_USDC-12NOV26",
               "oi_usd": 422501.81,
-              "age_s": 135306,
+              "age_s": 135333,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "kraken",
               "symbol": "BTCUSD-261113",
               "oi_usd": 163305.03,
-              "age_s": 48907,
+              "age_s": 48934,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "htx",
               "symbol": "BTC-USD-261113",
               "oi_usd": 16200,
-              "age_s": 48907,
+              "age_s": 48934,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "gate",
               "symbol": "BTC_USDT_20261113",
               "oi_usd": 123.46,
-              "age_s": 48907,
+              "age_s": 48934,
               "reason": "older_than_usable_window"
             }
           ],
@@ -28493,43 +28493,43 @@
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.794101+00:00",
-      "latency_ms": 650,
+      "retrieved_at": "2026-11-13T21:44:56.614320+00:00",
+      "latency_ms": 538,
       "endpoint": "https://www.coinboss.com/api/liquidations/overview",
       "data": {
         "success": true,
         "data": {
           "1h": {
-            "long_usd": 22423380.479999997,
+            "long_usd": 22467097.870000005,
             "short_usd": 628409.0299999999,
-            "total_usd": 23051789.509999998,
-            "cnt": 4007
+            "total_usd": 23095506.900000006,
+            "cnt": 4031
           },
           "4h": {
-            "long_usd": 24924713.360000025,
-            "short_usd": 4849191.370000009,
-            "total_usd": 29773904.730000034,
-            "cnt": 10065
+            "long_usd": 24968430.750000034,
+            "short_usd": 4849191.37000001,
+            "total_usd": 29817622.120000042,
+            "cnt": 10089
           },
           "12h": {
-            "long_usd": 133690515.87000027,
+            "long_usd": 133734233.2600003,
             "short_usd": 105443219.1600001,
-            "total_usd": 239133735.0300004,
-            "cnt": 51472
+            "total_usd": 239177452.4200004,
+            "cnt": 51496
           },
           "24h": {
-            "long_usd": 1165041977.909999,
+            "long_usd": 1165085695.2999988,
             "short_usd": 210041064.1899999,
-            "total_usd": 1375083042.0999987,
-            "cnt": 151598
+            "total_usd": 1375126759.4899986,
+            "cnt": 151622
           }
         }
       }
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.902382+00:00",
-      "latency_ms": 758,
+      "retrieved_at": "2026-11-13T21:44:56.843311+00:00",
+      "latency_ms": 760,
       "endpoint": "https://www.coinboss.com/api/liquidations?symbol=BTCUSDT&limit=100",
       "data": {
         "success": true,
@@ -29939,8 +29939,8 @@
     },
     "coinboss_market_tickers_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.985855+00:00",
-      "latency_ms": 831,
+      "retrieved_at": "2026-11-13T21:44:56.425340+00:00",
+      "latency_ms": 336,
       "endpoint": "https://www.coinboss.com/api/market/tickers?coin=BTC",
       "data": {
         "success": true,
@@ -29960,8 +29960,8 @@
     },
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.421803+00:00",
-      "latency_ms": 229,
+      "retrieved_at": "2026-11-13T21:44:56.311297+00:00",
+      "latency_ms": 222,
       "endpoint": "https://www.tftc.io/bitcoin-etf-flows/latest.json",
       "data": {
         "name": "US Spot Bitcoin ETF Flows, latest session",
@@ -30045,8 +30045,8 @@
     },
     "fred_macro": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.557006+00:00",
-      "latency_ms": 145,
+      "retrieved_at": "2026-11-13T21:44:56.272613+00:00",
+      "latency_ms": 100,
       "endpoint": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=<one-series-per-request>",
       "data": {
         "provider": "FRED",
@@ -30412,8 +30412,8 @@
     },
     "okx_eea_btc_usdc_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.631137+00:00",
-      "latency_ms": 209,
+      "retrieved_at": "2026-11-13T21:44:56.468714+00:00",
+      "latency_ms": 277,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=BTC-USDC",
       "data": {
         "code": "0",
@@ -30421,18 +30421,18 @@
           {
             "instType": "SPOT",
             "instId": "BTC-USDC",
-            "last": "68073",
-            "lastSz": "0.02938845",
-            "askPx": "68073",
-            "askSz": "0.00007313",
-            "bidPx": "68072.9",
-            "bidSz": "0.05870182",
+            "last": "68081.8",
+            "lastSz": "0.00007323",
+            "askPx": "68075.1",
+            "askSz": "0.07517868",
+            "bidPx": "68075",
+            "bidSz": "0.03044639",
             "open24h": "71525.9",
             "high24h": "71577.4",
             "low24h": "67500",
-            "volCcy24h": "153998984.673346093",
-            "vol24h": "2224.31311585",
-            "ts": "1794606282350",
+            "volCcy24h": "154004809.368311714",
+            "vol24h": "2224.39867563",
+            "ts": "1794606295572",
             "sodUtc0": "71393.7",
             "sodUtc8": "68854.4"
           }
@@ -30442,8 +30442,8 @@
     },
     "okx_eea_zec_usdc_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.833598+00:00",
-      "latency_ms": 277,
+      "retrieved_at": "2026-11-13T21:44:56.451542+00:00",
+      "latency_ms": 179,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=ZEC-USDC",
       "data": {
         "code": "0",
@@ -30451,18 +30451,18 @@
           {
             "instType": "SPOT",
             "instId": "ZEC-USDC",
-            "last": "934.26",
-            "lastSz": "0.02086",
-            "askPx": "934.56",
-            "askSz": "0.27183",
-            "bidPx": "934.23",
-            "bidSz": "0.03939",
+            "last": "932",
+            "lastSz": "0.3",
+            "askPx": "932.59",
+            "askSz": "0.20863",
+            "bidPx": "931.97",
+            "bidSz": "0.09159",
             "open24h": "951.92",
             "high24h": "991.55",
             "low24h": "880",
-            "volCcy24h": "4324915.6100462",
-            "vol24h": "4594.09799",
-            "ts": "1794606282758",
+            "volCcy24h": "4331169.9975387",
+            "vol24h": "4600.80022",
+            "ts": "1794606295973",
             "sodUtc0": "955.68",
             "sodUtc8": "947.92"
           }
@@ -30472,8 +30472,8 @@
     },
     "okx_eea_zec_xperp_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.850193+00:00",
-      "latency_ms": 219,
+      "retrieved_at": "2026-11-13T21:44:57.243034+00:00",
+      "latency_ms": 950,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
@@ -30481,18 +30481,18 @@
           {
             "instType": "FUTURES",
             "instId": "ZEC-USD_UM_XPERP-310530",
-            "last": "933.23",
-            "lastSz": "2",
-            "askPx": "933.97",
-            "askSz": "41",
-            "bidPx": "933.63",
-            "bidSz": "157",
+            "last": "931.43",
+            "lastSz": "8",
+            "askPx": "931.45",
+            "askSz": "9",
+            "bidPx": "931.24",
+            "bidSz": "17",
             "open24h": "951.53",
             "high24h": "990.77",
             "low24h": "867.95",
-            "volCcy24h": "33930.62",
-            "vol24h": "3393062",
-            "ts": "1794606282425",
+            "volCcy24h": "33938.69",
+            "vol24h": "3393869",
+            "ts": "1794606296664",
             "sodUtc0": "955.09",
             "sodUtc8": "947.17"
           }
@@ -30502,8 +30502,8 @@
     },
     "okx_eea_zec_xperp_book": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.919380+00:00",
-      "latency_ms": 245,
+      "retrieved_at": "2026-11-13T21:44:56.516342+00:00",
+      "latency_ms": 205,
       "endpoint": "https://eea.okx.com/api/v5/market/books?instId=ZEC-USD_UM_XPERP-310530&sz=50",
       "data": {
         "code": "0",
@@ -30512,56 +30512,218 @@
           {
             "asks": [
               [
-                "933.6",
+                "931.39",
+                "9",
+                "0",
+                "1"
+              ],
+              [
+                "931.41",
+                "9",
+                "0",
+                "1"
+              ],
+              [
+                "931.43",
+                "8",
+                "0",
+                "1"
+              ],
+              [
+                "931.45",
+                "9",
+                "0",
+                "1"
+              ],
+              [
+                "931.47",
+                "9",
+                "0",
+                "1"
+              ],
+              [
+                "931.49",
+                "9",
+                "0",
+                "1"
+              ],
+              [
+                "931.51",
+                "9",
+                "0",
+                "1"
+              ],
+              [
+                "931.59",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "931.8",
+                "194",
+                "0",
+                "1"
+              ],
+              [
+                "931.91",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "932.16",
+                "1928",
+                "0",
+                "1"
+              ],
+              [
+                "932.19",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "932.27",
+                "194",
+                "0",
+                "1"
+              ],
+              [
+                "932.38",
+                "104",
+                "0",
+                "1"
+              ],
+              [
+                "932.48",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "932.6",
+                "214",
+                "0",
+                "1"
+              ],
+              [
+                "932.74",
+                "193",
+                "0",
+                "1"
+              ],
+              [
+                "932.8",
+                "577",
+                "0",
+                "1"
+              ],
+              [
+                "932.83",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "932.99",
+                "107",
+                "0",
+                "1"
+              ],
+              [
+                "933",
+                "4",
+                "0",
+                "1"
+              ],
+              [
+                "933.02",
+                "35972",
+                "0",
+                "1"
+              ],
+              [
+                "933.16",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "933.23",
+                "193",
+                "0",
+                "1"
+              ],
+              [
+                "933.24",
+                "107",
+                "0",
+                "1"
+              ],
+              [
+                "933.41",
+                "11",
+                "0",
+                "1"
+              ],
+              [
+                "933.47",
+                "107",
+                "0",
+                "1"
+              ],
+              [
+                "933.5",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "933.53",
                 "1",
                 "0",
                 "1"
               ],
               [
-                "933.61",
-                "9",
-                "0",
-                "1"
-              ],
-              [
-                "933.63",
-                "9",
-                "0",
-                "1"
-              ],
-              [
-                "933.65",
-                "9",
-                "0",
-                "1"
-              ],
-              [
-                "933.67",
-                "9",
-                "0",
-                "1"
-              ],
-              [
-                "933.69",
-                "9",
+                "933.6",
+                "14838",
                 "0",
                 "1"
               ],
               [
                 "933.71",
-                "9",
+                "300",
+                "0",
+                "2"
+              ],
+              [
+                "933.75",
+                "374",
                 "0",
                 "1"
               ],
               [
-                "933.73",
-                "9",
+                "933.83",
+                "2",
                 "0",
                 "1"
               ],
               [
-                "933.78",
-                "9",
+                "933.86",
+                "5",
+                "0",
+                "1"
+              ],
+              [
+                "934",
+                "4",
+                "0",
+                "1"
+              ],
+              [
+                "934.02",
+                "2500",
                 "0",
                 "1"
               ],
@@ -30572,8 +30734,44 @@
                 "1"
               ],
               [
+                "934.14",
+                "65",
+                "0",
+                "1"
+              ],
+              [
+                "934.17",
+                "11",
+                "0",
+                "1"
+              ],
+              [
                 "934.18",
                 "193",
+                "0",
+                "1"
+              ],
+              [
+                "934.19",
+                "65",
+                "0",
+                "1"
+              ],
+              [
+                "934.29",
+                "66",
+                "0",
+                "1"
+              ],
+              [
+                "934.4",
+                "20234",
+                "0",
+                "1"
+              ],
+              [
+                "934.43",
+                "107",
                 "0",
                 "1"
               ],
@@ -30584,10 +30782,10 @@
                 "1"
               ],
               [
-                "934.54",
-                "1927",
+                "934.53",
+                "83",
                 "0",
-                "1"
+                "2"
               ],
               [
                 "934.55",
@@ -30596,20 +30794,8 @@
                 "1"
               ],
               [
-                "934.58",
-                "109",
-                "0",
-                "1"
-              ],
-              [
                 "934.67",
                 "193",
-                "0",
-                "1"
-              ],
-              [
-                "934.72",
-                "577",
                 "0",
                 "1"
               ],
@@ -30624,402 +30810,30 @@
                 "11",
                 "0",
                 "1"
-              ],
-              [
-                "934.98",
-                "35981",
-                "0",
-                "1"
-              ],
-              [
-                "935",
-                "9",
-                "0",
-                "2"
-              ],
-              [
-                "935.03",
-                "106",
-                "0",
-                "1"
-              ],
-              [
-                "935.06",
-                "481",
-                "0",
-                "1"
-              ],
-              [
-                "935.11",
-                "157",
-                "0",
-                "1"
-              ],
-              [
-                "935.16",
-                "193",
-                "0",
-                "1"
-              ],
-              [
-                "935.2",
-                "1",
-                "0",
-                "1"
-              ],
-              [
-                "935.33",
-                "1",
-                "0",
-                "1"
-              ],
-              [
-                "935.49",
-                "106",
-                "0",
-                "1"
-              ],
-              [
-                "935.56",
-                "14843",
-                "0",
-                "1"
-              ],
-              [
-                "935.57",
-                "106",
-                "0",
-                "1"
-              ],
-              [
-                "935.63",
-                "351",
-                "0",
-                "3"
-              ],
-              [
-                "935.64",
-                "82",
-                "0",
-                "1"
-              ],
-              [
-                "935.66",
-                "67",
-                "0",
-                "1"
-              ],
-              [
-                "935.72",
-                "1",
-                "0",
-                "1"
-              ],
-              [
-                "935.74",
-                "64",
-                "0",
-                "1"
-              ],
-              [
-                "936",
-                "4",
-                "0",
-                "1"
-              ],
-              [
-                "936.08",
-                "2872",
-                "0",
-                "2"
-              ],
-              [
-                "936.11",
-                "193",
-                "0",
-                "1"
-              ],
-              [
-                "936.16",
-                "1",
-                "0",
-                "1"
-              ],
-              [
-                "936.2",
-                "183",
-                "0",
-                "2"
-              ],
-              [
-                "936.27",
-                "217",
-                "0",
-                "2"
-              ],
-              [
-                "936.4",
-                "5",
-                "0",
-                "1"
-              ],
-              [
-                "936.58",
-                "193",
-                "0",
-                "1"
-              ],
-              [
-                "936.73",
-                "20245",
-                "0",
-                "2"
-              ],
-              [
-                "936.76",
-                "2",
-                "0",
-                "1"
-              ],
-              [
-                "936.94",
-                "214",
-                "0",
-                "2"
-              ],
-              [
-                "936.99",
-                "1",
-                "0",
-                "1"
-              ],
-              [
-                "937",
-                "4",
-                "0",
-                "1"
-              ],
-              [
-                "937.05",
-                "213",
-                "0",
-                "1"
-              ],
-              [
-                "937.08",
-                "193",
-                "0",
-                "1"
               ]
             ],
             "bids": [
               [
-                "933.41",
+                "931.23",
                 "11",
                 "0",
                 "1"
               ],
               [
-                "933.4",
-                "193",
-                "0",
-                "1"
-              ],
-              [
-                "933.33",
+                "930.95",
                 "157",
                 "0",
                 "1"
               ],
               [
-                "933.19",
-                "577",
+                "930.87",
+                "579",
                 "0",
                 "1"
               ],
               [
-                "933.09",
-                "1927",
-                "0",
-                "1"
-              ],
-              [
-                "933.05",
-                "157",
-                "0",
-                "1"
-              ],
-              [
-                "932.93",
-                "193",
-                "0",
-                "1"
-              ],
-              [
-                "932.73",
-                "157",
-                "0",
-                "1"
-              ],
-              [
-                "932.48",
-                "107",
-                "0",
-                "1"
-              ],
-              [
-                "932.46",
-                "194",
-                "0",
-                "1"
-              ],
-              [
-                "932.45",
-                "157",
-                "0",
-                "1"
-              ],
-              [
-                "932.27",
-                "369",
-                "0",
-                "1"
-              ],
-              [
-                "932.25",
-                "107",
-                "0",
-                "1"
-              ],
-              [
-                "932.23",
-                "108",
-                "0",
-                "1"
-              ],
-              [
-                "932.16",
-                "35988",
-                "0",
-                "1"
-              ],
-              [
-                "932.06",
-                "157",
-                "0",
-                "1"
-              ],
-              [
-                "931.99",
-                "301",
-                "0",
-                "2"
-              ],
-              [
-                "931.85",
-                "15",
-                "0",
-                "1"
-              ],
-              [
-                "931.79",
-                "64",
-                "0",
-                "1"
-              ],
-              [
-                "931.75",
-                "14844",
-                "0",
-                "1"
-              ],
-              [
-                "931.71",
-                "224",
-                "0",
-                "2"
-              ],
-              [
-                "931.63",
-                "66",
-                "0",
-                "1"
-              ],
-              [
-                "931.55",
-                "107",
-                "0",
-                "1"
-              ],
-              [
-                "931.5",
-                "198",
-                "0",
-                "2"
-              ],
-              [
-                "931.43",
-                "371",
-                "0",
-                "2"
-              ],
-              [
-                "931.32",
-                "5",
-                "0",
-                "1"
-              ],
-              [
-                "931.23",
-                "2500",
-                "0",
-                "1"
-              ],
-              [
-                "931.15",
-                "157",
-                "0",
-                "1"
-              ],
-              [
-                "931.03",
-                "194",
-                "0",
-                "1"
-              ],
-              [
-                "931",
-                "4",
-                "0",
-                "1"
-              ],
-              [
-                "930.98",
-                "82",
-                "0",
-                "1"
-              ],
-              [
-                "930.94",
-                "3",
-                "0",
-                "1"
-              ],
-              [
-                "930.93",
-                "214",
-                "0",
-                "1"
-              ],
-              [
-                "930.91",
-                "2",
-                "0",
-                "1"
-              ],
-              [
-                "930.79",
-                "157",
+                "930.78",
+                "1928",
                 "0",
                 "1"
               ],
@@ -31036,6 +30850,12 @@
                 "1"
               ],
               [
+                "930.57",
+                "157",
+                "0",
+                "1"
+              ],
+              [
                 "930.56",
                 "194",
                 "0",
@@ -31043,7 +30863,19 @@
               ],
               [
                 "930.53",
-                "26",
+                "1",
+                "0",
+                "1"
+              ],
+              [
+                "930.32",
+                "35972",
+                "0",
+                "1"
+              ],
+              [
+                "930.23",
+                "157",
                 "0",
                 "1"
               ],
@@ -31054,7 +30886,13 @@
                 "1"
               ],
               [
-                "930.15",
+                "930.13",
+                "107",
+                "0",
+                "1"
+              ],
+              [
+                "930.12",
                 "215",
                 "0",
                 "1"
@@ -31072,8 +30910,8 @@
                 "8"
               ],
               [
-                "929.84",
-                "215",
+                "929.88",
+                "107",
                 "0",
                 "1"
               ],
@@ -31097,7 +30935,7 @@
               ],
               [
                 "929.67",
-                "20237",
+                "157",
                 "0",
                 "1"
               ],
@@ -31112,22 +30950,508 @@
                 "8",
                 "0",
                 "1"
+              ],
+              [
+                "929.53",
+                "1",
+                "0",
+                "1"
+              ],
+              [
+                "929.49",
+                "107",
+                "0",
+                "1"
+              ],
+              [
+                "929.36",
+                "82",
+                "0",
+                "1"
+              ],
+              [
+                "929.31",
+                "1",
+                "0",
+                "1"
+              ],
+              [
+                "929.24",
+                "107",
+                "0",
+                "1"
+              ],
+              [
+                "929.16",
+                "194",
+                "0",
+                "1"
+              ],
+              [
+                "929.13",
+                "14838",
+                "0",
+                "1"
+              ],
+              [
+                "929.11",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "929.08",
+                "215",
+                "0",
+                "1"
+              ],
+              [
+                "929.05",
+                "107",
+                "0",
+                "1"
+              ],
+              [
+                "928.98",
+                "2500",
+                "0",
+                "1"
+              ],
+              [
+                "928.96",
+                "376",
+                "0",
+                "1"
+              ],
+              [
+                "928.94",
+                "67",
+                "0",
+                "2"
+              ],
+              [
+                "928.89",
+                "64",
+                "0",
+                "1"
+              ],
+              [
+                "928.82",
+                "1",
+                "0",
+                "1"
+              ],
+              [
+                "928.81",
+                "1",
+                "0",
+                "1"
+              ],
+              [
+                "928.79",
+                "5",
+                "0",
+                "1"
+              ],
+              [
+                "928.75",
+                "2",
+                "0",
+                "1"
+              ],
+              [
+                "928.71",
+                "157",
+                "0",
+                "1"
+              ],
+              [
+                "928.7",
+                "194",
+                "0",
+                "1"
+              ],
+              [
+                "928.6",
+                "215",
+                "0",
+                "1"
+              ],
+              [
+                "928.57",
+                "4",
+                "0",
+                "3"
+              ],
+              [
+                "928.55",
+                "20234",
+                "0",
+                "1"
+              ],
+              [
+                "928.54",
+                "1",
+                "0",
+                "1"
+              ],
+              [
+                "928.53",
+                "1",
+                "0",
+                "1"
+              ],
+              [
+                "928.5",
+                "4",
+                "0",
+                "1"
+              ],
+              [
+                "928.33",
+                "1",
+                "0",
+                "1"
               ]
             ],
-            "ts": "1794606283752",
-            "seqId": 2937995043
+            "ts": "1794606296352",
+            "seqId": 2938000663
           }
         ]
       }
     },
     "okx_eea_zec_xperp_trades": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.869392+00:00",
-      "latency_ms": 192,
+      "retrieved_at": "2026-11-13T21:44:56.542446+00:00",
+      "latency_ms": 218,
       "endpoint": "https://eea.okx.com/api/v5/market/trades?instId=ZEC-USD_UM_XPERP-310530&limit=100",
       "data": {
         "code": "0",
         "data": [
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132831",
+            "px": "931.17",
+            "sz": "3",
+            "side": "buy",
+            "ts": "1794606289476",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132830",
+            "px": "931.26",
+            "sz": "38",
+            "side": "sell",
+            "ts": "1794606289253",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132829",
+            "px": "930.87",
+            "sz": "2",
+            "side": "buy",
+            "ts": "1794606289252",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132828",
+            "px": "930.87",
+            "sz": "2",
+            "side": "buy",
+            "ts": "1794606289252",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132827",
+            "px": "931.33",
+            "sz": "17",
+            "side": "buy",
+            "ts": "1794606289251",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132826",
+            "px": "931.31",
+            "sz": "194",
+            "side": "buy",
+            "ts": "1794606289251",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132825",
+            "px": "931.25",
+            "sz": "27",
+            "side": "buy",
+            "ts": "1794606289251",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132824",
+            "px": "930.88",
+            "sz": "3",
+            "side": "buy",
+            "ts": "1794606289251",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132823",
+            "px": "930.87",
+            "sz": "4",
+            "side": "buy",
+            "ts": "1794606289251",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132822",
+            "px": "930.85",
+            "sz": "3",
+            "side": "sell",
+            "ts": "1794606289249",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132821",
+            "px": "930.85",
+            "sz": "100",
+            "side": "sell",
+            "ts": "1794606289249",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132820",
+            "px": "930.85",
+            "sz": "54",
+            "side": "sell",
+            "ts": "1794606289249",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132819",
+            "px": "930.91",
+            "sz": "2",
+            "side": "sell",
+            "ts": "1794606289249",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132818",
+            "px": "930.94",
+            "sz": "3",
+            "side": "sell",
+            "ts": "1794606289249",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132817",
+            "px": "931",
+            "sz": "1",
+            "side": "sell",
+            "ts": "1794606289249",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132816",
+            "px": "931",
+            "sz": "3",
+            "side": "sell",
+            "ts": "1794606289249",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132815",
+            "px": "931.16",
+            "sz": "12",
+            "side": "sell",
+            "ts": "1794606289248",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132814",
+            "px": "931.16",
+            "sz": "2",
+            "side": "sell",
+            "ts": "1794606289248",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132813",
+            "px": "931.16",
+            "sz": "9",
+            "side": "sell",
+            "ts": "1794606289247",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132812",
+            "px": "931.16",
+            "sz": "56",
+            "side": "sell",
+            "ts": "1794606289247",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132811",
+            "px": "931.32",
+            "sz": "5",
+            "side": "sell",
+            "ts": "1794606289125",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132810",
+            "px": "931.5",
+            "sz": "9",
+            "side": "sell",
+            "ts": "1794606288994",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132809",
+            "px": "931.5",
+            "sz": "4",
+            "side": "sell",
+            "ts": "1794606288994",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132808",
+            "px": "931.53",
+            "sz": "9",
+            "side": "sell",
+            "ts": "1794606288994",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132807",
+            "px": "931.72",
+            "sz": "3",
+            "side": "sell",
+            "ts": "1794606288984",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132806",
+            "px": "931.72",
+            "sz": "1",
+            "side": "sell",
+            "ts": "1794606288984",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132805",
+            "px": "931.72",
+            "sz": "3",
+            "side": "sell",
+            "ts": "1794606288984",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132804",
+            "px": "933.34",
+            "sz": "9",
+            "side": "sell",
+            "ts": "1794606288980",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132803",
+            "px": "933.36",
+            "sz": "9",
+            "side": "sell",
+            "ts": "1794606288980",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132802",
+            "px": "933.61",
+            "sz": "2",
+            "side": "sell",
+            "ts": "1794606287071",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132801",
+            "px": "933.61",
+            "sz": "9",
+            "side": "sell",
+            "ts": "1794606287069",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132800",
+            "px": "933.64",
+            "sz": "12",
+            "side": "sell",
+            "ts": "1794606287068",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132799",
+            "px": "933.64",
+            "sz": "9",
+            "side": "sell",
+            "ts": "1794606287067",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132798",
+            "px": "933.63",
+            "sz": "21",
+            "side": "sell",
+            "ts": "1794606282696",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132797",
+            "px": "933.63",
+            "sz": "148",
+            "side": "sell",
+            "ts": "1794606282696",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8132796",
+            "px": "933.63",
+            "sz": "9",
+            "side": "sell",
+            "ts": "1794606282695",
+            "source": "0"
+          },
           {
             "instId": "ZEC-USD_UM_XPERP-310530",
             "tradeId": "8132795",
@@ -31703,330 +32027,6 @@
             "side": "sell",
             "ts": "1794606208389",
             "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132731",
-            "px": "932.08",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606208387",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132730",
-            "px": "932.14",
-            "sz": "11",
-            "side": "sell",
-            "ts": "1794606208319",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132729",
-            "px": "931.49",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606201876",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132728",
-            "px": "931.49",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606201124",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132727",
-            "px": "931.73",
-            "sz": "9",
-            "side": "sell",
-            "ts": "1794606201090",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132726",
-            "px": "931.61",
-            "sz": "4",
-            "side": "sell",
-            "ts": "1794606199920",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132725",
-            "px": "931.48",
-            "sz": "9",
-            "side": "sell",
-            "ts": "1794606198911",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132724",
-            "px": "931.48",
-            "sz": "3",
-            "side": "sell",
-            "ts": "1794606198911",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132723",
-            "px": "931.48",
-            "sz": "51",
-            "side": "sell",
-            "ts": "1794606198909",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132722",
-            "px": "931.52",
-            "sz": "11",
-            "side": "sell",
-            "ts": "1794606198888",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132721",
-            "px": "931.85",
-            "sz": "7",
-            "side": "buy",
-            "ts": "1794606198741",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132720",
-            "px": "931.79",
-            "sz": "9",
-            "side": "buy",
-            "ts": "1794606198741",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132719",
-            "px": "931.78",
-            "sz": "8",
-            "side": "buy",
-            "ts": "1794606198740",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132718",
-            "px": "931.61",
-            "sz": "9",
-            "side": "buy",
-            "ts": "1794606198740",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132717",
-            "px": "931.6",
-            "sz": "10",
-            "side": "buy",
-            "ts": "1794606198740",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132716",
-            "px": "931.53",
-            "sz": "9",
-            "side": "buy",
-            "ts": "1794606198740",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132715",
-            "px": "931.87",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794606198740",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132714",
-            "px": "931.5",
-            "sz": "4",
-            "side": "sell",
-            "ts": "1794606198738",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132713",
-            "px": "931.51",
-            "sz": "13",
-            "side": "sell",
-            "ts": "1794606198738",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132712",
-            "px": "931.51",
-            "sz": "3",
-            "side": "sell",
-            "ts": "1794606198737",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132711",
-            "px": "931.58",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606198736",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132710",
-            "px": "931.59",
-            "sz": "4",
-            "side": "sell",
-            "ts": "1794606198736",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132709",
-            "px": "931.67",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606198736",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132708",
-            "px": "931.84",
-            "sz": "2",
-            "side": "sell",
-            "ts": "1794606198735",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132707",
-            "px": "931.84",
-            "sz": "5",
-            "side": "sell",
-            "ts": "1794606198735",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132706",
-            "px": "931.86",
-            "sz": "9",
-            "side": "sell",
-            "ts": "1794606197175",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132705",
-            "px": "931.79",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794606196167",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132704",
-            "px": "932",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606194350",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132703",
-            "px": "932.01",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606194349",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132702",
-            "px": "932.01",
-            "sz": "6",
-            "side": "sell",
-            "ts": "1794606194349",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132701",
-            "px": "932.26",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606194343",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132700",
-            "px": "932.27",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794606194343",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132699",
-            "px": "932.27",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606194343",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132698",
-            "px": "932.33",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794606194341",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132697",
-            "px": "932.64",
-            "sz": "16",
-            "side": "buy",
-            "ts": "1794606194039",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8132696",
-            "px": "932.41",
-            "sz": "7",
-            "side": "sell",
-            "ts": "1794606194037",
-            "source": "0"
           }
         ],
         "msg": ""
@@ -32034,26 +32034,26 @@
     },
     "okx_eea_zec_xperp_mark": {
       "status": "error",
-      "retrieved_at": "2026-11-13T21:44:43.881093+00:00",
+      "retrieved_at": "2026-11-13T21:44:56.508862+00:00",
       "error": "RuntimeError: https://eea.okx.com/api/v5/market/mark-price?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530: HTTPError: HTTP Error 404: Not Found"
     },
     "okx_eea_zec_index": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:44.020668+00:00",
-      "latency_ms": 234,
+      "retrieved_at": "2026-11-13T21:44:56.639498+00:00",
+      "latency_ms": 214,
       "endpoint": "https://eea.okx.com/api/v5/market/index-tickers?quoteCcy=USD",
       "data": {
         "code": "0",
         "data": [
           {
             "instId": "ZEC-USD",
-            "idxPx": "934.05",
+            "idxPx": "933.88",
             "high24h": "991.29",
             "low24h": "879.84",
             "open24h": "952.58",
             "sodUtc0": "956.05",
             "sodUtc8": "947.81",
-            "ts": "1794606283049"
+            "ts": "1794606268503"
           }
         ],
         "msg": ""
@@ -32061,8 +32061,8 @@
     },
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:43.992176+00:00",
-      "latency_ms": 198,
+      "retrieved_at": "2026-11-13T21:44:56.639923+00:00",
+      "latency_ms": 188,
       "endpoint": "https://eea.okx.com/api/v5/public/funding-rate?instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
@@ -32092,8 +32092,8 @@
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:44.034992+00:00",
-      "latency_ms": 201,
+      "retrieved_at": "2026-11-13T21:44:56.650881+00:00",
+      "latency_ms": 182,
       "endpoint": "https://eea.okx.com/api/v5/public/open-interest?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
@@ -32101,10 +32101,10 @@
           {
             "instId": "ZEC-USD_UM_XPERP-310530",
             "instType": "FUTURES",
-            "oi": "408214",
-            "oiCcy": "4082.14",
-            "oiUsd": "3810963.4398",
-            "ts": "1794606283957"
+            "oi": "408241",
+            "oiCcy": "4082.41",
+            "oiUsd": "3811460.4483",
+            "ts": "1794606296575"
           }
         ],
         "msg": ""
@@ -32112,8 +32112,8 @@
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
-      "retrieved_at": "2026-11-13T21:44:44.051880+00:00",
-      "latency_ms": 202,
+      "retrieved_at": "2026-11-13T21:44:56.694347+00:00",
+      "latency_ms": 185,
       "endpoint": "https://eea.okx.com/api/v5/public/instruments?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
