@@ -8,6 +8,8 @@ on:
       - "collector.py"
       - "quality_check.py"
       - "candle_service.py"
+      - "Dockerfile"
+      - "render.yaml"
       - "requirements.txt"
       - "tests/**"
       - ".github/workflows/update-data.yml"
