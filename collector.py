@@ -187,7 +187,7 @@ def main():
         "okx_eea_zec_xperp_ticker": lambda: fetch_json(f"{OKX_EEA}/market/ticker?instId={ZEC_XPERP}"),
         "okx_eea_zec_xperp_book": lambda: fetch_json(f"{OKX_EEA}/market/books?instId={ZEC_XPERP}&sz=50"),
         "okx_eea_zec_xperp_trades": lambda: fetch_json(f"{OKX_EEA}/market/trades?instId={ZEC_XPERP}&limit=100"),
-        "okx_eea_zec_xperp_mark": lambda: fetch_json(f"{OKX_EEA}/market/mark-price?instType=FUTURES&instId={ZEC_XPERP}"),
+        "okx_eea_zec_xperp_mark": lambda: fetch_json(f"{OKX_EEA}/public/mark-price?instType=FUTURES&instId={ZEC_XPERP}"),
         "okx_eea_zec_index": fetch_okx_index_zec,
         "okx_eea_zec_xperp_funding": lambda: fetch_json(f"{OKX_EEA}/public/funding-rate?instId={ZEC_XPERP}"),
         "okx_eea_zec_xperp_oi": lambda: fetch_json(f"{OKX_EEA}/public/open-interest?instType=FUTURES&instId={ZEC_XPERP}"),
