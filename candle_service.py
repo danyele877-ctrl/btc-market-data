@@ -25,6 +25,8 @@ RECONNECT_MIN_SECONDS = 1
 RECONNECT_MAX_SECONDS = 60
 WS_STALE_SECONDS = 120
 REQUEST_TIMEOUT = 15
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY", "danyele877-ctrl/btc-market-data")
 DATA_FILE = Path(os.getenv("CANDLE_DATA_FILE", "data/candles.json"))
 
 # Public market data only. The X-Perp ID and type were checked against OKX's
@@ -154,6 +156,7 @@ class CandleFeed:
         self.started = time.monotonic()
         self.lock = asyncio.Lock()
         self.stop_event = asyncio.Event()
+        self.last_bridge_dispatch_minute: int | None = None
 
     def health(self) -> dict[str, Any]:
         now = utc_now()
@@ -260,6 +263,14 @@ class CandleFeed:
             merge_candles(self.state["instruments"][inst_id][bar], parsed)
             self.state["service"]["status"] = "ok"
             await self.persist()
+
+        # Dispatch once per completed UTC minute; coalesce all instruments.
+        if channel == "candle1m" and GITHUB_TOKEN:
+            latest = max(parsed, key=lambda item: int(item["ts_ms"]))
+            minute_key = int(latest["ts_ms"]) // 60000
+            if self.last_bridge_dispatch_minute != minute_key:
+                self.last_bridge_dispatch_minute = minute_key
+                asyncio.create_task(dispatch_bridge_refresh(latest["completed_at"]))
 
     async def bootstrap_history(self, active: list[dict[str, str]]) -> None:
         """Load 300 completed 1H/4H candles for the exact EEA ZEC X-Perp."""
@@ -424,6 +435,28 @@ class CandleFeed:
                 delay = min(delay * 2, RECONNECT_MAX_SECONDS)
             finally:
                 self.state["service"]["connected"] = False
+
+async def dispatch_bridge_refresh(completed_at: str) -> None:
+    """Ask GitHub Actions to publish a fresh multi-source bridge snapshot."""
+    if not GITHUB_TOKEN:
+        return
+    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/dispatches"
+    body = json.dumps({"event_type": "refresh_render_feed", "client_payload": {"completed_at": completed_at}}).encode("utf-8")
+    request = urllib.request.Request(url, data=body, method="POST", headers={
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "btc-market-data-render-bridge/1.0",
+        "Content-Type": "application/json",
+    })
+    try:
+        def send():
+            with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+                return response.status
+        status = await asyncio.to_thread(send)
+        print(f"GitHub bridge dispatch accepted: HTTP {status}; candle={completed_at}", flush=True)
+    except Exception as exc:
+        print(f"GitHub bridge dispatch failed: {type(exc).__name__}: {exc}", flush=True)
 
 async def write_response(writer: asyncio.StreamWriter, status: str, body: bytes, content_type: str) -> None:
     headers = (
