@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-13T18:30:43.227964+00:00",
-  "snapshot_generated_at": "2026-11-13T18:30:43.106913+00:00",
+  "generated_at": "2026-11-13T19:37:50.294378+00:00",
+  "snapshot_generated_at": "2026-11-13T19:37:50.220527+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
-  "successful_sources": 18,
+  "successful_sources": 17,
   "total_sources": 18,
   "required_sources": [
     "okx_spot",
@@ -24,109 +24,109 @@
     "binance_spot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 14,
       "reason": null
     },
     "okx_spot": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     },
     "okx_futures_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     },
     "okx_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     },
     "okx_open_interest": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     },
     "deribit_btc_perpetual": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     },
     "edge_funding_all_exchanges": {
-      "status": "ok",
+      "status": "warning",
       "required": false,
-      "age_seconds": 1,
-      "reason": null
+      "age_seconds": 0,
+      "reason": "source_error"
     },
     "swole_funding_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     },
     "swole_open_interest_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 14,
       "reason": null
     },
     "swole_liquidations_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     },
     "swole_btc_snapshot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 14,
       "reason": null
     },
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 15,
       "reason": null
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 14,
       "reason": null
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 14,
       "reason": null
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 14,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 14,
       "reason": null
     },
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     },
     "fred_macro": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 15,
       "reason": null
     }
   }
