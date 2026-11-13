@@ -16,7 +16,9 @@ import websockets
 OKX_REST = "https://eea.okx.com"
 OKX_WS = "wss://wseea.okx.com/ws/v5/business"
 BAR_SECONDS = {"candle1m": 60, "candle5m": 300, "1H": 3600, "4H": 14400}
-HISTORY_LIMIT = 300
+WS_CHANNELS = ("candle1m", "candle5m")
+HISTORY_PAGE_LIMIT = 100
+HISTORY_MAX_PAGES = 5
 EXPECTED_XPERP_INST_ID = "ZEC-USD_UM_XPERP-310530"
 MAX_CANDLES = int(os.getenv("MAX_CANDLES", "500"))
 RECONNECT_MIN_SECONDS = 1
@@ -245,7 +247,7 @@ class CandleFeed:
             for item in self.state["service"].get("active_instruments", [])
         }
         inst_id = stream_ids.get(exchange_inst_id, exchange_inst_id)
-        if inst_id not in self.state["instruments"] or channel not in BAR_SECONDS:
+        if inst_id not in self.state["instruments"] or channel not in WS_CHANNELS:
             return
         rows = payload.get("data")
         if not isinstance(rows, list):
@@ -254,7 +256,7 @@ class CandleFeed:
         parsed = [item for item in (parse_candle(row, channel) for row in rows) if item]
         if not parsed:
             return
-        bar = "1m" if channel == "candle1m" else "5m"
+        bar = channel.removeprefix("candle")
         async with self.lock:
             merge_candles(self.state["instruments"][inst_id][bar], parsed)
             self.state["service"]["status"] = "ok"
@@ -269,28 +271,51 @@ class CandleFeed:
             )
 
         async def load(bar_name: str, interval: str) -> None:
-            query = urllib.parse.urlencode({
-                "instId": EXPECTED_XPERP_INST_ID, "bar": interval, "limit": str(HISTORY_LIMIT)
-            })
-            request = urllib.request.Request(
-                f"{OKX_REST}/api/v5/market/history-candles?{query}",
-                headers={"User-Agent": "btc-market-data-candle-feed/1.0", "Accept": "application/json"},
-            )
-            def fetch():
-                with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
-                    status = response.status
-                    payload = json.loads(response.read().decode("utf-8"))
-                if status != 200 or payload.get("code") != "0":
-                    raise RuntimeError(
-                        f"OKX history {interval} HTTP {status} API {payload.get('code')} {payload.get('msg')}"
-                    )
-                return payload
-            payload = await asyncio.to_thread(fetch)
-            parsed = [
-                candle for candle in (parse_candle(row, interval) for row in payload.get("data", []))
-                if candle is not None
-            ]
-            parsed.sort(key=lambda x: x["ts_ms"])
+            # OKX history-candles limits each page to 100 rows. Walk backwards
+            # with the documented "after" cursor until 200 completed candles
+            # are collected; never assume a single 300-row response is valid.
+            collected: dict[int, dict[str, Any]] = {}
+            cursor: int | None = None
+            for _page in range(HISTORY_MAX_PAGES):
+                params = {
+                    "instId": EXPECTED_XPERP_INST_ID,
+                    "bar": interval,
+                    "limit": str(HISTORY_PAGE_LIMIT),
+                }
+                if cursor is not None:
+                    params["after"] = str(cursor)
+                query = urllib.parse.urlencode(params)
+                request = urllib.request.Request(
+                    f"{OKX_REST}/api/v5/market/history-candles?{query}",
+                    headers={"User-Agent": "btc-market-data-candle-feed/1.0", "Accept": "application/json"},
+                )
+                def fetch(req=request):
+                    with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
+                        status = response.status
+                        payload = json.loads(response.read().decode("utf-8"))
+                    if status != 200 or payload.get("code") != "0":
+                        raise RuntimeError(
+                            f"OKX history {interval} HTTP {status} API {payload.get('code')} {payload.get('msg')}"
+                        )
+                    return payload
+                payload = await asyncio.to_thread(fetch)
+                rows = payload.get("data", [])
+                if not isinstance(rows, list) or not rows:
+                    break
+                for row in rows:
+                    candle = parse_candle(row, interval)
+                    if candle is not None:
+                        collected[int(candle["ts_ms"])] = candle
+                try:
+                    oldest = min(int(row[0]) for row in rows if isinstance(row, (list, tuple)) and row)
+                except (TypeError, ValueError):
+                    break
+                if cursor is not None and oldest >= cursor:
+                    break
+                cursor = oldest
+                if len(collected) >= 200:
+                    break
+            parsed = [collected[key] for key in sorted(collected)]
             if len(parsed) < 200:
                 raise RuntimeError(
                     f"Only {len(parsed)} completed valid {interval} candles for {EXPECTED_XPERP_INST_ID}; need 200"
@@ -334,7 +359,7 @@ class CandleFeed:
                 await self.bootstrap_history(active)
                 subscriptions = [
                     {"channel": channel, "instId": item["instId"]}
-                    for item in active for channel in BAR_SECONDS
+                    for item in active for channel in WS_CHANNELS
                 ]
                 async with websockets.connect(
                     OKX_WS, open_timeout=20, close_timeout=10, ping_interval=None,
