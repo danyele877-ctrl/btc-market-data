@@ -7,6 +7,8 @@ on:
     paths:
       - "collector.py"
       - "quality_check.py"
+      - "candle_service.py"
+      - "requirements.txt"
       - ".github/workflows/update-data.yml"
   workflow_dispatch:
   schedule:
