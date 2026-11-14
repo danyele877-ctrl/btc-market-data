@@ -252,6 +252,17 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         cvd_score = (cvd1 + cvd5) / 2
         imbalance = _number(book.get("imbalance_top10"))
         book_score = _clamp(imbalance / 0.35) if imbalance is not None else 0.0
+        book_history = websocket.get("book_history") or []
+        book_history = [item for item in book_history if isinstance(item, dict) and _number(item.get("imbalance_top10")) is not None]
+        book_delta_score = 0.0
+        book_delta_text = "dinamica imbalance book: storico breve non disponibile"
+        if len(book_history) >= 2:
+            first, last = book_history[0], book_history[-1]
+            elapsed = (_number(last.get("ts_ms")) - _number(first.get("ts_ms"))) / 1000
+            if elapsed >= 1 and elapsed <= 180:
+                delta = _number(last.get("imbalance_top10")) - _number(first.get("imbalance_top10"))
+                book_delta_score = _clamp(delta / 0.30)
+                book_delta_text = f"dinamica imbalance top10: {delta:+.3f} in {elapsed:.0f}s"
         return1 = _price_change(x1m)
         return5 = _price_change(x5m)
         price_score = 0.0
@@ -262,10 +273,11 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             price_score, absorption = 0.4, "possibile assorbimento delle vendite: CVD negativo senza risposta ribassista del prezzo"
         else:
             price_score = _sign(return1) * 0.15 if return1 is not None else 0.0
-        flow_score = _clamp(0.60 * cvd_score + 0.25 * book_score + 0.15 * price_score)
+        flow_score = _clamp(0.55 * cvd_score + 0.20 * book_score + 0.15 * book_delta_score + 0.10 * price_score)
         flow_factors = [
             f"CVD continuo 1m/5m: {float(cvd['1m']):+.4g}/{float(cvd['5m']):+.4g} contratti",
             f"imbalance top10: {imbalance:+.3f}" if imbalance is not None else "imbalance top10 n/d",
+            book_delta_text,
             absorption,
         ]
         groups["order_flow"] = {"score": round(flow_score, 4), "weight": WEIGHTS["order_flow"], "factors": flow_factors}

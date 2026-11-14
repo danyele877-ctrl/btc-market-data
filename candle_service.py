@@ -172,6 +172,7 @@ def new_state() -> dict[str, Any]:
             "book_valid": False,
             "book_seq_id": None,
             "book_gap_count": 0,
+            "book_history": [],
             "book": {"bids": [], "asks": [], "imbalance_top5": None, "imbalance_top10": None, "imbalance_top20": None},
             "cvd": {
                 "unit": "contracts",
@@ -531,6 +532,21 @@ class CandleFeed:
             micro["last_book_at"] = exchange_ts
             if micro["book_valid"]:
                 micro["book"] = self._book_summary()
+                # Retain a short, bounded sequence of valid book states so the
+                # radar can distinguish a persistent imbalance from a shift.
+                if time.monotonic() - self.micro_last_persist >= 1.0:
+                    summary = micro["book"]
+                    micro.setdefault("book_history", []).append({
+                        "ts_ms": exchange_ts,
+                        "best_bid": summary.get("best_bid"),
+                        "best_ask": summary.get("best_ask"),
+                        "imbalance_top10": summary.get("imbalance_top10"),
+                    })
+                    cutoff = now_ms - 5 * 60 * 1000
+                    micro["book_history"] = [
+                        item for item in micro["book_history"]
+                        if int(item.get("ts_ms", 0)) >= cutoff
+                    ][-300:]
 
         else:
             return

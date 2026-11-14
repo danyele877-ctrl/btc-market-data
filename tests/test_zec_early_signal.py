@@ -62,6 +62,10 @@ def valid_snapshot():
             "websocket": {
                 "connected": True, "book_valid": True,
                 "message_age_seconds": 1, "trade_age_seconds": 1, "book_age_seconds": 1,
+                "book_history": [
+                    {"ts_ms": int(NOW.timestamp() * 1000) - 5_000, "imbalance_top10": 0.2},
+                    {"ts_ms": int(NOW.timestamp() * 1000), "imbalance_top10": 0.8},
+                ],
             },
             "cvd": {"ready_1m": True, "ready_5m": True, "1m": 10, "5m": 20},
             "book_imbalance": {"imbalance_top10": 0.8},
@@ -90,6 +94,7 @@ class ZecEarlySignalTests(unittest.TestCase):
     def test_flow_and_book_are_one_correlated_score_group(self):
         result = evaluate_signal(valid_snapshot(), now=NOW)
         self.assertEqual(result["scores"]["groups"]["order_flow"]["weight"], 0.35)
+        self.assertTrue(any("dinamica imbalance" in item for item in result["scores"]["groups"]["order_flow"]["factors"]))
         self.assertNotIn("cvd", result["scores"]["groups"])
         self.assertNotIn("book", result["scores"]["groups"])
 
