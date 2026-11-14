@@ -149,6 +149,11 @@ def new_state() -> dict[str, Any]:
             "reconnects": 0,
             "active_instruments": [],
             "unavailable_instruments": [],
+            "bridge_dispatch_enabled": bool(GITHUB_TOKEN),
+            "bridge_dispatch_last_attempt_at": None,
+            "bridge_dispatch_last_completed_at": None,
+            "bridge_dispatch_last_status": None,
+            "bridge_dispatch_last_error": None,
         },
         "microstructure": {
             "status": "starting",
@@ -259,6 +264,11 @@ class CandleFeed:
             "streams": streams,
             "history_ready_200": history_ready,
             "last_error": service.get("last_error"),
+            "bridge_dispatch_enabled": service.get("bridge_dispatch_enabled", bool(GITHUB_TOKEN)),
+            "bridge_dispatch_last_attempt_at": service.get("bridge_dispatch_last_attempt_at"),
+            "bridge_dispatch_last_completed_at": service.get("bridge_dispatch_last_completed_at"),
+            "bridge_dispatch_last_status": service.get("bridge_dispatch_last_status"),
+            "bridge_dispatch_last_error": service.get("bridge_dispatch_last_error"),
             "microstructure": self.microstructure_health(),
         }
 
@@ -326,6 +336,34 @@ class CandleFeed:
             merge_candles(self.state["instruments"][inst_id][bar], parsed)
             self.state["service"]["status"] = "ok"
             await self.persist()
+
+        # Publish one bridge refresh per completed UTC minute, coalescing
+        # BTC, ZEC spot and the exact ZEC X-Perp candle messages.
+        if channel == "candle1m" and GITHUB_TOKEN:
+            latest = max(parsed, key=lambda item: int(item["ts_ms"]))
+            minute_key = int(latest["ts_ms"]) // 60000
+            if self.last_bridge_dispatch_minute != minute_key:
+                self.last_bridge_dispatch_minute = minute_key
+                asyncio.create_task(self.request_bridge_refresh(latest["completed_at"]))
+
+    async def request_bridge_refresh(self, completed_at: str) -> None:
+        """Dispatch a compact GitHub bridge refresh and expose diagnostics in healthz."""
+        service = self.state["service"]
+        service["bridge_dispatch_last_attempt_at"] = iso_utc()
+        service["bridge_dispatch_last_completed_at"] = completed_at
+        service["bridge_dispatch_last_status"] = "pending"
+        service["bridge_dispatch_last_error"] = None
+        await self.persist()
+        try:
+            status = await dispatch_bridge_refresh(completed_at)
+            service["bridge_dispatch_last_status"] = status
+            service["bridge_dispatch_last_error"] = None
+            print(f"Bridge dispatch completed: HTTP {status}; candle={completed_at}", flush=True)
+        except Exception as exc:
+            service["bridge_dispatch_last_status"] = "failed"
+            service["bridge_dispatch_last_error"] = f"{type(exc).__name__}: {exc}"[:500]
+            print(f"Bridge dispatch failed: {service['bridge_dispatch_last_error']}", flush=True)
+        await self.persist()
 
     def _refresh_micro_cvd(self, now_ms: int) -> None:
         micro = self.state["microstructure"]
@@ -540,14 +578,6 @@ class CandleFeed:
                 micro["connected"] = False
                 micro["book_valid"] = False
                 self.micro_book["valid"] = False
-
-        # Dispatch once per completed UTC minute; coalesce all instruments.
-        if channel == "candle1m" and GITHUB_TOKEN:
-            latest = max(parsed, key=lambda item: int(item["ts_ms"]))
-            minute_key = int(latest["ts_ms"]) // 60000
-            if self.last_bridge_dispatch_minute != minute_key:
-                self.last_bridge_dispatch_minute = minute_key
-                asyncio.create_task(dispatch_bridge_refresh(latest["completed_at"]))
 
     async def bootstrap_history(self, active: list[dict[str, str]]) -> None:
         """Warm 300 completed 1m/5m candles for all active markets and 1H/4H for exact ZEC X-Perp."""
@@ -771,10 +801,10 @@ class CandleFeed:
                     await asyncio.gather(history_task, return_exceptions=True)
                 self.state["service"]["connected"] = False
 
-async def dispatch_bridge_refresh(completed_at: str) -> None:
+async def dispatch_bridge_refresh(completed_at: str) -> int:
     """Ask GitHub Actions to publish a fresh multi-source bridge snapshot."""
     if not GITHUB_TOKEN:
-        return
+        raise RuntimeError("GITHUB_TOKEN is not configured in the Render service")
     url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/dispatches"
     body = json.dumps({"event_type": "refresh_render_feed", "client_payload": {"completed_at": completed_at}}).encode("utf-8")
     request = urllib.request.Request(url, data=body, method="POST", headers={
@@ -784,14 +814,10 @@ async def dispatch_bridge_refresh(completed_at: str) -> None:
         "User-Agent": "btc-market-data-render-bridge/1.0",
         "Content-Type": "application/json",
     })
-    try:
-        def send():
-            with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
-                return response.status
-        status = await asyncio.to_thread(send)
-        print(f"GitHub bridge dispatch accepted: HTTP {status}; candle={completed_at}", flush=True)
-    except Exception as exc:
-        print(f"GitHub bridge dispatch failed: {type(exc).__name__}: {exc}", flush=True)
+    def send():
+        with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+            return response.status
+    return await asyncio.to_thread(send)
 
 async def write_response(writer: asyncio.StreamWriter, status: str, body: bytes, content_type: str) -> None:
     headers = (
