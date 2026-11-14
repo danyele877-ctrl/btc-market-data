@@ -5,6 +5,7 @@ import json
 from collections import deque
 import os
 import signal
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -302,9 +303,25 @@ class CandleFeed:
 
     def _atomic_write(self, payload: str) -> None:
         self.data_file.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self.data_file.with_suffix(self.data_file.suffix + ".tmp")
-        temporary.write_text(payload, encoding="utf-8")
-        temporary.replace(self.data_file)
+        # Each concurrent persist must own a unique temporary file. A shared
+        # "<name>.tmp" races when candle, book and bridge tasks persist at once:
+        # one os.replace can remove the path before another thread renames it.
+        fd, temporary_name = tempfile.mkstemp(
+            prefix=f".{self.data_file.name}.",
+            suffix=".tmp",
+            dir=str(self.data_file.parent),
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as temporary:
+                temporary.write(payload)
+                temporary.flush()
+                os.fsync(temporary.fileno())
+            os.replace(temporary_name, self.data_file)
+        finally:
+            try:
+                os.unlink(temporary_name)
+            except FileNotFoundError:
+                pass
 
     async def handle_message(self, message: str) -> None:
         if message == "ping":
