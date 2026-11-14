@@ -21,7 +21,9 @@ permissions:
   contents: write
 
 concurrency:
-  group: render-candle-feed-bridge
+  # Keep deployment/test runs separate from the high-frequency refresh bridge.
+  # Otherwise a repository_dispatch arriving during a push can cancel the deploy.
+  group: render-candle-feed-bridge-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'deploy' || 'refresh' }}
   cancel-in-progress: true
 
 jobs:
