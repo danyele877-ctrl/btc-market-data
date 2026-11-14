@@ -8,6 +8,8 @@ on:
       - "capture_render_feed.py"
       - "build_radar_snapshot.py"
       - "candle_service.py"
+      - "tests/**"
+      - "requirements.txt"
       - ".github/workflows/render-bridge.yml"
   workflow_dispatch:
   repository_dispatch:
@@ -34,6 +36,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install service dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run service regression tests
+        run: python -m unittest discover -s tests -v
 
       - name: Capture Render health and completed candles
         run: python capture_render_feed.py
