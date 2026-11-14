@@ -318,7 +318,17 @@ class CandleFeed:
                 temporary.write(payload)
                 temporary.flush()
                 os.fsync(temporary.fileno())
-            os.replace(temporary_name, self.data_file)
+            # On Windows, concurrent replacements of the same destination can
+            # briefly fail with a sharing violation even though each writer
+            # owns a distinct temporary file. Retry only that transient case.
+            for attempt in range(6):
+                try:
+                    os.replace(temporary_name, self.data_file)
+                    break
+                except PermissionError:
+                    if attempt == 5:
+                        raise
+                    time.sleep(0.01 * (2 ** attempt))
         finally:
             try:
                 os.unlink(temporary_name)

@@ -146,7 +146,9 @@ def summarize_history(record, bar, now):
     newest = candles[-1] if candles else None
     completed = parse_time(newest.get("completed_at")) if newest else None
     age = (now - completed).total_seconds() if completed else None
-    http_ok = record.get("http_status") in (None, 200) and not record.get("error")
+    # Historical inputs are usable only when the request explicitly returned
+    # HTTP 200. Missing status metadata must never be treated as success.
+    http_ok = record.get("http_status") == 200 and not record.get("error")
     ready = (
         http_ok and len(candles) >= 200 and gaps == 0
         and age is not None and -60 <= age <= (interval * 3 if interval else 0)

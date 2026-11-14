@@ -24,14 +24,17 @@ permissions:
 
 concurrency:
   # Keep deployment/test runs separate from the high-frequency refresh bridge.
-  # Otherwise a repository_dispatch arriving during a push can cancel the deploy.
+  # Let a refresh finish instead of cancelling it when the next 5-minute tick
+  # arrives; cancellation can leave the published snapshot stale.
   group: render-candle-feed-bridge-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'deploy' || 'refresh' }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publish-render-feed:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    # Capture performs several independent public API reads and paginated
+    # history requests; leave enough time for bounded per-request timeouts.
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

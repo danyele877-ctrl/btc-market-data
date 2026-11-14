@@ -144,6 +144,7 @@ def get_okx_xperp_history(inst_id, bars=("1m", "5m", "1H", "4H"), target=250):
         collected = {}
         cursor = None
         errors = []
+        response_statuses = []
         for _ in range(4):
             params = {"instId": inst_id, "bar": bar, "limit": "100"}
             if cursor is not None:
@@ -157,6 +158,7 @@ def get_okx_xperp_history(inst_id, bars=("1m", "5m", "1H", "4H"), target=250):
                 })
                 with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
                     payload = json.loads(response.read().decode("utf-8"))
+                    response_statuses.append(response.status)
                     if response.status != 200 or payload.get("code") != "0":
                         raise RuntimeError(f"HTTP {response.status}; OKX {payload.get('code')} {payload.get('msg')}")
                 rows = payload.get("data", [])
@@ -188,9 +190,11 @@ def get_okx_xperp_history(inst_id, bars=("1m", "5m", "1H", "4H"), target=250):
                 break
         candles = [collected[key] for key in sorted(collected)][-target:]
         gaps = sum(1 for a, b in zip(candles, candles[1:]) if b["ts_ms"] - a["ts_ms"] != seconds[bar] * 1000)
+        http_ok = bool(response_statuses) and all(status == 200 for status in response_statuses) and not errors
         output["bars"][bar] = {
+            "http_status": 200 if http_ok else next((status for status in response_statuses if status != 200), None),
             "count": len(candles), "gap_count": gaps,
-            "ready_200": len(candles) >= 200 and gaps == 0,
+            "ready_200": http_ok and len(candles) >= 200 and gaps == 0,
             "oldest_completed_at": candles[0]["completed_at"] if candles else None,
             "newest_completed_at": candles[-1]["completed_at"] if candles else None,
             "error": "; ".join(errors) if errors else None,
