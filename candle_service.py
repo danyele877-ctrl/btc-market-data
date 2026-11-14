@@ -6,6 +6,7 @@ from collections import deque
 import os
 import signal
 import tempfile
+# Persistence uses per-write temporary files to avoid concurrent rename races.
 import time
 import urllib.error
 import urllib.parse
