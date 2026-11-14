@@ -6,6 +6,7 @@ on:
     paths:
       - "capture_render_feed.py"
       - "build_radar_snapshot.py"
+      - "candle_service.py"
       - ".github/workflows/render-bridge.yml"
   workflow_dispatch:
   repository_dispatch:
