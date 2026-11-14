@@ -1,42 +1,42 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-11-14T08:49:54.130881+00:00",
+  "generated_at": "2026-11-14T08:50:15.191382+00:00",
   "asset": "BTC",
-  "collection_duration_ms": 1280,
+  "collection_duration_ms": 1507,
   "sources": {
     "binance_spot": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.553301+00:00",
-      "latency_ms": 702,
+      "retrieved_at": "2026-11-14T08:50:14.095107+00:00",
+      "latency_ms": 410,
       "endpoint": "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT",
       "data": {
         "symbol": "BTCUSDT",
-        "priceChange": "-1732.42000000",
-        "priceChangePercent": "-2.518",
-        "weightedAvgPrice": "68239.64660889",
-        "prevClosePrice": "68814.75000000",
-        "lastPrice": "67082.34000000",
-        "lastQty": "0.00024000",
-        "bidPrice": "67082.33000000",
-        "bidQty": "0.37522000",
-        "askPrice": "67082.34000000",
-        "askQty": "8.10637000",
-        "openPrice": "68814.76000000",
+        "priceChange": "-1744.38000000",
+        "priceChangePercent": "-2.535",
+        "weightedAvgPrice": "68239.32334127",
+        "prevClosePrice": "68818.91000000",
+        "lastPrice": "67074.54000000",
+        "lastQty": "0.02211000",
+        "bidPrice": "67074.53000000",
+        "bidQty": "0.55005000",
+        "askPrice": "67074.54000000",
+        "askQty": "8.17085000",
+        "openPrice": "68818.92000000",
         "highPrice": "70214.31000000",
         "lowPrice": "66456.00000000",
-        "volume": "21404.20128000",
-        "quoteVolume": "1460615131.29269290",
-        "openTime": 1794559793007,
-        "closeTime": 1794646193007,
-        "firstId": 6848282793,
-        "lastId": 6853381889,
-        "count": 5099097
+        "volume": "21405.61010000",
+        "quoteVolume": "1460704348.93114580",
+        "openTime": 1794559814004,
+        "closeTime": 1794646214004,
+        "firstId": 6848283223,
+        "lastId": 6853383555,
+        "count": 5100333
       }
     },
     "okx_spot": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.062707+00:00",
-      "latency_ms": 211,
+      "retrieved_at": "2026-11-14T08:50:13.926956+00:00",
+      "latency_ms": 241,
       "endpoint": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT",
       "data": {
         "code": "0",
@@ -44,18 +44,18 @@
           {
             "instType": "SPOT",
             "instId": "BTC-USDT",
-            "last": "67088",
-            "lastSz": "0.00447173",
-            "askPx": "67088",
-            "askSz": "1.04201363",
-            "bidPx": "67087.9",
-            "bidSz": "0.48357511",
-            "open24h": "68820",
+            "last": "67074",
+            "lastSz": "0.0000193",
+            "askPx": "67074",
+            "askSz": "0.74985135",
+            "bidPx": "67073.9",
+            "bidSz": "0.00746446",
+            "open24h": "68831.7",
             "high24h": "70219.5",
             "low24h": "66450",
-            "volCcy24h": "773575739.19178981",
-            "vol24h": "11344.86016514",
-            "ts": "1794646191773",
+            "volCcy24h": "772245787.123273658",
+            "vol24h": "11325.57247394",
+            "ts": "1794646213470",
             "sodUtc0": "68312",
             "sodUtc8": "68897.2"
           }
@@ -65,8 +65,8 @@
     },
     "okx_futures_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.041630+00:00",
-      "latency_ms": 189,
+      "retrieved_at": "2026-11-14T08:50:13.926739+00:00",
+      "latency_ms": 241,
       "endpoint": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -74,18 +74,18 @@
           {
             "instType": "SWAP",
             "instId": "BTC-USDT-SWAP",
-            "last": "67050.1",
-            "lastSz": "0.01",
-            "askPx": "67050.1",
-            "askSz": "1071.13",
-            "bidPx": "67050",
-            "bidSz": "98.89",
-            "open24h": "68781.3",
+            "last": "67038.6",
+            "lastSz": "0.18",
+            "askPx": "67038.6",
+            "askSz": "378.81",
+            "bidPx": "67038.5",
+            "bidSz": "307.38",
+            "open24h": "68797.8",
             "high24h": "70187.7",
             "low24h": "66400.1",
-            "volCcy24h": "104875.9991",
-            "vol24h": "10487599.91",
-            "ts": "1794646192872",
+            "volCcy24h": "104764.6054",
+            "vol24h": "10476460.54",
+            "ts": "1794646213270",
             "sodUtc0": "68286.7",
             "sodUtc8": "68872.5"
           }
@@ -95,8 +95,8 @@
     },
     "okx_funding": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.046063+00:00",
-      "latency_ms": 193,
+      "retrieved_at": "2026-11-14T08:50:13.926434+00:00",
+      "latency_ms": 240,
       "endpoint": "https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -126,8 +126,8 @@
     },
     "okx_open_interest": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.047419+00:00",
-      "latency_ms": 191,
+      "retrieved_at": "2026-11-14T08:50:13.926595+00:00",
+      "latency_ms": 240,
       "endpoint": "https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -135,10 +135,10 @@
           {
             "instId": "BTC-USDT-SWAP",
             "instType": "SWAP",
-            "oi": "3386632.75000001286",
-            "oiCcy": "33866.3275000001286",
-            "oiUsd": "2270943843.47275862341446",
-            "ts": "1794646192966"
+            "oi": "3386729.17000001259",
+            "oiCcy": "33867.2917000001259",
+            "oiUsd": "2270805295.21417844160759",
+            "ts": "1794646213771"
           }
         ],
         "msg": ""
@@ -146,8 +146,8 @@
     },
     "deribit_btc_perpetual": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.019585+00:00",
-      "latency_ms": 161,
+      "retrieved_at": "2026-11-14T08:50:13.937202+00:00",
+      "latency_ms": 247,
       "endpoint": "https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL",
       "data": {
         "jsonrpc": "2.0",
@@ -155,41 +155,41 @@
           {
             "high": 70164.5,
             "low": 66379.0,
-            "last": 67016.5,
+            "last": 67007.5,
             "instrument_name": "BTC-PERPETUAL",
-            "bid_price": 67016.5,
-            "ask_price": 67017.0,
-            "open_interest": 709959780,
-            "mark_price": 67022.21,
-            "creation_timestamp": 1794646192962,
+            "bid_price": 67007.5,
+            "ask_price": 67008.0,
+            "open_interest": 710524180,
+            "mark_price": 67010.04,
+            "creation_timestamp": 1794646213855,
             "current_funding": 0.0,
-            "estimated_delivery_price": 67025.21,
+            "estimated_delivery_price": 67013.2,
             "funding_8h": -1.56e-06,
-            "price_change": -2.5845,
-            "volume": 34529.13860207,
+            "price_change": -2.5409,
+            "volume": 34520.44188979,
             "base_currency": "BTC",
             "quote_currency": "USD",
             "volume_delayed": 0.0,
-            "volume_realtime": 34529.13860207,
+            "volume_realtime": 34520.44188979,
             "volume_delayed_usd": 0.0,
-            "volume_realtime_usd": 2354352750.0,
-            "volume_usd": 2354352750.0,
+            "volume_realtime_usd": 2353736000.0,
+            "volume_usd": 2353736000.0,
             "volume_delayed_notional": 0.0,
-            "volume_notional": 2354352750.0,
-            "volume_realtime_notional": 2354352750.0,
-            "mid_price": 67016.75
+            "volume_notional": 2353736000.0,
+            "volume_realtime_notional": 2353736000.0,
+            "mid_price": 67007.75
           }
         ],
-        "usIn": 1794646192962812,
-        "usOut": 1794646192963018,
-        "usDiff": 206,
+        "usIn": 1794646213855227,
+        "usOut": 1794646213855394,
+        "usDiff": 167,
         "testnet": false
       }
     },
     "edge_funding_all_exchanges": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.803277+00:00",
-      "latency_ms": 943,
+      "retrieved_at": "2026-11-14T08:50:15.190563+00:00",
+      "latency_ms": 1496,
       "endpoint": "https://edgeornot.com/api/funding",
       "data": {
         "pairs": [
@@ -8879,14 +8879,14 @@
     },
     "swole_funding_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.075057+00:00",
-      "latency_ms": 209,
+      "retrieved_at": "2026-11-14T08:50:14.245418+00:00",
+      "latency_ms": 551,
       "endpoint": "https://swolecharts.com/api/series/funding?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "funding",
         "step": 3600000,
         "start": 1794556800000,
-        "end": 1794646138004,
+        "end": 1794646202692,
         "source": "market_1h",
         "fields": [
           "v"
@@ -8955,14 +8955,14 @@
     },
     "swole_open_interest_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.316402+00:00",
-      "latency_ms": 450,
+      "retrieved_at": "2026-11-14T08:50:14.097529+00:00",
+      "latency_ms": 400,
       "endpoint": "https://swolecharts.com/api/series/oi?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "oi",
         "step": 3600000,
         "start": 1794556800000,
-        "end": 1794646137819,
+        "end": 1794646202137,
         "source": "market_1h",
         "fields": [
           "v"
@@ -9031,8 +9031,8 @@
     },
     "swole_liquidations_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.112202+00:00",
-      "latency_ms": 245,
+      "retrieved_at": "2026-11-14T08:50:14.090424+00:00",
+      "latency_ms": 393,
       "endpoint": "https://swolecharts.com/api/series/liquidations?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "liquidations",
@@ -9135,8 +9135,8 @@
     },
     "swole_btc_snapshot": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.416036+00:00",
-      "latency_ms": 547,
+      "retrieved_at": "2026-11-14T08:50:14.253234+00:00",
+      "latency_ms": 556,
       "endpoint": "https://swolecharts.com/api/coin/BTC",
       "data": {
         "long_short": {
@@ -18470,7 +18470,7 @@
             ]
           }
         },
-        "server_ts": 1794646184293,
+        "server_ts": 1794646193224,
         "uptime_since": 1791290081265,
         "market": {
           "base": "BTC",
@@ -24768,15 +24768,15 @@
               "short": 0.0
             }
           ],
-          "server_ts": 1794646184293,
+          "server_ts": 1794646193224,
           "uptime_since": 1791290081265
         }
       }
     },
     "coinboss_funding_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.858501+00:00",
-      "latency_ms": 989,
+      "retrieved_at": "2026-11-14T08:50:14.508621+00:00",
+      "latency_ms": 811,
       "endpoint": "https://www.coinboss.com/api/sd/funding?coin=BTC",
       "data": {
         "success": true,
@@ -25874,8 +25874,8 @@
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:54.129991+00:00",
-      "latency_ms": 1110,
+      "retrieved_at": "2026-11-14T08:50:14.834643+00:00",
+      "latency_ms": 908,
       "endpoint": "https://www.coinboss.com/api/sd/oi?coin=BTC",
       "data": {
         "success": true,
@@ -28099,43 +28099,43 @@
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.740955+00:00",
-      "latency_ms": 699,
+      "retrieved_at": "2026-11-14T08:50:14.477330+00:00",
+      "latency_ms": 551,
       "endpoint": "https://www.coinboss.com/api/liquidations/overview",
       "data": {
         "success": true,
         "data": {
           "1h": {
-            "long_usd": 889891.2500000007,
-            "short_usd": 1147050.25,
-            "total_usd": 2036941.5000000007,
-            "cnt": 1186
+            "long_usd": 898953.9200000007,
+            "short_usd": 1146486.8299999998,
+            "total_usd": 2045440.7500000005,
+            "cnt": 1189
           },
           "4h": {
-            "long_usd": 14770541.19999998,
-            "short_usd": 5399222.550000002,
-            "total_usd": 20169763.74999998,
-            "cnt": 9117
+            "long_usd": 14777614.549999977,
+            "short_usd": 5399520.760000002,
+            "total_usd": 20177135.30999998,
+            "cnt": 9120
           },
           "12h": {
-            "long_usd": 419785299.6200003,
-            "short_usd": 20511721.84000002,
-            "total_usd": 440297021.46000034,
-            "cnt": 64757
+            "long_usd": 419787743.1200003,
+            "short_usd": 20412034.68000002,
+            "total_usd": 440199777.8000003,
+            "cnt": 64746
           },
           "24h": {
-            "long_usd": 531484696.0300006,
-            "short_usd": 128893151.40000056,
-            "total_usd": 660377847.4300011,
-            "cnt": 114366
+            "long_usd": 531493418.2600006,
+            "short_usd": 128794459.81000054,
+            "total_usd": 660287878.0700011,
+            "cnt": 114283
           }
         }
       }
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.981990+00:00",
-      "latency_ms": 936,
+      "retrieved_at": "2026-11-14T08:50:14.664327+00:00",
+      "latency_ms": 738,
       "endpoint": "https://www.coinboss.com/api/liquidations?symbol=BTCUSDT&limit=100",
       "data": {
         "success": true,
@@ -29545,8 +29545,8 @@
     },
     "coinboss_market_tickers_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.942791+00:00",
-      "latency_ms": 895,
+      "retrieved_at": "2026-11-14T08:50:14.608026+00:00",
+      "latency_ms": 681,
       "endpoint": "https://www.coinboss.com/api/market/tickers?coin=BTC",
       "data": {
         "success": true,
@@ -29566,8 +29566,8 @@
     },
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.311073+00:00",
-      "latency_ms": 248,
+      "retrieved_at": "2026-11-14T08:50:14.111834+00:00",
+      "latency_ms": 175,
       "endpoint": "https://www.tftc.io/bitcoin-etf-flows/latest.json",
       "data": {
         "name": "US Spot Bitcoin ETF Flows, latest session",
@@ -29651,8 +29651,8 @@
     },
     "fred_macro": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.395352+00:00",
-      "latency_ms": 318,
+      "retrieved_at": "2026-11-14T08:50:14.302347+00:00",
+      "latency_ms": 210,
       "endpoint": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=<one-series-per-request>",
       "data": {
         "provider": "FRED",
@@ -30018,8 +30018,8 @@
     },
     "okx_eea_btc_usdc_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.275845+00:00",
-      "latency_ms": 164,
+      "retrieved_at": "2026-11-14T08:50:14.276903+00:00",
+      "latency_ms": 182,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=BTC-USDC",
       "data": {
         "code": "0",
@@ -30027,18 +30027,18 @@
           {
             "instType": "SPOT",
             "instId": "BTC-USDC",
-            "last": "67035.1",
-            "lastSz": "0.01044229",
-            "askPx": "67035.1",
-            "askSz": "0.01915868",
-            "bidPx": "67035",
-            "bidSz": "0.02776124",
-            "open24h": "68767.3",
+            "last": "67037.4",
+            "lastSz": "0.00025224",
+            "askPx": "67026.1",
+            "askSz": "0.01179003",
+            "bidPx": "67026",
+            "bidSz": "0.00353907",
+            "open24h": "68777.5",
             "high24h": "70166.6",
             "low24h": "66401",
-            "volCcy24h": "97417035.78166391",
-            "vol24h": "1425.15388001",
-            "ts": "1794646192570",
+            "volCcy24h": "97126187.19273154",
+            "vol24h": "1420.93137412",
+            "ts": "1794646213573",
             "sodUtc0": "68264.9",
             "sodUtc8": "68854.4"
           }
@@ -30048,8 +30048,8 @@
     },
     "okx_eea_zec_usdc_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.412977+00:00",
-      "latency_ms": 137,
+      "retrieved_at": "2026-11-14T08:50:14.281842+00:00",
+      "latency_ms": 184,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=ZEC-USDC",
       "data": {
         "code": "0",
@@ -30059,16 +30059,16 @@
             "instId": "ZEC-USDC",
             "last": "900.9",
             "lastSz": "0.03613",
-            "askPx": "901.14",
-            "askSz": "0.29675",
-            "bidPx": "900.78",
-            "bidSz": "0.0325",
-            "open24h": "946.57",
+            "askPx": "901.35",
+            "askSz": "0.29674",
+            "bidPx": "901",
+            "bidSz": "0.02844",
+            "open24h": "942.45",
             "high24h": "991.55",
             "low24h": "890.53",
-            "volCcy24h": "3491602.1244833",
-            "vol24h": "3719.33613",
-            "ts": "1794646192565",
+            "volCcy24h": "3483491.766776",
+            "vol24h": "3710.74942",
+            "ts": "1794646213563",
             "sodUtc0": "933.5",
             "sodUtc8": "947.92"
           }
@@ -30078,8 +30078,8 @@
     },
     "okx_eea_zec_xperp_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.446889+00:00",
-      "latency_ms": 136,
+      "retrieved_at": "2026-11-14T08:50:14.300492+00:00",
+      "latency_ms": 189,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
@@ -30087,18 +30087,18 @@
           {
             "instType": "FUTURES",
             "instId": "ZEC-USD_UM_XPERP-310530",
-            "last": "900.51",
-            "lastSz": "11",
-            "askPx": "900.29",
-            "askSz": "8",
-            "bidPx": "900.03",
-            "bidSz": "8",
-            "open24h": "945.86",
+            "last": "900.57",
+            "lastSz": "1",
+            "askPx": "900.44",
+            "askSz": "22",
+            "bidPx": "900.33",
+            "bidSz": "22",
+            "open24h": "941.55",
             "high24h": "990.77",
             "low24h": "889.65",
-            "volCcy24h": "26087.45",
-            "vol24h": "2608745",
-            "ts": "1794646192769",
+            "volCcy24h": "26066.99",
+            "vol24h": "2606699",
+            "ts": "1794646213678",
             "sodUtc0": "932.35",
             "sodUtc8": "947.17"
           }
@@ -30108,8 +30108,8 @@
     },
     "okx_eea_zec_xperp_book": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.486818+00:00",
-      "latency_ms": 170,
+      "retrieved_at": "2026-11-14T08:50:14.456720+00:00",
+      "latency_ms": 211,
       "endpoint": "https://eea.okx.com/api/v5/market/books?instId=ZEC-USD_UM_XPERP-310530&sz=50",
       "data": {
         "code": "0",
@@ -30118,62 +30118,44 @@
           {
             "asks": [
               [
-                "900.16",
-                "22",
-                "0",
-                "1"
-              ],
-              [
-                "900.21",
+                "900.49",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "900.29",
+                "900.51",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "900.31",
+                "900.53",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "900.32",
+                "900.55",
+                "8",
+                "0",
+                "1"
+              ],
+              [
+                "900.57",
+                "8",
+                "0",
+                "1"
+              ],
+              [
+                "900.58",
                 "167",
                 "0",
                 "1"
               ],
               [
-                "900.36",
+                "900.64",
                 "8",
-                "0",
-                "1"
-              ],
-              [
-                "900.42",
-                "8",
-                "0",
-                "1"
-              ],
-              [
-                "900.44",
-                "8",
-                "0",
-                "1"
-              ],
-              [
-                "900.46",
-                "8",
-                "0",
-                "1"
-              ],
-              [
-                "900.6",
-                "167",
                 "0",
                 "1"
               ],
@@ -30184,44 +30166,32 @@
                 "1"
               ],
               [
-                "900.78",
-                "1998",
-                "0",
-                "1"
-              ],
-              [
-                "900.8",
-                "599",
-                "0",
-                "1"
-              ],
-              [
                 "900.88",
                 "167",
                 "0",
                 "1"
               ],
               [
-                "901.12",
-                "112",
+                "900.94",
+                "1997",
+                "0",
+                "1"
+              ],
+              [
+                "900.98",
+                "2",
+                "0",
+                "1"
+              ],
+              [
+                "901.11",
+                "82",
                 "0",
                 "1"
               ],
               [
                 "901.14",
                 "200",
-                "0",
-                "1"
-              ],
-              [
-                "901.25",
-                "110",
-                "0",
-                "1"
-              ],
-              [
-                "901.29",
-                "82",
                 "0",
                 "1"
               ],
@@ -30233,18 +30203,12 @@
               ],
               [
                 "901.32",
-                "167",
+                "766",
                 "0",
-                "1"
+                "2"
               ],
               [
-                "901.4",
-                "221",
-                "0",
-                "1"
-              ],
-              [
-                "901.48",
+                "901.5",
                 "110",
                 "0",
                 "1"
@@ -30263,31 +30227,43 @@
               ],
               [
                 "901.65",
-                "167",
+                "388",
                 "0",
-                "1"
-              ],
-              [
-                "901.66",
-                "35",
-                "0",
-                "1"
+                "2"
               ],
               [
                 "901.71",
-                "499",
+                "535",
+                "0",
+                "2"
+              ],
+              [
+                "901.72",
+                "111",
                 "0",
                 "1"
               ],
               [
                 "901.74",
-                "146",
+                "110",
                 "0",
-                "2"
+                "1"
               ],
               [
-                "901.85",
-                "37301",
+                "901.81",
+                "36",
+                "0",
+                "1"
+              ],
+              [
+                "901.9",
+                "36",
+                "0",
+                "1"
+              ],
+              [
+                "901.92",
+                "37304",
                 "0",
                 "1"
               ],
@@ -30316,6 +30292,12 @@
                 "1"
               ],
               [
+                "902.06",
+                "110",
+                "0",
+                "1"
+              ],
+              [
                 "902.07",
                 "200",
                 "0",
@@ -30334,12 +30316,6 @@
                 "1"
               ],
               [
-                "902.5",
-                "2500",
-                "0",
-                "1"
-              ],
-              [
                 "902.51",
                 "1",
                 "0",
@@ -30348,18 +30324,6 @@
               [
                 "902.52",
                 "221",
-                "0",
-                "1"
-              ],
-              [
-                "902.53",
-                "55933",
-                "0",
-                "1"
-              ],
-              [
-                "902.56",
-                "386",
                 "0",
                 "1"
               ],
@@ -30378,6 +30342,18 @@
               [
                 "902.69",
                 "167",
+                "0",
+                "1"
+              ],
+              [
+                "902.82",
+                "386",
+                "0",
+                "1"
+              ],
+              [
+                "902.92",
+                "2500",
                 "0",
                 "1"
               ],
@@ -30406,8 +30382,8 @@
                 "1"
               ],
               [
-                "903.29",
-                "167",
+                "903.27",
+                "55957",
                 "0",
                 "1"
               ],
@@ -30416,35 +30392,77 @@
                 "8",
                 "0",
                 "1"
-              ]
-            ],
-            "bids": [
+              ],
               [
-                "900.04",
-                "22",
+                "903.51",
+                "1",
                 "0",
                 "1"
               ],
               [
-                "900.01",
+                "903.52",
+                "200",
+                "0",
+                "1"
+              ],
+              [
+                "903.61",
+                "221",
+                "0",
+                "1"
+              ],
+              [
+                "903.88",
+                "5",
+                "0",
+                "1"
+              ]
+            ],
+            "bids": [
+              [
+                "900.32",
+                "11",
+                "0",
+                "1"
+              ],
+              [
+                "900.24",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "900",
-                "2",
+                "900.19",
+                "9",
+                "0",
+                "2"
+              ],
+              [
+                "900.17",
+                "8",
                 "0",
                 "1"
               ],
               [
-                "899.95",
+                "900.16",
+                "220",
+                "0",
+                "4"
+              ],
+              [
+                "900.08",
                 "167",
                 "0",
                 "1"
               ],
               [
-                "899.67",
+                "899.77",
+                "109",
+                "0",
+                "1"
+              ],
+              [
+                "899.68",
                 "167",
                 "0",
                 "1"
@@ -30456,7 +30474,13 @@
                 "1"
               ],
               [
-                "899.59",
+                "899.61",
+                "21",
+                "0",
+                "1"
+              ],
+              [
+                "899.54",
                 "1998",
                 "0",
                 "1"
@@ -30468,20 +30492,14 @@
                 "1"
               ],
               [
-                "899.45",
-                "111",
+                "899.51",
+                "37305",
                 "0",
                 "1"
               ],
               [
-                "899.42",
+                "899.5",
                 "599",
-                "0",
-                "1"
-              ],
-              [
-                "899.39",
-                "21",
                 "0",
                 "1"
               ],
@@ -30492,20 +30510,44 @@
                 "1"
               ],
               [
+                "899.2",
+                "111",
+                "0",
+                "1"
+              ],
+              [
                 "899.17",
                 "201",
                 "0",
                 "1"
               ],
               [
-                "899.15",
-                "37264",
+                "899.16",
+                "500",
+                "0",
+                "1"
+              ],
+              [
+                "899.11",
+                "222",
+                "0",
+                "1"
+              ],
+              [
+                "899.05",
+                "35",
                 "0",
                 "1"
               ],
               [
                 "899",
-                "119",
+                "8",
+                "0",
+                "1"
+              ],
+              [
+                "898.98",
+                "146",
                 "0",
                 "2"
               ],
@@ -30514,6 +30556,12 @@
                 "13",
                 "0",
                 "2"
+              ],
+              [
+                "898.89",
+                "41028",
+                "0",
+                "1"
               ],
               [
                 "898.79",
@@ -30541,19 +30589,7 @@
               ],
               [
                 "898.65",
-                "500",
-                "0",
-                "1"
-              ],
-              [
-                "898.61",
-                "40991",
-                "0",
-                "1"
-              ],
-              [
-                "898.53",
-                "222",
+                "21",
                 "0",
                 "1"
               ],
@@ -30570,16 +30606,10 @@
                 "1"
               ],
               [
-                "898.43",
-                "21",
+                "898.32",
+                "3",
                 "0",
                 "1"
-              ],
-              [
-                "898.32",
-                "114",
-                "0",
-                "2"
               ],
               [
                 "898.27",
@@ -30594,8 +30624,14 @@
                 "1"
               ],
               [
-                "898.09",
-                "222",
+                "898.17",
+                "2500",
+                "0",
+                "1"
+              ],
+              [
+                "898.01",
+                "111",
                 "0",
                 "1"
               ],
@@ -30604,6 +30640,12 @@
                 "122",
                 "0",
                 "3"
+              ],
+              [
+                "897.94",
+                "388",
+                "0",
+                "1"
               ],
               [
                 "897.91",
@@ -30618,8 +30660,8 @@
                 "1"
               ],
               [
-                "897.76",
-                "2500",
+                "897.77",
+                "167",
                 "0",
                 "1"
               ],
@@ -30636,26 +30678,20 @@
                 "1"
               ],
               [
+                "897.46",
+                "3",
+                "0",
+                "1"
+              ],
+              [
                 "897.42",
                 "222",
                 "0",
                 "1"
               ],
               [
-                "897.37",
-                "388",
-                "0",
-                "1"
-              ],
-              [
                 "897.34",
                 "201",
-                "0",
-                "1"
-              ],
-              [
-                "897.18",
-                "3",
                 "0",
                 "1"
               ],
@@ -30682,58 +30718,103 @@
                 "423",
                 "0",
                 "2"
-              ],
-              [
-                "896.83",
-                "1",
-                "0",
-                "1"
-              ],
-              [
-                "896.8",
-                "8",
-                "0",
-                "1"
-              ],
-              [
-                "896.7",
-                "8",
-                "0",
-                "1"
-              ],
-              [
-                "896.53",
-                "5",
-                "0",
-                "1"
-              ],
-              [
-                "896.38",
-                "224",
-                "0",
-                "2"
-              ],
-              [
-                "896.25",
-                "1",
-                "0",
-                "1"
               ]
             ],
-            "ts": "1794646193354",
-            "seqId": 2949920216
+            "ts": "1794646214304",
+            "seqId": 2949924663
           }
         ]
       }
     },
     "okx_eea_zec_xperp_trades": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.606259+00:00",
-      "latency_ms": 211,
+      "retrieved_at": "2026-11-14T08:50:14.438487+00:00",
+      "latency_ms": 185,
       "endpoint": "https://eea.okx.com/api/v5/market/trades?instId=ZEC-USD_UM_XPERP-310530&limit=100",
       "data": {
         "code": "0",
         "data": [
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151397",
+            "px": "900.57",
+            "sz": "1",
+            "side": "sell",
+            "ts": "1794646209648",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151396",
+            "px": "900.66",
+            "sz": "221",
+            "side": "buy",
+            "ts": "1794646208716",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151395",
+            "px": "900.13",
+            "sz": "11",
+            "side": "sell",
+            "ts": "1794646201138",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151394",
+            "px": "900.16",
+            "sz": "13",
+            "side": "sell",
+            "ts": "1794646201137",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151393",
+            "px": "900.16",
+            "sz": "1",
+            "side": "sell",
+            "ts": "1794646201137",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151392",
+            "px": "900.16",
+            "sz": "41",
+            "side": "sell",
+            "ts": "1794646201137",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151391",
+            "px": "900",
+            "sz": "2",
+            "side": "sell",
+            "ts": "1794646198934",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151390",
+            "px": "900.51",
+            "sz": "11",
+            "side": "sell",
+            "ts": "1794646190490",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8151389",
+            "px": "900.23",
+            "sz": "31",
+            "side": "buy",
+            "ts": "1794646188809",
+            "source": "0"
+          },
           {
             "instId": "ZEC-USD_UM_XPERP-310530",
             "tradeId": "8151388",
@@ -31552,87 +31633,6 @@
             "side": "sell",
             "ts": "1794645974264",
             "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151297",
-            "px": "902.15",
-            "sz": "11",
-            "side": "sell",
-            "ts": "1794645968231",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151296",
-            "px": "902.2",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794645968226",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151295",
-            "px": "901.92",
-            "sz": "588",
-            "side": "sell",
-            "ts": "1794645967197",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151294",
-            "px": "901.96",
-            "sz": "2",
-            "side": "sell",
-            "ts": "1794645967197",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151293",
-            "px": "902.06",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794645967197",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151292",
-            "px": "902.08",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794645967197",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151291",
-            "px": "902.09",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794645967197",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151290",
-            "px": "902.1",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794645967197",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8151289",
-            "px": "902.11",
-            "sz": "167",
-            "side": "sell",
-            "ts": "1794645967197",
-            "source": "0"
           }
         ],
         "msg": ""
@@ -31640,8 +31640,8 @@
     },
     "okx_eea_zec_xperp_mark": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.548488+00:00",
-      "latency_ms": 135,
+      "retrieved_at": "2026-11-14T08:50:14.466903+00:00",
+      "latency_ms": 190,
       "endpoint": "https://eea.okx.com/api/v5/public/mark-price?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
@@ -31649,8 +31649,8 @@
           {
             "instId": "ZEC-USD_UM_XPERP-310530",
             "instType": "FUTURES",
-            "markPx": "900.34",
-            "ts": "1794646193494"
+            "markPx": "900.61",
+            "ts": "1794646214388"
           }
         ],
         "msg": ""
@@ -31658,21 +31658,21 @@
     },
     "okx_eea_zec_index": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.568462+00:00",
-      "latency_ms": 152,
+      "retrieved_at": "2026-11-14T08:50:14.512224+00:00",
+      "latency_ms": 230,
       "endpoint": "https://eea.okx.com/api/v5/market/index-tickers?quoteCcy=USD",
       "data": {
         "code": "0",
         "data": [
           {
             "instId": "ZEC-USD",
-            "idxPx": "900.7",
+            "idxPx": "900.77",
             "high24h": "991.29",
             "low24h": "891",
             "open24h": "946.13",
             "sodUtc0": "933.26",
             "sodUtc8": "947.81",
-            "ts": "1794646163102"
+            "ts": "1794646194715"
           }
         ],
         "msg": ""
@@ -31680,8 +31680,8 @@
     },
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.588169+00:00",
-      "latency_ms": 141,
+      "retrieved_at": "2026-11-14T08:50:14.502894+00:00",
+      "latency_ms": 202,
       "endpoint": "https://eea.okx.com/api/v5/public/funding-rate?instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
@@ -31711,8 +31711,8 @@
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.619267+00:00",
-      "latency_ms": 132,
+      "retrieved_at": "2026-11-14T08:50:14.483428+00:00",
+      "latency_ms": 181,
       "endpoint": "https://eea.okx.com/api/v5/public/open-interest?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
@@ -31720,10 +31720,10 @@
           {
             "instId": "ZEC-USD_UM_XPERP-310530",
             "instType": "FUTURES",
-            "oi": "420414",
-            "oiCcy": "4204.14",
-            "oiUsd": "3784398.6624",
-            "ts": "1794646193563"
+            "oi": "420403",
+            "oiCcy": "4204.03",
+            "oiUsd": "3785771.0553",
+            "ts": "1794646214405"
           }
         ],
         "msg": ""
@@ -31731,8 +31731,8 @@
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
-      "retrieved_at": "2026-11-14T08:49:53.688328+00:00",
-      "latency_ms": 140,
+      "retrieved_at": "2026-11-14T08:50:14.627501+00:00",
+      "latency_ms": 189,
       "endpoint": "https://eea.okx.com/api/v5/public/instruments?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
