@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-14T10:12:06.895893+00:00",
-  "snapshot_generated_at": "2026-11-14T10:12:06.834609+00:00",
+  "generated_at": "2026-11-14T10:36:50.914702+00:00",
+  "snapshot_generated_at": "2026-11-14T10:36:50.818678+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -64,7 +64,7 @@
     "deribit_btc_perpetual": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "edge_funding_all_exchanges": {
@@ -100,7 +100,7 @@
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_open_interest_btc": {
@@ -142,7 +142,7 @@
     "okx_eea_btc_usdc_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_usdc_ticker": {
@@ -160,43 +160,43 @@
     "okx_eea_zec_xperp_book": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_trades": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_mark": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_index": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     }
   }
