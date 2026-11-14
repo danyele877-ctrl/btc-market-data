@@ -335,7 +335,8 @@ class CandleFeed:
             start_ms = now_ms - window_seconds * 1000
             window = [item for item in self.micro_trade_events if item["ts_ms"] >= start_ms]
             ready = (
-                connected_since is not None
+                bool(micro.get("connected"))
+                and connected_since is not None
                 and int(connected_since) <= start_ms
                 and not any(item.get("gap_before") for item in window)
             )
