@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "capture_render_feed.py"
+      - "build_radar_snapshot.py"
       - ".github/workflows/render-bridge.yml"
   workflow_dispatch:
   repository_dispatch:
@@ -35,21 +36,26 @@ jobs:
       - name: Capture Render health and completed candles
         run: python capture_render_feed.py
 
+      - name: Build compact radar snapshot
+        run: python build_radar_snapshot.py
+
       - name: Publish only the Render bridge snapshot
         run: |
           set -e
           cp data/render_feed.json /tmp/render-feed.json
           cp data/zec_microstructure_history.json /tmp/zec-microstructure-history.json
           cp data/zec_xperp_history.json /tmp/zec-xperp-history.json
+          cp data/radar_snapshot.json /tmp/radar-snapshot.json
           for attempt in 1 2 3; do
             git fetch origin "${GITHUB_REF_NAME}"
             git reset --hard "origin/${GITHUB_REF_NAME}"
             cp /tmp/render-feed.json data/render_feed.json
             cp /tmp/zec-microstructure-history.json data/zec_microstructure_history.json
             cp /tmp/zec-xperp-history.json data/zec_xperp_history.json
+            cp /tmp/radar-snapshot.json data/radar_snapshot.json
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/render_feed.json data/zec_microstructure_history.json data/zec_xperp_history.json
+            git add data/render_feed.json data/zec_microstructure_history.json data/zec_xperp_history.json data/radar_snapshot.json
             if git diff --cached --quiet; then
               echo "Render bridge snapshot unchanged."
               exit 0
