@@ -35,6 +35,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -46,6 +48,9 @@ jobs:
 
       - name: Run service regression tests
         run: python -m unittest discover -s tests -v
+
+      - name: Replay recent ZEC signal snapshots
+        run: python replay_zec_signals.py --limit 600
 
       - name: Capture Render health and completed candles
         run: python capture_render_feed.py
