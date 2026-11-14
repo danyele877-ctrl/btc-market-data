@@ -5,6 +5,7 @@ import json
 import os
 import signal
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -292,8 +293,10 @@ class CandleFeed:
 
         # OKX history-candles uses at most 100 rows per request. Fetch older
         # pages with the documented "after" cursor and retain only completed,
-        # ordered, deduplicated candles. A failure in one series is reported
-        # without preventing the live WebSocket or other histories from working.
+        # ordered, deduplicated candles. Serialize requests to avoid bursts that
+        # trigger regional HTTP 429 rate limits; retry transient 429/5xx responses.
+        history_request_gate = asyncio.Semaphore(1)
+
         async def load(inst_id: str, stream_key: str, bar_name: str, interval: str) -> None:
             parse_bar = {"1m": "candle1m", "5m": "candle5m"}.get(interval, interval)
             collected: dict[int, dict[str, Any]] = {}
@@ -323,7 +326,25 @@ class CandleFeed:
                         )
                     return payload
 
-                payload = await asyncio.to_thread(fetch)
+                payload = None
+                for attempt in range(5):
+                    try:
+                        async with history_request_gate:
+                            await asyncio.sleep(0.35)
+                            payload = await asyncio.to_thread(fetch)
+                        break
+                    except urllib.error.HTTPError as request_error:
+                        if request_error.code not in (429, 500, 502, 503, 504) or attempt == 4:
+                            raise
+                        retry_after = None
+                        try:
+                            retry_after = float(request_error.headers.get("Retry-After", ""))
+                        except (TypeError, ValueError, AttributeError):
+                            pass
+                        wait_seconds = retry_after if retry_after is not None else min(2 ** attempt, 16)
+                        await asyncio.sleep(max(1.0, wait_seconds))
+                if payload is None:
+                    raise RuntimeError(f"Empty OKX history response for {interval} {inst_id}")
                 rows = payload.get("data", [])
                 if not isinstance(rows, list) or not rows:
                     break
