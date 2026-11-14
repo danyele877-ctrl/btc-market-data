@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections import deque
 import os
 import signal
 import time
@@ -16,6 +17,7 @@ import websockets
 
 OKX_REST = "https://eea.okx.com"
 OKX_WS = "wss://wseea.okx.com/ws/v5/business"
+OKX_PUBLIC_WS = "wss://wseea.okx.com/ws/v5/public"
 BAR_SECONDS = {"candle1m": 60, "candle5m": 300, "1H": 3600, "4H": 14400}
 WS_CHANNELS = ("candle1m", "candle5m")
 HISTORY_PAGE_LIMIT = 100
@@ -148,6 +150,32 @@ def new_state() -> dict[str, Any]:
             "active_instruments": [],
             "unavailable_instruments": [],
         },
+        "microstructure": {
+            "status": "starting",
+            "connected": False,
+            "connected_since_ms": None,
+            "last_message_at": None,
+            "last_trade_at": None,
+            "last_book_at": None,
+            "last_error": None,
+            "reconnects": 0,
+            "last_trade_id": None,
+            "trade_gap_count": 0,
+            "trade_message_count": 0,
+            "book_valid": False,
+            "book_seq_id": None,
+            "book_gap_count": 0,
+            "book": {"bids": [], "asks": [], "imbalance_top5": None, "imbalance_top10": None, "imbalance_top20": None},
+            "cvd": {
+                "unit": "contracts",
+                "1m": None,
+                "5m": None,
+                "15m": None,
+                "ready_1m": False,
+                "ready_5m": False,
+                "ready_15m": False
+            }
+        },
         "instruments": streams,
     }
 
@@ -159,6 +187,9 @@ class CandleFeed:
         self.lock = asyncio.Lock()
         self.stop_event = asyncio.Event()
         self.last_bridge_dispatch_minute: int | None = None
+        self.micro_trade_events = deque()
+        self.micro_book = {"bids": {}, "asks": {}, "seq_id": None, "valid": False}
+        self.micro_last_persist = 0.0
 
     def health(self) -> dict[str, Any]:
         now = utc_now()
@@ -228,7 +259,28 @@ class CandleFeed:
             "streams": streams,
             "history_ready_200": history_ready,
             "last_error": service.get("last_error"),
+            "microstructure": self.microstructure_health(),
         }
+
+    def microstructure_health(self) -> dict[str, Any]:
+        micro = self.state["microstructure"]
+        now_ms = int(utc_now().timestamp() * 1000)
+        def age(value):
+            try:
+                return round((now_ms - int(value)) / 1000, 1) if value else None
+            except (TypeError, ValueError):
+                return None
+        result = dict(micro)
+        result["message_age_seconds"] = age(
+            int(parse_iso(micro.get("last_message_at")).timestamp() * 1000)
+            if parse_iso(micro.get("last_message_at")) else None
+        )
+        result["trade_age_seconds"] = age(micro.get("last_trade_at"))
+        result["book_age_seconds"] = age(micro.get("last_book_at"))
+        result["book_valid"] = bool(micro.get("book_valid") and self.micro_book.get("valid"))
+        result["connected"] = bool(micro.get("connected"))
+        result["cvd"] = dict(micro.get("cvd") or {})
+        return result
 
     async def persist(self) -> None:
         self.state["generated_at"] = iso_utc()
@@ -273,6 +325,219 @@ class CandleFeed:
             merge_candles(self.state["instruments"][inst_id][bar], parsed)
             self.state["service"]["status"] = "ok"
             await self.persist()
+
+    def _refresh_micro_cvd(self, now_ms: int) -> None:
+        micro = self.state["microstructure"]
+        cvd = micro["cvd"]
+        connected_since = micro.get("connected_since_ms")
+        for label, window_seconds in (("1m", 60), ("5m", 300), ("15m", 900)):
+            start_ms = now_ms - window_seconds * 1000
+            window = [item for item in self.micro_trade_events if item["ts_ms"] >= start_ms]
+            ready = (
+                connected_since is not None
+                and int(connected_since) <= start_ms
+                and not any(item.get("gap_before") for item in window)
+            )
+            cvd[f"ready_{label}"] = bool(ready)
+            cvd[label] = round(sum(item["delta_contracts"] for item in window), 4) if ready else None
+
+    def _apply_book_levels(self, side: str, rows: list) -> None:
+        levels = self.micro_book[side]
+        for row in rows or []:
+            if not isinstance(row, (list, tuple)) or len(row) < 2:
+                continue
+            try:
+                price = str(row[0])
+                size = float(row[1])
+            except (TypeError, ValueError):
+                continue
+            if size <= 0:
+                levels.pop(price, None)
+            else:
+                levels[price] = size
+
+    def _book_summary(self) -> dict[str, Any]:
+        bids = sorted(
+            ((float(price), size) for price, size in self.micro_book["bids"].items()),
+            key=lambda item: item[0], reverse=True
+        )
+        asks = sorted(
+            ((float(price), size) for price, size in self.micro_book["asks"].items()),
+            key=lambda item: item[0]
+        )
+        def imbalance(depth: int):
+            bid_size = sum(size for _, size in bids[:depth])
+            ask_size = sum(size for _, size in asks[:depth])
+            total = bid_size + ask_size
+            return round((bid_size - ask_size) / total, 6) if total else None
+        return {
+            "bids": [[str(price), str(size)] for price, size in bids[:20]],
+            "asks": [[str(price), str(size)] for price, size in asks[:20]],
+            "best_bid": bids[0][0] if bids else None,
+            "best_ask": asks[0][0] if asks else None,
+            "imbalance_top5": imbalance(5),
+            "imbalance_top10": imbalance(10),
+            "imbalance_top20": imbalance(20),
+        }
+
+    async def handle_microstructure_message(self, message: str) -> None:
+        if message in ("ping", "pong"):
+            return
+        payload = json.loads(message)
+        if payload.get("event") == "error":
+            raise RuntimeError(f"OKX public WS error: {payload.get('code')} {payload.get('msg')}")
+        if payload.get("event"):
+            return
+        arg = payload.get("arg") or {}
+        if arg.get("instId") != EXPECTED_XPERP_INST_ID:
+            return
+        channel = arg.get("channel")
+        rows = payload.get("data")
+        if not isinstance(rows, list):
+            return
+
+        now_ms = int(utc_now().timestamp() * 1000)
+        micro = self.state["microstructure"]
+        micro["last_message_at"] = iso_utc()
+
+        if channel == "trades":
+            for row in rows:
+                try:
+                    trade_id = int(row.get("tradeId"))
+                    size = float(row.get("sz"))
+                    count = max(1, int(row.get("count", 1)))
+                    ts_ms = int(row.get("ts"))
+                except (TypeError, ValueError):
+                    continue
+                side = row.get("side")
+                if size <= 0 or side not in ("buy", "sell"):
+                    continue
+                previous_id = micro.get("last_trade_id")
+                first_id = trade_id - count + 1
+                gap_before = False
+                if previous_id is not None:
+                    if trade_id <= int(previous_id):
+                        continue
+                    if first_id != int(previous_id) + 1:
+                        gap_before = True
+                        micro["trade_gap_count"] += 1
+                delta = size if side == "buy" else -size
+                self.micro_trade_events.append({
+                    "ts_ms": ts_ms,
+                    "delta_contracts": delta,
+                    "gap_before": gap_before,
+                })
+                micro["last_trade_id"] = trade_id
+                micro["last_trade_at"] = ts_ms
+                micro["trade_message_count"] += 1
+            cutoff = now_ms - 15 * 60 * 1000
+            while self.micro_trade_events and self.micro_trade_events[0]["ts_ms"] < cutoff:
+                self.micro_trade_events.popleft()
+            self._refresh_micro_cvd(now_ms)
+
+        elif channel == "books":
+            row = rows[0] if rows else None
+            if not isinstance(row, dict):
+                return
+            action = payload.get("action")
+            try:
+                seq_id = int(row.get("seqId"))
+                prev_seq_id = int(row.get("prevSeqId", -1))
+                exchange_ts = int(row.get("ts"))
+            except (TypeError, ValueError):
+                return
+
+            if action == "snapshot":
+                self.micro_book = {"bids": {}, "asks": {}, "seq_id": seq_id, "valid": True}
+                self._apply_book_levels("bids", row.get("bids", []))
+                self._apply_book_levels("asks", row.get("asks", []))
+            elif action == "update":
+                current_seq = self.micro_book.get("seq_id")
+                if not self.micro_book.get("valid") or current_seq is None or prev_seq_id != int(current_seq):
+                    self.micro_book["valid"] = False
+                    micro["book_valid"] = False
+                    micro["book_gap_count"] += 1
+                else:
+                    self._apply_book_levels("bids", row.get("bids", []))
+                    self._apply_book_levels("asks", row.get("asks", []))
+                    self.micro_book["seq_id"] = seq_id
+            else:
+                return
+
+            micro["book_valid"] = bool(self.micro_book.get("valid"))
+            micro["book_seq_id"] = self.micro_book.get("seq_id")
+            micro["last_book_at"] = exchange_ts
+            if micro["book_valid"]:
+                micro["book"] = self._book_summary()
+
+        else:
+            return
+
+        # Persist the live microstructure state at most once per second.
+        if time.monotonic() - self.micro_last_persist >= 1.0:
+            self.micro_last_persist = time.monotonic()
+            await self.persist()
+
+    async def run_microstructure_websocket(self) -> None:
+        delay = RECONNECT_MIN_SECONDS
+        micro = self.state["microstructure"]
+        while not self.stop_event.is_set():
+            try:
+                async with websockets.connect(
+                    OKX_PUBLIC_WS, open_timeout=20, close_timeout=10,
+                    ping_interval=None, max_size=2**20,
+                ) as websocket:
+                    args = [
+                        {"channel": "trades", "instId": EXPECTED_XPERP_INST_ID},
+                        {"channel": "books", "instId": EXPECTED_XPERP_INST_ID},
+                    ]
+                    await websocket.send(json.dumps({"op": "subscribe", "args": args}))
+                    micro["connected"] = True
+                    micro["status"] = "warming"
+                    micro["connected_since_ms"] = int(utc_now().timestamp() * 1000)
+                    micro["last_error"] = None
+                    micro["book_valid"] = False
+                    self.micro_book = {"bids": {}, "asks": {}, "seq_id": None, "valid": False}
+                    self.micro_trade_events.clear()
+                    self._refresh_micro_cvd(int(utc_now().timestamp() * 1000))
+                    await self.persist()
+                    delay = RECONNECT_MIN_SECONDS
+                    while True:
+                        try:
+                            message = await asyncio.wait_for(websocket.recv(), timeout=25)
+                        except asyncio.TimeoutError:
+                            await websocket.send("ping")
+                            message = await asyncio.wait_for(websocket.recv(), timeout=10)
+                        if message == "ping":
+                            await websocket.send("pong")
+                            micro["last_message_at"] = iso_utc()
+                        elif message == "pong":
+                            micro["last_message_at"] = iso_utc()
+                        else:
+                            await self.handle_microstructure_message(message)
+                        if micro.get("book_valid") and micro.get("last_trade_at"):
+                            micro["status"] = "ok"
+                        else:
+                            micro["status"] = "warming"
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                micro["connected"] = False
+                micro["status"] = "degraded"
+                micro["book_valid"] = False
+                self.micro_book["valid"] = False
+                micro["last_error"] = f"{type(exc).__name__}: {str(exc)}"[:500]
+                micro["reconnects"] += 1
+                await self.persist()
+                try:
+                    await asyncio.wait_for(self.stop_event.wait(), timeout=delay)
+                except asyncio.TimeoutError:
+                    pass
+                delay = min(delay * 2, RECONNECT_MAX_SECONDS)
+            finally:
+                micro["connected"] = False
+                micro["book_valid"] = False
+                self.micro_book["valid"] = False
 
         # Dispatch once per completed UTC minute; coalesce all instruments.
         if channel == "candle1m" and GITHUB_TOKEN:
@@ -575,6 +840,7 @@ async def main() -> None:
         except NotImplementedError:
             pass
     ws_task = asyncio.create_task(feed.run_websocket())
+    micro_task = asyncio.create_task(feed.run_microstructure_websocket())
     print(f"Read-only OKX candle feed listening on 0.0.0.0:{port}", flush=True)
     try:
         async with server:
@@ -584,7 +850,8 @@ async def main() -> None:
         await server.wait_closed()
         feed.stop_event.set()
         ws_task.cancel()
-        await asyncio.gather(ws_task, return_exceptions=True)
+        micro_task.cancel()
+        await asyncio.gather(ws_task, micro_task, return_exceptions=True)
 
 def parse_iso(value: str | None) -> datetime | None:
     if not value:
