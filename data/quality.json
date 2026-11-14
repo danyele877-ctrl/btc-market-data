@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-14T09:14:12.392521+00:00",
-  "snapshot_generated_at": "2026-11-14T09:14:12.299022+00:00",
+  "generated_at": "2026-11-14T09:58:15.779584+00:00",
+  "snapshot_generated_at": "2026-11-14T09:58:15.697419+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -106,19 +106,19 @@
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
