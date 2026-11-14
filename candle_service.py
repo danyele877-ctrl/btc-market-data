@@ -265,6 +265,7 @@ class CandleFeed:
     def microstructure_health(self) -> dict[str, Any]:
         micro = self.state["microstructure"]
         now_ms = int(utc_now().timestamp() * 1000)
+        self._refresh_micro_cvd(now_ms)
         def age(value):
             try:
                 return round((now_ms - int(value)) / 1000, 1) if value else None
