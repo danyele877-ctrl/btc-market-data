@@ -269,11 +269,14 @@ def main():
     micro_out["book_imbalance"] = (ws_micro.get("book") or {})
     if ws_micro:
         cvd = ws_micro.get("cvd") or {}
-        cvd_ready = all(cvd.get(f"ready_{bar}") for bar in ("1m", "5m", "15m"))
-        micro_out["cvd_status"] = (
-            "OK: WebSocket continuo, delta in contratti"
-            if cvd_ready else "N/D: WebSocket in riscaldamento o continuità non verificata"
-        )
+        cvd_ready_short = bool(cvd.get("ready_1m") and cvd.get("ready_5m"))
+        cvd_ready_full = cvd_ready_short and bool(cvd.get("ready_15m"))
+        if cvd_ready_full:
+            micro_out["cvd_status"] = "OK: WebSocket continuo, delta in contratti su 1m/5m/15m"
+        elif cvd_ready_short:
+            micro_out["cvd_status"] = "PARZIALE: CVD 1m/5m pronto; finestra 15m in riscaldamento"
+        else:
+            micro_out["cvd_status"] = "N/D: WebSocket in riscaldamento o continuità non verificata"
         micro_out["book_sequence_status"] = (
             "OK: sequenza WebSocket valida"
             if ws_micro.get("book_valid") else "N/D: book non valido o in attesa di snapshot"
