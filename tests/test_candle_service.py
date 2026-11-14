@@ -186,14 +186,25 @@ class FeedStateTests(unittest.TestCase):
                     "arg": {"instId": "BTC-USDC", "channel": "candle1m"},
                     "data": [row],
                 }
+                started = asyncio.Event()
+                release = asyncio.Event()
+
+                async def hold_dispatch(completed_at):
+                    started.set()
+                    await release.wait()
+
                 with patch("candle_service.GITHUB_TOKEN", "test-token"), patch.object(
-                    feed, "request_bridge_refresh", new=AsyncMock()
-                ) as dispatch:
+                    feed, "request_bridge_refresh", new=hold_dispatch
+                ):
                     await feed.handle_message(json.dumps(message))
+                    await started.wait()
+                    self.assertEqual(len(feed.background_tasks), 1)
                     await feed.handle_message(json.dumps(message))
+                    self.assertEqual(len(feed.background_tasks), 1)
+                    release.set()
                     await asyncio.sleep(0)
-                    self.assertEqual(dispatch.call_count, 1)
-                    self.assertEqual(dispatch.call_args.args[0], service.parse_candle(row, "candle1m")["completed_at"])
+                    await asyncio.sleep(0)
+                    self.assertEqual(len(feed.background_tasks), 0)
 
         asyncio.run(run_case())
 
