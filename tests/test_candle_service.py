@@ -332,5 +332,24 @@ class FeedStateTests(unittest.TestCase):
         asyncio.run(run_case())
 
 
+class ConcurrentPersistenceTests(unittest.TestCase):
+    def test_concurrent_persists_use_independent_atomic_temp_files(self):
+        async def run_case():
+            with TemporaryDirectory() as directory:
+                target = Path(directory) / "candles.json"
+                feed = service.CandleFeed(target)
+                feed.state["service"]["status"] = "ok"
+
+                await asyncio.gather(*(feed.persist() for _ in range(40)))
+
+                self.assertTrue(target.exists())
+                payload = json.loads(target.read_text(encoding="utf-8"))
+                self.assertEqual(payload["service"]["status"], "ok")
+                self.assertIn("instruments", payload)
+                self.assertEqual(list(Path(directory).glob(".candles.json.*.tmp")), [])
+
+        asyncio.run(run_case())
+
+
 if __name__ == "__main__":
     unittest.main()
