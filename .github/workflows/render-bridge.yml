@@ -20,7 +20,7 @@ permissions:
 
 concurrency:
   group: render-candle-feed-bridge
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   publish-render-feed:
