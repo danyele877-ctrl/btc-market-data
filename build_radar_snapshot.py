@@ -53,12 +53,23 @@ def main():
             return None
     market_out = {}
     for name, record in market.items():
+        first = first_payload(record)
+        payload = record.get("payload") if isinstance(record, dict) else None
+        exchange_ts = first.get("ts") if isinstance(first, dict) else None
+        exchange_age = None
+        try:
+            exchange_age = round((now.timestamp() - int(exchange_ts) / 1000), 1) if exchange_ts else None
+        except (TypeError, ValueError):
+            pass
         market_out[name] = {
             "http_status": record.get("http_status"),
+            "api_code": payload.get("code") if isinstance(payload, dict) else None,
             "retrieved_at": record.get("retrieved_at"),
             "age_seconds": age(record.get("retrieved_at")),
+            "exchange_timestamp": exchange_ts,
+            "exchange_age_seconds": exchange_age,
             "error": record.get("error"),
-            "first": first_payload(record),
+            "first": first,
         }
     history_out = {}
     for bar, item in hist_bars.items():
