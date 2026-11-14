@@ -1,4 +1,5 @@
 name: Render Candle Feed Bridge
+# Manual push probe also verifies Render health and publishes a compact snapshot.
 
 on:
   push:
