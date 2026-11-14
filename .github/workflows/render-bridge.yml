@@ -58,6 +58,9 @@ jobs:
       - name: Capture Render health and completed candles
         run: python capture_render_feed.py
 
+      - name: Validate feed before building or publishing
+        run: python capture_render_feed.py --validate-existing
+
       - name: Build compact radar snapshot
         run: python build_radar_snapshot.py
 

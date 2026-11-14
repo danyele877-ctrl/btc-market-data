@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Capture the public Render candle feed into a GitHub-readable snapshot."""
 import json
+import os
+import sys
+import tempfile
 import time
 import urllib.request
 import urllib.parse
@@ -13,9 +16,95 @@ OUT = Path("data/render_feed.json")
 MICRO_OUT = Path("data/zec_microstructure_history.json")
 MICRO_MAX_MINUTES = 1440
 MICRO_MAX_TRADES = 30000
+MAX_FEED_AGE_SECONDS = 20 * 60
+HISTORY_MAX_AGE_SECONDS = {"1H": 3 * 3600, "4H": 12 * 3600}
 
 def now():
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def validate_feed(feed, current_time=None):
+    """Reject empty, incomplete, or stale snapshots before they can be published."""
+    current_time = current_time or datetime.now(timezone.utc)
+    problems = []
+
+    def parse_time(value):
+        if not isinstance(value, str):
+            return None
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+        except ValueError:
+            return None
+
+    captured = parse_time(feed.get("captured_at")) if isinstance(feed, dict) else None
+    if captured is None or (current_time - captured).total_seconds() > MAX_FEED_AGE_SECONDS or captured > current_time:
+        problems.append("captured_at missing, in the future, or older than 20 minutes")
+    if not isinstance(feed, dict) or feed.get("status") != "ok":
+        problems.append("Render feed status is not ok")
+    health = feed.get("healthz", {}) if isinstance(feed, dict) else {}
+    candles = feed.get("candles", {}) if isinstance(feed, dict) else {}
+    if health.get("http_status") != 200 or not isinstance(health.get("payload"), dict):
+        problems.append("Render health response is missing or not HTTP 200")
+    if candles.get("http_status") != 200 or not isinstance(candles.get("payload"), dict):
+        problems.append("Render candles response is missing or not HTTP 200")
+    else:
+        instruments = candles["payload"].get("instruments", {})
+        for market in ("BTC-USDC", "ZEC-USDC"):
+            for bar in ("1m", "5m"):
+                series = instruments.get(market, {}).get(bar, [])
+                if not isinstance(series, list) or not series:
+                    problems.append(f"Render {market} {bar} candle data is empty")
+    if isinstance(health.get("payload"), dict):
+        health_payload = health["payload"]
+        if health_payload.get("status") != "ok" or health_payload.get("websocket_connected") is not True:
+            problems.append("Render service or WebSocket is not healthy")
+        streams = health_payload.get("streams", {})
+        for market in ("BTC-USDC", "ZEC-USDC"):
+            for bar in ("1m", "5m"):
+                stream = streams.get(f"{market}:{bar}", {})
+                if not stream or stream.get("stale") is True or not stream.get("candle_count"):
+                    problems.append(f"Render {market} {bar} stream is empty or stale")
+
+    okx_history = feed.get("okx_history", {}) if isinstance(feed, dict) else {}
+    for market in ("BTC-USDC", "ZEC-USDC"):
+        for bar in ("1H", "4H"):
+            record = okx_history.get(market, {}).get(bar, {})
+            series = record.get("candles", [])
+            label = f"{market} {bar}"
+            if record.get("http_status") != 200 or len(series) < 200:
+                problems.append(f"{label} history has fewer than 200 candles or HTTP status is not 200")
+                continue
+            interval_ms = {"1H": 3_600_000, "4H": 14_400_000}[bar]
+            timestamps = []
+            try:
+                timestamps = [int(item["ts_ms"]) for item in series]
+            except (KeyError, TypeError, ValueError):
+                problems.append(f"{label} history contains malformed candles")
+                continue
+            if timestamps != sorted(set(timestamps)) or any(
+                right - left != interval_ms for left, right in zip(timestamps, timestamps[1:])
+            ):
+                problems.append(f"{label} history is unordered, duplicated, or has gaps")
+            newest = parse_time(series[-1].get("completed_at")) if series and isinstance(series[-1], dict) else None
+            if newest is None or (current_time - newest).total_seconds() > HISTORY_MAX_AGE_SECONDS[bar] or newest > current_time:
+                problems.append(f"{label} history is missing or stale")
+    return problems
+
+
+def write_feed_atomically(feed):
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=OUT.parent, delete=False) as handle:
+            temporary_path = Path(handle.name)
+            json.dump(feed, handle, ensure_ascii=False, separators=(",", ":"))
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, OUT)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
 
 def get(path):
     url = BASE + path
@@ -294,6 +383,19 @@ def update_microstructure_history(okx_market):
     }
 
 def main():
+    if sys.argv[1:] == ["--validate-existing"]:
+        try:
+            current = json.loads(OUT.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SystemExit(f"Invalid Render feed file: {exc}")
+        problems = validate_feed(current)
+        if problems:
+            raise SystemExit("Render feed validation failed: " + "; ".join(problems))
+        print(f"Render feed validation passed: {OUT}")
+        return
+    if sys.argv[1:]:
+        raise SystemExit("Usage: python capture_render_feed.py [--validate-existing]")
+
     health = get("/healthz")
     candles = get("/candles.json")
     if "payload" in candles:
@@ -344,8 +446,10 @@ def main():
         "healthz": health,
         "candles": candles,
     }
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(output, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    problems = validate_feed(output)
+    if problems:
+        raise SystemExit("Refusing to replace the last known feed: " + "; ".join(problems))
+    write_feed_atomically(output)
     print(json.dumps({
         "status": status,
         "health_http": health.get("http_status"),
