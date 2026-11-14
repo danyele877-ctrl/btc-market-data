@@ -693,22 +693,11 @@ class CandleFeed:
     async def run_websocket(self) -> None:
         delay = RECONNECT_MIN_SECONDS
         while not self.stop_event.is_set():
+            history_task = None
             try:
                 active = await self.discover()
                 if not active:
                     raise RuntimeError("No configured OKX instruments are live")
-                # Historical warm-up must never prevent the live 1m/5m feed
-                # from connecting. Keep the diagnostic visible and retry history
-                # periodically while the WebSocket remains active.
-                try:
-                    await self.bootstrap_history(active)
-                    last_history_refresh = time.monotonic()
-                except Exception as history_exc:
-                    last_history_refresh = time.monotonic()
-                    self.state["service"]["last_error"] = (
-                        f"History bootstrap: {type(history_exc).__name__}: {str(history_exc)}"
-                    )[:500]
-                    await self.persist()
                 subscriptions = [
                     {"channel": channel, "instId": item["instId"]}
                     for item in active for channel in WS_CHANNELS
@@ -722,6 +711,13 @@ class CandleFeed:
                     self.state["service"]["status"] = "connecting"
                     await self.persist()
                     delay = RECONNECT_MIN_SECONDS
+
+                    # Connect the live candle stream first. Historical bootstrap runs
+                    # in the background so a slow REST history request cannot delay
+                    # the 1m/5m WebSocket or leave healthz disconnected at startup.
+                    history_task = asyncio.create_task(self.bootstrap_history(active))
+                    last_history_refresh = time.monotonic()
+
                     while True:
                         try:
                             message = await asyncio.wait_for(websocket.recv(), timeout=25)
@@ -735,22 +731,27 @@ class CandleFeed:
                             self.state["service"]["last_message_at"] = iso_utc()
                         else:
                             await self.handle_message(message)
-                        # Refresh the completed 1H/4H history every 15 minutes.
-                        # Without this, the 1H/4H health checks inevitably go stale
-                        # even while the live WebSocket is healthy.
-                        if (
-                            any(x.get("instId") == EXPECTED_XPERP_INST_ID for x in active)
-                            and time.monotonic() - last_history_refresh >= 900
-                        ):
+
+                        if history_task is not None and history_task.done():
                             try:
-                                await self.bootstrap_history(active)
+                                await history_task
                                 self.state["service"]["last_error"] = None
                             except Exception as history_exc:
                                 self.state["service"]["last_error"] = (
-                                    f"History refresh: {type(history_exc).__name__}: {str(history_exc)}"
+                                    f"History bootstrap: {type(history_exc).__name__}: {str(history_exc)}"
                                 )[:500]
-                            last_history_refresh = time.monotonic()
+                            history_task = None
                             await self.persist()
+
+                        # Refresh completed 1H/4H history every 15 minutes, also
+                        # in the background so live candles are never blocked.
+                        if (
+                            history_task is None
+                            and any(x.get("instId") == EXPECTED_XPERP_INST_ID for x in active)
+                            and time.monotonic() - last_history_refresh >= 900
+                        ):
+                            history_task = asyncio.create_task(self.bootstrap_history(active))
+                            last_history_refresh = time.monotonic()
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
@@ -765,6 +766,9 @@ class CandleFeed:
                     pass
                 delay = min(delay * 2, RECONNECT_MAX_SECONDS)
             finally:
+                if history_task is not None and not history_task.done():
+                    history_task.cancel()
+                    await asyncio.gather(history_task, return_exceptions=True)
                 self.state["service"]["connected"] = False
 
 async def dispatch_bridge_refresh(completed_at: str) -> None:
