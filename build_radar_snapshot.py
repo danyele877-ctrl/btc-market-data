@@ -3,6 +3,7 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from zec_early_signal import evaluate_signal
 
 ROOT = Path("data")
 FEED = ROOT / "render_feed.json"
@@ -183,6 +184,8 @@ def microstructure_summary(micro):
         median_interval = ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
     last_book = sorted_books[-1] if sorted_books else None
     last_trade = sorted_trades[-1] if sorted_trades else None
+    oi_history = micro.get("open_interest_history", []) if isinstance(micro, dict) else []
+    oi_history = [item for item in oi_history if isinstance(item, dict) and item.get("inst_id") == "ZEC-USD_UM_XPERP-310530"]
     return {
         "schema_version": micro.get("schema_version"),
         "instrument": micro.get("instrument"),
@@ -201,6 +204,7 @@ def microstructure_summary(micro):
         "trade_window_end": last_trade.get("ts_ms") if last_trade else None,
         "cvd_status": "N/D: REST polling with detected tradeId gaps" if trade_gap_events else "N/D: REST polling; continuity not proven",
         "book_sequence_status": "N/D: REST snapshots do not provide a continuous WS sequence chain",
+        "open_interest_history": oi_history,
     }
 
 
@@ -217,6 +221,7 @@ def main():
             tail = candle_tail(feed, key, bar)
             candles[key][bar] = {
                 "tail_count": len(tail),
+                "tail": tail[-8:],
                 "latest": tail[-1] if tail else None,
                 "previous": tail[-2] if len(tail) > 1 else None,
             }
@@ -300,6 +305,7 @@ def main():
             "history": hist.get("_read_error"),
         },
     }
+    output["zec_early_signal"] = evaluate_signal(output, now=now)
     OUT.write_text(json.dumps(output, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(json.dumps({
         "output": str(OUT),
@@ -317,6 +323,9 @@ def main():
         "trade_id_gap_events": output["microstructure"]["trade_id_gap_events"],
         "ws_microstructure_status": (output["microstructure"].get("websocket") or {}).get("status"),
         "ws_book_valid": (output["microstructure"].get("websocket") or {}).get("book_valid"),
+        "zec_early_signal_status": output["zec_early_signal"]["status"],
+        "zec_early_signal_decision": output["zec_early_signal"]["decision"],
+        "zec_early_signal_blockers": output["zec_early_signal"]["data_quality"]["blockers"],
     }))
 
 

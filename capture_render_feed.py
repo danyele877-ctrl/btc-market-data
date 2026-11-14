@@ -205,10 +205,11 @@ def load_microstructure_history():
             return value
     except (OSError, json.JSONDecodeError):
         pass
-    return {"schema_version": 1, "instrument": "ZEC-USD_UM_XPERP-310530", "book_snapshots": [], "trades": []}
+    return {"schema_version": 1, "instrument": "ZEC-USD_UM_XPERP-310530", "book_snapshots": [], "trades": [], "open_interest_history": []}
 
 def update_microstructure_history(okx_market):
     history = load_microstructure_history()
+    history.setdefault("open_interest_history", [])
     book_result = okx_market.get("zec_xperp_book", {})
     book_payload = book_result.get("payload", {})
     book_rows = book_payload.get("data", []) if isinstance(book_payload, dict) else []
@@ -221,6 +222,31 @@ def update_microstructure_history(okx_market):
                 "captured_at": book_result.get("retrieved_at"),
                 "bids": row.get("bids", [])[:20],
                 "asks": row.get("asks", [])[:20],
+            })
+    # Pair OI with the exact X-Perp ticker's USD price at capture time. This is
+    # a contract-count context series only; never convert it to ZEC exposure.
+    oi_result = okx_market.get("zec_xperp_open_interest", {})
+    oi_payload = oi_result.get("payload", {})
+    oi_rows = oi_payload.get("data", []) if isinstance(oi_payload, dict) else []
+    ticker_result = okx_market.get("zec_xperp_ticker", {})
+    ticker_payload = ticker_result.get("payload", {})
+    ticker_rows = ticker_payload.get("data", []) if isinstance(ticker_payload, dict) else []
+    if oi_result.get("http_status") == 200 and oi_rows and ticker_rows:
+        oi_row, ticker = oi_rows[0], ticker_rows[0]
+        try:
+            ts_ms = int(oi_row.get("ts", 0) or ticker.get("ts", 0))
+            oi_contracts = float(oi_row.get("oi", 0))
+            price_usd = float(ticker.get("last", 0))
+        except (TypeError, ValueError):
+            ts_ms, oi_contracts, price_usd = 0, 0, 0
+        if ts_ms and oi_contracts > 0 and price_usd > 0:
+            history["open_interest_history"].append({
+                "ts_ms": ts_ms,
+                "captured_at": oi_result.get("retrieved_at"),
+                "oi_contracts": str(oi_contracts),
+                "price_usd": str(price_usd),
+                "inst_id": "ZEC-USD_UM_XPERP-310530",
+                "unit": "contracts",
             })
     trade_result = okx_market.get("zec_xperp_trades", {})
     trade_payload = trade_result.get("payload", {})
@@ -246,9 +272,14 @@ def update_microstructure_history(okx_market):
             known.add(trade_id)
     history["book_snapshots"].sort(key=lambda x: x["ts_ms"])
     history["trades"].sort(key=lambda x: (x["ts_ms"], x["tradeId"]))
+    history["open_interest_history"] = sorted(
+        {int(x["ts_ms"]): x for x in history["open_interest_history"] if x.get("ts_ms")}.values(),
+        key=lambda x: x["ts_ms"],
+    )
     cutoff = int(time.time() * 1000) - MICRO_MAX_MINUTES * 60 * 1000
     history["book_snapshots"] = [x for x in history["book_snapshots"] if x["ts_ms"] >= cutoff][-MICRO_MAX_MINUTES:]
     history["trades"] = [x for x in history["trades"] if x["ts_ms"] >= cutoff][-MICRO_MAX_TRADES:]
+    history["open_interest_history"] = [x for x in history["open_interest_history"] if x["ts_ms"] >= cutoff]
     MICRO_OUT.parent.mkdir(parents=True, exist_ok=True)
     MICRO_OUT.write_text(json.dumps(history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     return {

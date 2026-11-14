@@ -7,6 +7,8 @@ on:
     paths:
       - "capture_render_feed.py"
       - "build_radar_snapshot.py"
+      - "zec_early_signal.py"
+      - "replay_zec_signals.py"
       - "candle_service.py"
       - "tests/**"
       - "requirements.txt"
