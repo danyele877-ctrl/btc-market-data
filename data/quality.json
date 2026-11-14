@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-14T09:58:15.779584+00:00",
-  "snapshot_generated_at": "2026-11-14T09:58:15.697419+00:00",
+  "generated_at": "2026-11-14T10:09:55.930906+00:00",
+  "snapshot_generated_at": "2026-11-14T10:09:55.852749+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -94,7 +94,7 @@
     "swole_btc_snapshot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_funding_btc": {
@@ -160,19 +160,19 @@
     "okx_eea_zec_xperp_book": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_trades": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_mark": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_index": {
@@ -184,19 +184,19 @@
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     }
   }
