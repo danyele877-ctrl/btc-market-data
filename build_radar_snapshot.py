@@ -258,8 +258,28 @@ def main():
             for bar in ("1H", "4H")
         }
 
+    health_payload = (feed.get("healthz") or {}).get("payload", {})
+    ws_micro = health_payload.get("microstructure", {}) if isinstance(health_payload, dict) else {}
+    if not ws_micro:
+        candle_payload = (feed.get("candles") or {}).get("payload", {})
+        ws_micro = candle_payload.get("microstructure", {}) if isinstance(candle_payload, dict) else {}
+    micro_out = microstructure_summary(micro)
+    micro_out["websocket"] = ws_micro
+    micro_out["cvd"] = ws_micro.get("cvd")
+    micro_out["book_imbalance"] = (ws_micro.get("book") or {})
+    if ws_micro:
+        cvd = ws_micro.get("cvd") or {}
+        cvd_ready = all(cvd.get(f"ready_{bar}") for bar in ("1m", "5m", "15m"))
+        micro_out["cvd_status"] = (
+            "OK: WebSocket continuo, delta in contratti"
+            if cvd_ready else "N/D: WebSocket in riscaldamento o continuità non verificata"
+        )
+        micro_out["book_sequence_status"] = (
+            "OK: sequenza WebSocket valida"
+            if ws_micro.get("book_valid") else "N/D: book non valido o in attesa di snapshot"
+        )
     output = {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "source_captured_at": feed.get("captured_at"),
         "source_status": feed.get("status"),
@@ -270,7 +290,7 @@ def main():
         "candles_1m_5m": candles,
         "zec_xperp_history": xperp_history,
         "spot_history": spot_history,
-        "microstructure": microstructure_summary(micro),
+        "microstructure": micro_out,
         "read_errors": {
             "feed": feed.get("_read_error"),
             "microstructure": micro.get("_read_error"),
@@ -292,6 +312,8 @@ def main():
         "book_snapshots": output["microstructure"]["book_snapshot_count"],
         "trades": output["microstructure"]["trade_count"],
         "trade_id_gap_events": output["microstructure"]["trade_id_gap_events"],
+        "ws_microstructure_status": (output["microstructure"].get("websocket") or {}).get("status"),
+        "ws_book_valid": (output["microstructure"].get("websocket") or {}).get("book_valid"),
     }))
 
 
