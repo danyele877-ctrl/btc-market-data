@@ -174,6 +174,29 @@ class FeedStateTests(unittest.TestCase):
 
         asyncio.run(run_case())
 
+    def test_completed_one_minute_candle_dispatches_bridge_once_per_minute(self):
+        async def run_case():
+            with TemporaryDirectory() as directory:
+                feed = service.CandleFeed(Path(directory) / "candles.json")
+                feed.state["service"]["active_instruments"] = [
+                    {"instType": "SPOT", "instId": "BTC-USDC"}
+                ]
+                row = ["1794570000000", "100", "105", "99", "103", "12", "12", "1236", "1"]
+                message = {
+                    "arg": {"instId": "BTC-USDC", "channel": "candle1m"},
+                    "data": [row],
+                }
+                with patch("candle_service.GITHUB_TOKEN", "test-token"), patch.object(
+                    feed, "request_bridge_refresh", new=Mock()
+                ) as dispatch:
+                    await feed.handle_message(json.dumps(message))
+                    await feed.handle_message(json.dumps(message))
+                    await asyncio.sleep(0)
+                    self.assertEqual(dispatch.call_count, 1)
+                    self.assertEqual(dispatch.call_args.args[0], service.parse_candle(row, "candle1m")["completed_at"])
+
+        asyncio.run(run_case())
+
     def test_eea_futures_id_stores_candles_under_the_family_key(self):
         async def run_case():
             with TemporaryDirectory() as directory:
