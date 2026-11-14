@@ -1,7 +1,7 @@
 import asyncio
 import json
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -187,7 +187,7 @@ class FeedStateTests(unittest.TestCase):
                     "data": [row],
                 }
                 with patch("candle_service.GITHUB_TOKEN", "test-token"), patch.object(
-                    feed, "request_bridge_refresh", new=Mock()
+                    feed, "request_bridge_refresh", new=AsyncMock()
                 ) as dispatch:
                     await feed.handle_message(json.dumps(message))
                     await feed.handle_message(json.dumps(message))
