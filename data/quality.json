@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-14T19:54:18.336361+00:00",
-  "snapshot_generated_at": "2026-11-14T19:54:18.241429+00:00",
+  "generated_at": "2026-11-14T20:27:50.154568+00:00",
+  "snapshot_generated_at": "2026-11-14T20:27:50.074438+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -124,7 +124,7 @@
     "coinboss_market_tickers_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "bitcoin_etf_flows_tftc": {
