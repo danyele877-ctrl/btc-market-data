@@ -197,6 +197,76 @@ class FeedStateTests(unittest.TestCase):
 
         asyncio.run(run_case())
 
+    def test_microstructure_trades_produce_contract_cvd_only_when_window_is_continuous(self):
+        async def run_case():
+            with TemporaryDirectory() as directory:
+                feed = service.CandleFeed(Path(directory) / "candles.json")
+                micro = feed.state["microstructure"]
+                now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+                micro["connected"] = True
+                micro["connected_since_ms"] = now_ms - 16 * 60 * 1000
+                base = {
+                    "arg": {"channel": "trades", "instId": service.EXPECTED_XPERP_INST_ID},
+                    "data": [
+                        {"tradeId": "100", "count": "1", "sz": "3", "side": "buy", "ts": str(now_ms - 2000)},
+                        {"tradeId": "101", "count": "1", "sz": "1", "side": "sell", "ts": str(now_ms - 1000)},
+                    ],
+                }
+                await feed.handle_microstructure_message(json.dumps(base))
+                cvd = feed.microstructure_health()["cvd"]
+                self.assertTrue(cvd["ready_1m"])
+                self.assertTrue(cvd["ready_5m"])
+                self.assertTrue(cvd["ready_15m"])
+                self.assertEqual(cvd["unit"], "contracts")
+                self.assertEqual(cvd["1m"], 2.0)
+
+                gap = {
+                    "arg": {"channel": "trades", "instId": service.EXPECTED_XPERP_INST_ID},
+                    "data": [
+                        {"tradeId": "103", "count": "1", "sz": "2", "side": "buy", "ts": str(now_ms)},
+                    ],
+                }
+                await feed.handle_microstructure_message(json.dumps(gap))
+                cvd = feed.microstructure_health()["cvd"]
+                self.assertFalse(cvd["ready_1m"])
+                self.assertIsNone(cvd["1m"])
+                self.assertEqual(micro["trade_gap_count"], 1)
+
+        asyncio.run(run_case())
+
+    def test_microstructure_book_requires_valid_sequence_chain(self):
+        async def run_case():
+            with TemporaryDirectory() as directory:
+                feed = service.CandleFeed(Path(directory) / "candles.json")
+                base = {"arg": {"channel": "books", "instId": service.EXPECTED_XPERP_INST_ID}}
+                snapshot = dict(base, action="snapshot", data=[{
+                    "seqId": 10, "prevSeqId": -1, "ts": "1794570000000",
+                    "bids": [["100", "5", "0", "1"]],
+                    "asks": [["101", "3", "0", "1"]],
+                }])
+                await feed.handle_microstructure_message(json.dumps(snapshot))
+                self.assertTrue(feed.state["microstructure"]["book_valid"])
+                self.assertEqual(feed.state["microstructure"]["book_seq_id"], 10)
+
+                update = dict(base, action="update", data=[{
+                    "seqId": 11, "prevSeqId": 10, "ts": "1794570000100",
+                    "bids": [["100", "7", "0", "1"]],
+                    "asks": [],
+                }])
+                await feed.handle_microstructure_message(json.dumps(update))
+                self.assertTrue(feed.state["microstructure"]["book_valid"])
+                self.assertEqual(feed.state["microstructure"]["book_seq_id"], 11)
+
+                broken = dict(base, action="update", data=[{
+                    "seqId": 13, "prevSeqId": 12, "ts": "1794570000200",
+                    "bids": [], "asks": [],
+                }])
+                await feed.handle_microstructure_message(json.dumps(broken))
+                self.assertFalse(feed.state["microstructure"]["book_valid"])
+                self.assertEqual(feed.state["microstructure"]["book_gap_count"], 1)
+
+        asyncio.run(run_case())
+
     def test_health_reports_missing_streams_stale(self):
         feed = service.CandleFeed()
         health = feed.health()
