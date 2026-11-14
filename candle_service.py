@@ -192,6 +192,8 @@ class CandleFeed:
         self.lock = asyncio.Lock()
         self.stop_event = asyncio.Event()
         self.last_bridge_dispatch_minute: int | None = None
+        # Keep strong references to fire-and-forget tasks until they finish.
+        self.background_tasks: set[asyncio.Task] = set()
         self.micro_trade_events = deque()
         self.micro_book = {"bids": {}, "asks": {}, "seq_id": None, "valid": False}
         self.micro_last_persist = 0.0
@@ -344,7 +346,9 @@ class CandleFeed:
             minute_key = int(latest["ts_ms"]) // 60000
             if self.last_bridge_dispatch_minute != minute_key:
                 self.last_bridge_dispatch_minute = minute_key
-                asyncio.create_task(self.request_bridge_refresh(latest["completed_at"]))
+                task = asyncio.create_task(self.request_bridge_refresh(latest["completed_at"]))
+                self.background_tasks.add(task)
+                task.add_done_callback(self.background_tasks.discard)
 
     async def request_bridge_refresh(self, completed_at: str) -> None:
         """Dispatch a compact GitHub bridge refresh and expose diagnostics in healthz."""
