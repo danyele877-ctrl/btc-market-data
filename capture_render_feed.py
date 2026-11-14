@@ -9,6 +9,9 @@ from pathlib import Path
 BASE = "https://btc-market-data-candles.onrender.com"
 TIMEOUT = 20
 OUT = Path("data/render_feed.json")
+MICRO_OUT = Path("data/zec_microstructure_history.json")
+MICRO_MAX_MINUTES = 1440
+MICRO_MAX_TRADES = 30000
 
 def now():
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -132,6 +135,66 @@ def get_okx_history(inst_id, bar, limit=300):
             "candles": [],
         }
 
+def load_microstructure_history():
+    try:
+        value = json.loads(MICRO_OUT.read_text(encoding="utf-8"))
+        if isinstance(value, dict) and value.get("schema_version") == 1:
+            return value
+    except (OSError, json.JSONDecodeError):
+        pass
+    return {"schema_version": 1, "instrument": "ZEC-USD_UM_XPERP-310530", "book_snapshots": [], "trades": []}
+
+def update_microstructure_history(okx_market):
+    history = load_microstructure_history()
+    book_result = okx_market.get("zec_xperp_book", {})
+    book_payload = book_result.get("payload", {})
+    book_rows = book_payload.get("data", []) if isinstance(book_payload, dict) else []
+    if book_result.get("http_status") == 200 and book_rows:
+        row = book_rows[0]
+        ts = int(row.get("ts", 0) or 0)
+        if ts:
+            history["book_snapshots"].append({
+                "ts_ms": ts,
+                "captured_at": book_result.get("retrieved_at"),
+                "bids": row.get("bids", [])[:20],
+                "asks": row.get("asks", [])[:20],
+            })
+    trade_result = okx_market.get("zec_xperp_trades", {})
+    trade_payload = trade_result.get("payload", {})
+    trade_rows = trade_payload.get("data", []) if isinstance(trade_payload, dict) else []
+    known = {str(x.get("tradeId")) for x in history["trades"]}
+    if trade_result.get("http_status") == 200:
+        for row in trade_rows:
+            trade_id = str(row.get("tradeId", ""))
+            try:
+                ts = int(row.get("ts", 0))
+                size = float(row.get("sz", 0))
+            except (TypeError, ValueError):
+                continue
+            if not trade_id or trade_id in known or size <= 0 or row.get("side") not in ("buy", "sell"):
+                continue
+            history["trades"].append({
+                "tradeId": trade_id,
+                "ts_ms": ts,
+                "side": row["side"],
+                "sz": str(size),
+                "px": str(row.get("px", "")),
+            })
+            known.add(trade_id)
+    history["book_snapshots"].sort(key=lambda x: x["ts_ms"])
+    history["trades"].sort(key=lambda x: (x["ts_ms"], x["tradeId"]))
+    cutoff = int(time.time() * 1000) - MICRO_MAX_MINUTES * 60 * 1000
+    history["book_snapshots"] = [x for x in history["book_snapshots"] if x["ts_ms"] >= cutoff][-MICRO_MAX_MINUTES:]
+    history["trades"] = [x for x in history["trades"] if x["ts_ms"] >= cutoff][-MICRO_MAX_TRADES:]
+    MICRO_OUT.parent.mkdir(parents=True, exist_ok=True)
+    MICRO_OUT.write_text(json.dumps(history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    return {
+        "book_snapshots": len(history["book_snapshots"]),
+        "unique_trades": len(history["trades"]),
+        "oldest_trade_at": datetime.fromtimestamp(history["trades"][0]["ts_ms"] / 1000, timezone.utc).isoformat().replace("+00:00", "Z") if history["trades"] else None,
+        "newest_trade_at": datetime.fromtimestamp(history["trades"][-1]["ts_ms"] / 1000, timezone.utc).isoformat().replace("+00:00", "Z") if history["trades"] else None,
+    }
+
 def main():
     health = get("/healthz")
     candles = get("/candles.json")
@@ -169,8 +232,10 @@ def main():
             row for row in index_payload["data"]
             if "ZEC" in str(row.get("instId", "")).upper()
         ]
+    microstructure_status = update_microstructure_history(okx_market)
     output = {
-        "bridge_schema_version": 3,
+        "bridge_schema_version": 4,
+        "microstructure_history": microstructure_status,
         "okx_market": okx_market,
         "okx_history": okx_history,
         "captured_at": now(),
