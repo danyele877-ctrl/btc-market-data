@@ -19,6 +19,7 @@ BAR_SECONDS = {"candle1m": 60, "candle5m": 300, "1H": 3600, "4H": 14400}
 WS_CHANNELS = ("candle1m", "candle5m")
 HISTORY_PAGE_LIMIT = 100
 HISTORY_MAX_PAGES = 5
+HISTORY_TARGET_CANDLES = 300
 EXPECTED_XPERP_INST_ID = "ZEC-USD_UM_XPERP-310530"
 MAX_CANDLES = int(os.getenv("MAX_CANDLES", "500"))
 RECONNECT_MIN_SECONDS = 1
@@ -171,9 +172,14 @@ class CandleFeed:
                 age = (now - completed).total_seconds() if completed else None
                 interval = {"1m": 60, "5m": 300, "1H": 3600, "4H": 14400}[bar]
                 stale_after = interval * 3
+                gap_count = 0
+                for previous, current in zip(candles, candles[1:]):
+                    if int(current["ts_ms"]) - int(previous["ts_ms"]) != interval * 1000:
+                        gap_count += 1
                 streams[f"{inst_id}:{bar}"] = {
                     "candle_count": len(candles),
-                    "history_ready_200": len(candles) >= 200,
+                    "history_ready_200": len(candles) >= 200 and gap_count == 0,
+                    "gap_count": gap_count,
                     "last_candle_at": newest.get("timestamp") if newest else None,
                     "last_completed_at": newest.get("completed_at") if newest else None,
                     "age_seconds": round(age, 1) if age is not None else None,
@@ -195,9 +201,12 @@ class CandleFeed:
             for bar in ("1H", "4H")
         ]
         streams_fresh = bool(active_streams) and all(not item["stale"] for item in active_streams)
+        intraday_history_ready = bool(active_streams) and all(
+            item["history_ready_200"] and not item["stale"] for item in active_streams
+        )
         history_ready = bool(history_streams) and all(
             item["history_ready_200"] and not item["stale"] for item in history_streams
-        )
+        ) and intraday_history_ready
         coverage_complete = not service.get("unavailable_instruments")
         status = (
             "ok"
@@ -273,22 +282,25 @@ class CandleFeed:
                 asyncio.create_task(dispatch_bridge_refresh(latest["completed_at"]))
 
     async def bootstrap_history(self, active: list[dict[str, str]]) -> None:
-        """Load 300 completed 1H/4H candles for the exact EEA ZEC X-Perp."""
-        if not any(x.get("instId") == EXPECTED_XPERP_INST_ID for x in active):
+        """Warm 300 completed 1m/5m candles for all active markets and 1H/4H for exact ZEC X-Perp."""
+        xperp = next((x for x in active if x.get("instId") == EXPECTED_XPERP_INST_ID), None)
+        if xperp is None:
             raise RuntimeError(
                 f"Expected exact EEA instrument {EXPECTED_XPERP_INST_ID} not found; "
                 "refusing to substitute another contract"
             )
 
-        async def load(bar_name: str, interval: str) -> None:
-            # OKX history-candles limits each page to 100 rows. Walk backwards
-            # with the documented "after" cursor until 200 completed candles
-            # are collected; never assume a single 300-row response is valid.
+        # OKX history-candles uses at most 100 rows per request. Fetch older
+        # pages with the documented "after" cursor and retain only completed,
+        # ordered, deduplicated candles. A failure in one series is reported
+        # without preventing the live WebSocket or other histories from working.
+        async def load(inst_id: str, stream_key: str, bar_name: str, interval: str) -> None:
+            parse_bar = {"1m": "candle1m", "5m": "candle5m"}.get(interval, interval)
             collected: dict[int, dict[str, Any]] = {}
             cursor: int | None = None
             for _page in range(HISTORY_MAX_PAGES):
                 params = {
-                    "instId": EXPECTED_XPERP_INST_ID,
+                    "instId": inst_id,
                     "bar": interval,
                     "limit": str(HISTORY_PAGE_LIMIT),
                 }
@@ -299,23 +311,30 @@ class CandleFeed:
                     f"{OKX_REST}/api/v5/market/history-candles?{query}",
                     headers={"User-Agent": "btc-market-data-candle-feed/1.0", "Accept": "application/json"},
                 )
+
                 def fetch(req=request):
                     with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
                         status = response.status
                         payload = json.loads(response.read().decode("utf-8"))
                     if status != 200 or payload.get("code") != "0":
                         raise RuntimeError(
-                            f"OKX history {interval} HTTP {status} API {payload.get('code')} {payload.get('msg')}"
+                            f"OKX history {interval} {inst_id} HTTP {status} "
+                            f"API {payload.get('code')} {payload.get('msg')}"
                         )
                     return payload
+
                 payload = await asyncio.to_thread(fetch)
                 rows = payload.get("data", [])
                 if not isinstance(rows, list) or not rows:
                     break
+                now_ms = int(utc_now().timestamp() * 1000)
                 for row in rows:
-                    candle = parse_candle(row, interval)
-                    if candle is not None:
-                        collected[int(candle["ts_ms"])] = candle
+                    candle = parse_candle(row, parse_bar)
+                    if candle is None:
+                        continue
+                    if int(candle["ts_ms"]) + BAR_SECONDS[parse_bar] * 1000 > now_ms:
+                        continue
+                    collected[int(candle["ts_ms"])] = candle
                 try:
                     oldest = min(int(row[0]) for row in rows if isinstance(row, (list, tuple)) and row)
                 except (TypeError, ValueError):
@@ -323,18 +342,42 @@ class CandleFeed:
                 if cursor is not None and oldest >= cursor:
                     break
                 cursor = oldest
-                if len(collected) >= 200:
+                if len(collected) >= HISTORY_TARGET_CANDLES:
                     break
-            parsed = [collected[key] for key in sorted(collected)]
+
+            parsed = [collected[key] for key in sorted(collected)][-MAX_CANDLES:]
             if len(parsed) < 200:
                 raise RuntimeError(
-                    f"Only {len(parsed)} completed valid {interval} candles for {EXPECTED_XPERP_INST_ID}; need 200"
+                    f"Only {len(parsed)} completed valid {interval} candles for {inst_id}; need at least 200"
                 )
+            expected_ms = BAR_SECONDS[parse_bar] * 1000
+            gaps = sum(
+                1 for previous, current in zip(parsed, parsed[1:])
+                if int(current["ts_ms"]) - int(previous["ts_ms"]) != expected_ms
+            )
+            if gaps:
+                raise RuntimeError(f"{interval} {inst_id} history contains {gaps} gap(s); refusing to mark history ready")
             async with self.lock:
-                merge_candles(self.state["instruments"]["ZEC-USD_UM_XPERP"][bar_name], parsed)
+                merge_candles(self.state["instruments"][stream_key][bar_name], parsed)
                 await self.persist()
 
-        await asyncio.gather(load("1H", "1H"), load("4H", "4H"))
+        jobs = []
+        for item in active:
+            exchange_id = item["instId"]
+            stream_key = item.get("stream_key", exchange_id)
+            for interval in ("1m", "5m"):
+                jobs.append(load(exchange_id, stream_key, interval, interval))
+        jobs.extend([
+            load(EXPECTED_XPERP_INST_ID, "ZEC-USD_UM_XPERP", "1H", "1H"),
+            load(EXPECTED_XPERP_INST_ID, "ZEC-USD_UM_XPERP", "4H", "4H"),
+        ])
+        results = await asyncio.gather(*jobs, return_exceptions=True)
+        errors = [f"{type(result).__name__}: {result}" for result in results if isinstance(result, Exception)]
+        if errors:
+            self.state["service"]["last_error"] = ("History bootstrap: " + "; ".join(errors))[:500]
+            await self.persist()
+            raise RuntimeError("; ".join(errors))
+        self.state["service"]["last_error"] = None
 
     async def discover(self) -> list[dict[str, str]]:
         spot_instruments = [
