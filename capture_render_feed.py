@@ -3,6 +3,7 @@
 import json
 import time
 import urllib.request
+import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -135,6 +136,68 @@ def get_okx_history(inst_id, bar, limit=300):
             "candles": [],
         }
 
+def get_okx_xperp_history(inst_id, bars=("1m", "5m", "1H", "4H"), target=250):
+    """Fetch completed historical candles for the exact ZEC X-Perp, paginating older rows."""
+    seconds = {"1m": 60, "5m": 300, "1H": 3600, "4H": 14400}
+    output = {"schema_version": 1, "instrument": inst_id, "retrieved_at": now(), "bars": {}}
+    for bar in bars:
+        collected = {}
+        cursor = None
+        errors = []
+        for _ in range(4):
+            params = {"instId": inst_id, "bar": bar, "limit": "100"}
+            if cursor is not None:
+                params["after"] = str(cursor)
+            url = f"{OKX_EEA}/market/history-candles?" + urllib.parse.urlencode(params)
+            try:
+                req = urllib.request.Request(url, headers={
+                    "User-Agent": "btc-market-data-github-bridge/1.0",
+                    "Accept": "application/json",
+                    "Cache-Control": "no-cache",
+                })
+                with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                    if response.status != 200 or payload.get("code") != "0":
+                        raise RuntimeError(f"HTTP {response.status}; OKX {payload.get('code')} {payload.get('msg')}")
+                rows = payload.get("data", [])
+                if not rows:
+                    break
+                current_ms = int(time.time() * 1000)
+                for row in rows:
+                    if not isinstance(row, list) or len(row) < 9 or str(row[8]) != "1":
+                        continue
+                    ts = int(row[0])
+                    if ts + seconds[bar] * 1000 > current_ms:
+                        continue
+                    collected[ts] = {
+                        "ts_ms": ts,
+                        "timestamp": datetime.fromtimestamp(ts / 1000, timezone.utc).isoformat().replace("+00:00", "Z"),
+                        "completed_at": datetime.fromtimestamp(ts / 1000 + seconds[bar], timezone.utc).isoformat().replace("+00:00", "Z"),
+                        "open": row[1], "high": row[2], "low": row[3], "close": row[4],
+                        "volume": row[5], "volume_currency": row[6], "volume_quote": row[7],
+                    }
+                oldest = min(int(row[0]) for row in rows if isinstance(row, list) and row)
+                if cursor is not None and oldest >= cursor:
+                    break
+                cursor = oldest
+                if len(collected) >= target:
+                    break
+                time.sleep(0.12)
+            except Exception as exc:
+                errors.append(f"{type(exc).__name__}: {exc}"[:250])
+                break
+        candles = [collected[key] for key in sorted(collected)][-target:]
+        gaps = sum(1 for a, b in zip(candles, candles[1:]) if b["ts_ms"] - a["ts_ms"] != seconds[bar] * 1000)
+        output["bars"][bar] = {
+            "count": len(candles), "gap_count": gaps,
+            "ready_200": len(candles) >= 200 and gaps == 0,
+            "oldest_completed_at": candles[0]["completed_at"] if candles else None,
+            "newest_completed_at": candles[-1]["completed_at"] if candles else None,
+            "error": "; ".join(errors) if errors else None,
+            "candles": candles,
+        }
+    return output
+
 def load_microstructure_history():
     try:
         value = json.loads(MICRO_OUT.read_text(encoding="utf-8"))
@@ -233,9 +296,12 @@ def main():
             if "ZEC" in str(row.get("instId", "")).upper()
         ]
     microstructure_status = update_microstructure_history(okx_market)
+    zec_xperp_history = get_okx_xperp_history("ZEC-USD_UM_XPERP-310530")
+    Path("data/zec_xperp_history.json").write_text(json.dumps(zec_xperp_history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     output = {
         "bridge_schema_version": 4,
         "microstructure_history": microstructure_status,
+        "zec_xperp_history": {bar: {key: value for key, value in item.items() if key != "candles"} for bar, item in zec_xperp_history["bars"].items()},
         "okx_market": okx_market,
         "okx_history": okx_history,
         "captured_at": now(),
