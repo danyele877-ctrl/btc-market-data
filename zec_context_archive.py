@@ -516,7 +516,7 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
             movement_added += 1
     movement_matured += _mature_setups(movement_events, bars)
     archive["setups"] = setups[-MAX_SETUPS:]
-    archive["movement_events"] = movement_events[-3000:]
+    archive["movement_events"] = sorted(movement_events, key=lambda item: item.get("entry_close_ms", 0))[-3000:]
     archive["updated_at"] = captured.isoformat().replace("+00:00", "Z")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     archive_path.write_text(json.dumps(archive, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
