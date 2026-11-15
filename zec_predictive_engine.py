@@ -238,6 +238,77 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
     # supplies finer outcome ordering. Swing samples use completed 1H bars.
     process(scalp5, scalp_rows, 60, SCALP_HORIZONS, "scalp_5m", 5, btc_by_ts)
     process(swing_rows, swing5, 300, SWING_HORIZONS, "swing_1H", 60, btc1h_by_ts)
+
+    def nearest_context(close_ms: int) -> dict[str, Any] | None:
+        candidates = [o for o in context_observations
+                      if 0 <= close_ms - int(o["minute_ms"]) <= 90000]
+        return candidates[-1] if candidates else None
+
+    def enrich(base: dict[str, float], obs: dict[str, Any] | None,
+               prior: dict[str, Any] | None) -> dict[str, float] | None:
+        if not obs:
+            return None
+        values = [_num(obs.get(k)) for k in (
+            "cvd_1m_contracts", "cvd_5m_contracts", "cvd_15m_contracts",
+            "imbalance_top10", "spread_bps")]
+        if any(value is None for value in values):
+            return None
+        cvd1, cvd5, cvd15, imbalance, spread = values
+        signed_log = lambda value: math.copysign(math.log1p(abs(value)), value)
+        oi_delta = 0.0
+        if prior:
+            old_oi, new_oi = _num(prior.get("oi_contracts")), _num(obs.get("oi_contracts"))
+            if old_oi and new_oi is not None:
+                oi_delta = new_oi / old_oi - 1.0
+        return {
+            **base,
+            "cvd1m_log": signed_log(cvd1), "cvd5m_log": signed_log(cvd5),
+            "cvd15m_log": signed_log(cvd15), "imbalance_top10": imbalance,
+            "book_delta_top10": _num(obs.get("book_delta_top10")) or 0.0,
+            "spread_bps": spread, "oi_change_5m_pct": oi_delta,
+        }
+
+    def process_micro(rows: list[dict[str, Any]], future_rows: list[dict[str, Any]],
+                      horizons: tuple[int, ...], family: str,
+                      benchmark: dict[int, float] | None, prior_minutes: int) -> None:
+        nonlocal added
+        if len(rows) < 25 or len(future_rows) < 25 or len(context_observations) < 2:
+            return
+        for i in range(20, len(rows)):
+            base = _features(rows, i, benchmark)
+            if not base:
+                continue
+            close_ms = rows[i]["_close_ms"]
+            obs = nearest_context(close_ms)
+            if not obs:
+                continue
+            prior = nearest_context(close_ms - prior_minutes * 60000)
+            feat = enrich(base, obs, prior)
+            if not feat:
+                continue
+            bar = dict(rows[i])
+            bar["_atr"] = _atr(rows, i)
+            event_id = f"{family}:{bar['ts_ms']}"
+            interval = 60 if family.startswith("scalp") else 300
+            fill_window = 5 if family.startswith("scalp") else 60
+            for side in ("LONG", "SHORT"):
+                for horizon in horizons:
+                    key = f"{event_id}:{side}:{horizon}"
+                    if key in existing:
+                        continue
+                    future = [x for x in future_rows if close_ms < x["_close_ms"] <= close_ms + horizon * 60000]
+                    label = _label(bar, future, side, horizon, interval, fill_window)
+                    if label is None:
+                        continue
+                    existing[key] = {
+                        "id": key, "family": family, "timestamp_ms": bar["ts_ms"],
+                        "side": side, "horizon_min": horizon, "features": feat,
+                        "label": label, "micro_observation_minute_ms": obs.get("minute_ms"),
+                    }
+                    added += 1
+
+    process_micro(scalp5, scalp_rows, SCALP_HORIZONS, "scalp_micro_5m", btc_by_ts, 5)
+    process_micro(swing_rows, swing5, SWING_HORIZONS, "swing_micro_1H", btc1h_by_ts, 60)
     archive["events"] = sorted(existing.values(), key=lambda x: (x.get("timestamp_ms", 0), x.get("id", "")))[-MAX_ARCHIVE:]
     archive["updated_at"] = snapshot.get("source_captured_at")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
@@ -332,6 +403,8 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     btc5 = _clean(hist.get("btc_5m"), 300, now)
     btc_by_ts = {r["ts_ms"]: r["close"] for r in btc5}
     swing = _clean(hist.get("xperp_1H"), 3600, now)
+    btc1h = _clean(hist.get("btc_1H"), 3600, now)
+    btc1h_by_ts = {r["ts_ms"]: r["close"] for r in btc1h}
     four_hour = _clean(hist.get("xperp_4H"), 14400, now)
     four_hour_context = _features(four_hour, len(four_hour)-1) if four_hour else None
     result: dict[str, Any] = {
@@ -348,7 +421,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         (scalp, "scalp_5m", SCALP_HORIZONS, "scalping"),
         (swing, "swing_1H", SWING_HORIZONS, "reversals"),
     ):
-        feat = _features(rows, len(rows)-1, btc_by_ts if target == "scalping" else None) if rows else None
+        feat = _features(rows, len(rows)-1, btc_by_ts if target == "scalping" else btc1h_by_ts) if rows else None
         if not feat:
             result[target] = {"status": "DATI INSUFFICIENTI", "reason": "servono almeno 21 barre chiuse e continue"}
             continue
