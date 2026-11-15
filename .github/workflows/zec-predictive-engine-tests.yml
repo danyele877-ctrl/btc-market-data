@@ -1,0 +1,33 @@
+name: ZEC Predictive Engine Tests
+
+on:
+  push:
+    paths:
+      - "zec_predictive_engine.py"
+      - "build_radar_snapshot.py"
+      - "tests/**"
+      - ".github/workflows/zec-predictive-engine-tests.yml"
+  pull_request:
+    paths:
+      - "zec_predictive_engine.py"
+      - "build_radar_snapshot.py"
+      - "tests/**"
+      - ".github/workflows/zec-predictive-engine-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
