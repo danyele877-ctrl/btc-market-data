@@ -1,7 +1,1 @@
-{
-  "schema_version": 1,
-  "instrument": "ZEC-USD_UM_XPERP-310530",
-  "updated_at": null,
-  "observations": [],
-  "setups": []
-}
+{"schema_version":1,"instrument":"ZEC-USD_UM_XPERP-310530","updated_at":"2026-11-15T21:15:45.023941Z","observations":[{"minute_ms":1794777300000,"captured_at":"2026-11-15T21:15:45.023941Z","price":901.81,"cvd_1m_contracts":-640.0,"cvd_5m_contracts":-2668.0,"cvd_15m_contracts":-19495.0,"imbalance_top5":0.025362,"imbalance_top10":0.642608,"imbalance_top20":-0.217164,"book_delta_top10":1.010504,"spread_bps":2.993530647656958,"best_bid":901.81,"best_ask":902.08,"oi_contracts":466071.0,"oi_reported_value":4660.71,"trade_gap_count":0,"book_gap_count":0,"trade_age_seconds":4.2,"book_age_seconds":0.2,"unit":"contracts; ctVal unresolved; no conversion to ZEC"}],"setups":[]}
