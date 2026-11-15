@@ -16,6 +16,7 @@ OUT = Path("data/render_feed.json")
 MICRO_OUT = Path("data/zec_microstructure_history.json")
 MICRO_MAX_MINUTES = 1440
 MICRO_MAX_TRADES = 30000
+MICRO_MAX_BOOK_SNAPSHOTS = 5000
 MAX_FEED_AGE_SECONDS = 20 * 60
 HISTORY_MAX_AGE_SECONDS = {"1H": 3 * 3600, "4H": 12 * 3600}
 
@@ -300,7 +301,8 @@ def load_microstructure_history():
         pass
     return {"schema_version": 1, "instrument": "ZEC-USD_UM_XPERP-310530", "book_snapshots": [], "trades": [], "open_interest_history": []}
 
-def update_microstructure_history(okx_market):
+def update_microstructure_history(okx_market, websocket_micro=None):
+    websocket_micro = websocket_micro or {}
     history = load_microstructure_history()
     history.setdefault("open_interest_history", [])
     book_result = okx_market.get("zec_xperp_book", {})
@@ -313,8 +315,23 @@ def update_microstructure_history(okx_market):
             history["book_snapshots"].append({
                 "ts_ms": ts,
                 "captured_at": book_result.get("retrieved_at"),
+                "source": "rest",
                 "bids": row.get("bids", [])[:20],
                 "asks": row.get("asks", [])[:20],
+            })
+    # Preserve sequenced WebSocket top-10 depth states.
+    for row in websocket_micro.get("book_depth_history", []) or []:
+        if not isinstance(row, dict):
+            continue
+        try:
+            ts, seq_id = int(row.get("ts_ms", 0)), int(row.get("seq_id"))
+        except (TypeError, ValueError):
+            continue
+        if ts and row.get("bids") is not None and row.get("asks") is not None:
+            history["book_snapshots"].append({
+                "ts_ms": ts, "captured_at": None, "source": "websocket",
+                "seq_id": seq_id, "bids": row.get("bids", [])[:10],
+                "asks": row.get("asks", [])[:10],
             })
     # Pair OI with the exact X-Perp ticker's USD price at capture time. This is
     # a contract-count context series only; never convert it to ZEC exposure.
@@ -344,7 +361,7 @@ def update_microstructure_history(okx_market):
     trade_result = okx_market.get("zec_xperp_trades", {})
     trade_payload = trade_result.get("payload", {})
     trade_rows = trade_payload.get("data", []) if isinstance(trade_payload, dict) else []
-    known = {str(x.get("tradeId")) for x in history["trades"]}
+    known = {str(x.get("tradeId")): i for i, x in enumerate(history["trades"])}
     if trade_result.get("http_status") == 200:
         for row in trade_rows:
             trade_id = str(row.get("tradeId", ""))
@@ -353,31 +370,60 @@ def update_microstructure_history(okx_market):
                 size = float(row.get("sz", 0))
             except (TypeError, ValueError):
                 continue
-            if not trade_id or trade_id in known or size <= 0 or row.get("side") not in ("buy", "sell"):
+            if not trade_id or size <= 0 or row.get("side") not in ("buy", "sell"):
                 continue
-            history["trades"].append({
-                "tradeId": trade_id,
-                "ts_ms": ts,
-                "side": row["side"],
-                "sz": str(size),
-                "px": str(row.get("px", "")),
-            })
-            known.add(trade_id)
-    history["book_snapshots"].sort(key=lambda x: x["ts_ms"])
+            item = {
+                "tradeId": trade_id, "ts_ms": ts, "side": row["side"],
+                "sz": str(size), "px": str(row.get("px", "")), "source": "rest",
+            }
+            if trade_id not in known:
+                known[trade_id] = len(history["trades"])
+                history["trades"].append(item)
+    # Merge the live WS tape by trade ID, preferring the richer sequenced record.
+    for row in websocket_micro.get("trade_events", []) or []:
+        if not isinstance(row, dict):
+            continue
+        trade_id = str(row.get("trade_id", ""))
+        try:
+            ts, size = int(row.get("ts_ms", 0)), float(row.get("size_contracts", 0))
+        except (TypeError, ValueError):
+            continue
+        if not trade_id or ts <= 0 or size <= 0 or row.get("side") not in ("buy", "sell"):
+            continue
+        item = {
+            "tradeId": trade_id, "ts_ms": ts, "side": row["side"],
+            "sz": str(size), "px": str(row.get("price", "")),
+            "count": int(row.get("count", 1)), "source": "websocket",
+            "gap_before": bool(row.get("gap_before")),
+        }
+        if trade_id in known:
+            index = known[trade_id]
+            if history["trades"][index].get("source") != "websocket":
+                history["trades"][index] = item
+        else:
+            known[trade_id] = len(history["trades"])
+            history["trades"].append(item)
+    book_by_key = {}
+    for row in history["book_snapshots"]:
+        book_by_key[(row.get("source", "rest"), int(row.get("ts_ms", 0)))] = row
+    history["book_snapshots"] = sorted(book_by_key.values(), key=lambda x: x["ts_ms"])
     history["trades"].sort(key=lambda x: (x["ts_ms"], x["tradeId"]))
     history["open_interest_history"] = sorted(
         {int(x["ts_ms"]): x for x in history["open_interest_history"] if x.get("ts_ms")}.values(),
         key=lambda x: x["ts_ms"],
     )
     cutoff = int(time.time() * 1000) - MICRO_MAX_MINUTES * 60 * 1000
-    history["book_snapshots"] = [x for x in history["book_snapshots"] if x["ts_ms"] >= cutoff][-MICRO_MAX_MINUTES:]
+    history["book_snapshots"] = [x for x in history["book_snapshots"] if x["ts_ms"] >= cutoff][-MICRO_MAX_BOOK_SNAPSHOTS:]
     history["trades"] = [x for x in history["trades"] if x["ts_ms"] >= cutoff][-MICRO_MAX_TRADES:]
     history["open_interest_history"] = [x for x in history["open_interest_history"] if x["ts_ms"] >= cutoff]
     MICRO_OUT.parent.mkdir(parents=True, exist_ok=True)
     MICRO_OUT.write_text(json.dumps(history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     return {
         "book_snapshots": len(history["book_snapshots"]),
+        "websocket_book_snapshots": sum(1 for x in history["book_snapshots"] if x.get("source") == "websocket"),
         "unique_trades": len(history["trades"]),
+        "websocket_trades": sum(1 for x in history["trades"] if x.get("source") == "websocket"),
+        "websocket_trade_gaps": sum(1 for x in history["trades"] if x.get("source") == "websocket" and x.get("gap_before")),
         "oldest_trade_at": datetime.fromtimestamp(history["trades"][0]["ts_ms"] / 1000, timezone.utc).isoformat().replace("+00:00", "Z") if history["trades"] else None,
         "newest_trade_at": datetime.fromtimestamp(history["trades"][-1]["ts_ms"] / 1000, timezone.utc).isoformat().replace("+00:00", "Z") if history["trades"] else None,
     }
@@ -432,7 +478,10 @@ def main():
             row for row in index_payload["data"]
             if "ZEC" in str(row.get("instId", "")).upper()
         ]
-    microstructure_status = update_microstructure_history(okx_market)
+    microstructure_status = update_microstructure_history(
+        okx_market,
+        (health.get("payload") or {}).get("microstructure", {}),
+    )
     zec_xperp_history = get_okx_xperp_history("ZEC-USD_UM_XPERP-310530")
     Path("data/zec_xperp_history.json").write_text(json.dumps(zec_xperp_history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     output = {
