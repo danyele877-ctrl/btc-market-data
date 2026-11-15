@@ -126,6 +126,8 @@ def _label(entry_bar: dict[str, Any], future: list[dict[str, Any]], side: str,
         if future[-1]["_close_ms"] < fill_deadline:
             return None
         return {"filled_proxy": False, "tp_before_sl": None, "entry": round(entry, 8)}
+    if future[-1]["_close_ms"] < horizon_deadline:
+        return None  # wait for the complete forward horizon before storing a label
     stop = entry - atr if side == "LONG" else entry + atr
     target = entry + 1.5 * atr if side == "LONG" else entry - 1.5 * atr
     outcome = None
