@@ -41,6 +41,13 @@ class MicrostructureHistoryTests(unittest.TestCase):
         self.assertEqual(len(saved["capture_status"]), 1)
         self.assertTrue(saved["capture_status"][0]["book_valid"])
 
+    def test_bridge_preserves_500_intraday_candles(self):
+        rows = [{"ts_ms": i, "open": "1", "high": "1", "low": "1", "close": "1"} for i in range(600)]
+        result = capture.trim_arrays({"candles": rows})
+        self.assertEqual(len(result["candles"]), 500)
+        self.assertEqual(result["candles"][0]["ts_ms"], 100)
+        self.assertEqual(result["candles"][-1]["ts_ms"], 599)
+
     def test_rest_duplicate_is_upgraded_to_websocket_record(self):
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         with tempfile.TemporaryDirectory() as directory:
