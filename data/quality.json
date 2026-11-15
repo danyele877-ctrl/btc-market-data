@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-15T17:12:22.761505+00:00",
-  "snapshot_generated_at": "2026-11-15T17:12:22.666649+00:00",
+  "generated_at": "2026-11-15T17:46:43.675976+00:00",
+  "snapshot_generated_at": "2026-11-15T17:46:43.597720+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -112,7 +112,7 @@
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_liquidations_btc": {
