@@ -7,6 +7,7 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 from zec_early_signal import INSTRUMENT_ID, evaluate_signal
+from zec_context_archive import update_context_archive
 
 
 PATH = "data/radar_snapshot.json"
@@ -67,13 +68,19 @@ def replay(rows):
             if captured.timestamp() * 1000 - point["ts_ms"] <= 20 * 60 * 1000
         ]
         signal = evaluate_signal(snapshot, now=captured)
+        snapshot["zec_early_signal"] = signal
+        context_seed = update_context_archive(snapshot, now=captured)
         candle = latest_candle(snapshot)
-        evaluated.append({"captured": captured, "signal": signal, "candle": candle})
+        evaluated.append({"captured": captured, "signal": signal, "candle": candle,
+                          "context_seed": context_seed})
 
     counts = Counter(item["signal"]["status"] for item in evaluated)
     decisions = Counter(item["signal"]["decision"] for item in evaluated)
     outcomes = {"5m": Counter(), "15m": Counter()}
     trigger_count = 0
+    context_observations = max((item["context_seed"].get("observations_total", 0) for item in evaluated), default=0)
+    context_setups = max((item["context_seed"].get("setups_total", 0) for item in evaluated), default=0)
+    context_outcomes_matured = sum(item["context_seed"].get("outcomes_matured", 0) for item in evaluated)
     for index, item in enumerate(evaluated):
         signal = item["signal"]
         if signal["status"] != "TRIGGER CONFERMATO" or not item["candle"]:
@@ -102,6 +109,12 @@ def replay(rows):
         "status_counts": dict(counts),
         "decision_counts": dict(decisions),
         "confirmed_triggers": trigger_count,
+        "context_archive_seed": {
+            "observations_total": context_observations,
+            "confirmed_setups_total": context_setups,
+            "outcome_updates_during_replay": context_outcomes_matured,
+            "note": "Backfill da snapshot storici; campioni microstrutturali soggetti agli stessi controlli di freschezza e continuità.",
+        },
         "directional_candle_outcomes_no_pnl": {key: dict(value) for key, value in outcomes.items()},
         "caveat": "Replay descrittivo di snapshot salvati, non backtest di esecuzione: campioni radi e sovrapposti, regime singolo, nessun PnL né size.",
     }
