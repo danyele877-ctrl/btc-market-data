@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from zec_context_archive import INSTRUMENT_ID, _closed_1m, _mature_setups, _movement_candidates, backfill_context_archive, update_context_archive
+from zec_context_archive import INSTRUMENT_ID, _closed_1m, _dedupe_movement_events, _mature_setups, _movement_candidates, backfill_context_archive, update_context_archive
 
 
 NOW = datetime(2026, 1, 1, 12, 10, tzinfo=timezone.utc)
@@ -82,6 +82,18 @@ class ZecContextArchiveTests(unittest.TestCase):
         self.assertEqual(result["observations_total"], 1)
         self.assertEqual(len(reloaded["observations"]), 1)
         self.assertEqual(repeated["observations_total"], 1)
+
+    def test_movement_episode_deduplication_applies_directional_cooldowns(self):
+        base = int(NOW.timestamp() * 1000)
+        events = [
+            {"id": "a", "entry_close_ms": base, "direction": "LONG"},
+            {"id": "b", "entry_close_ms": base + 60000, "direction": "LONG"},
+            {"id": "c", "entry_close_ms": base + 16*60000, "direction": "LONG"},
+            {"id": "d", "entry_close_ms": base + 17*60000, "direction": "SHORT"},
+            {"id": "e", "entry_close_ms": base + 22*60000, "direction": "SHORT"},
+        ]
+        result = _dedupe_movement_events(events)
+        self.assertEqual([event["id"] for event in result], ["a", "c", "e"])
 
     def test_large_move_records_preceding_cvd_book_and_btc_context(self):
         rows = []
