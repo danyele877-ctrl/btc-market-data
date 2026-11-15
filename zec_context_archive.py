@@ -425,7 +425,7 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
     if rows:
         archive["updated_at"] = max(item[0] for item in rows).isoformat().replace("+00:00", "Z")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
-    archive_path.write_text(json.dumps(archive, ensure_ascii=False, separators=(",", ":")) + "\\n", encoding="utf-8")
+    archive_path.write_text(json.dumps(archive, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     gaps = sum(1 for a, b in zip(archive["observations"], archive["observations"][1:])
                if b["minute_ms"] - a["minute_ms"] > 60000)
     return {
