@@ -266,7 +266,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     ticker = snapshot.get("market", {}).get("zec_xperp_ticker", {})
     first = ticker.get("first", {}) if isinstance(ticker, dict) else {}
     if first.get("instId") != INSTRUMENT_ID:
-        return {"status": "BLOCCATO", "reason": "strumento X-Perp non esatto", "orders_enabled": False}
+        return {"status": "BLOCCATO", "reason": "strumento X-Perp non esatto", "archive": {"events_total": 0, "events_added": 0}, "scalping": {"status": "BLOCCATO"}, "reversals": {"status": "BLOCCATO"}, "orders_enabled": False}
     captured = _dt(snapshot.get("source_captured_at"))
     age = (datetime.now(timezone.utc) - captured).total_seconds() if captured else None
     history_quality = snapshot.get("zec_xperp_history") or {}
@@ -290,6 +290,8 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     if blockers:
         return {
             "status": "BLOCCATO", "reason": "; ".join(blockers),
+            "archive": {"events_total": 0, "events_added": 0},
+            "scalping": {"status": "BLOCCATO"}, "reversals": {"status": "BLOCCATO"},
             "orders_enabled": False, "archive_updated": False,
             "safety": {"orders_enabled": False, "position_sizing_enabled": False,
                        "ctVal_status": "NON RISOLTO", "max_risk_usdc": 15,
