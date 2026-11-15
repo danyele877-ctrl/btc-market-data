@@ -495,6 +495,12 @@ def main():
         (health.get("payload") or {}).get("microstructure", {}),
         health.get("retrieved_at"),
     )
+    # Raw WebSocket tape/depth have been persisted in the dedicated history;
+    # keep the frequently committed bridge feed compact.
+    health_payload = health.get("payload")
+    if isinstance(health_payload, dict) and isinstance(health_payload.get("microstructure"), dict):
+        health_payload["microstructure"].pop("trade_events", None)
+        health_payload["microstructure"].pop("book_depth_history", None)
     zec_xperp_history = get_okx_xperp_history("ZEC-USD_UM_XPERP-310530")
     Path("data/zec_xperp_history.json").write_text(json.dumps(zec_xperp_history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     output = {
