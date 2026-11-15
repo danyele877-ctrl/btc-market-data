@@ -108,9 +108,8 @@ def _micro_observation(snapshot: dict[str, Any], captured: datetime) -> dict[str
         age = _num(ws.get(key))
         if age is None or age < 0 or age > limit:
             return None
-    if not all(cvd.get(f"ready_{window}") is True and _num(cvd.get(window)) is not None
-               for window in ("1m", "5m", "15m")):
-        return None
+    # Book/trade observations remain useful while longer CVD windows warm up.
+    # Missing CVD horizons are preserved as null, never fabricated as zero.
     bid, ask = _num(book.get("best_bid")), _num(book.get("best_ask"))
     if bid is None or ask is None or bid <= 0 or ask < bid:
         return None
@@ -139,9 +138,12 @@ def _micro_observation(snapshot: dict[str, Any], captured: datetime) -> dict[str
         "minute_ms": int(captured.timestamp() // 60 * 60000),
         "captured_at": captured.isoformat().replace("+00:00", "Z"),
         "price": price,
-        "cvd_1m_contracts": _num(cvd.get("1m")),
-        "cvd_5m_contracts": _num(cvd.get("5m")),
-        "cvd_15m_contracts": _num(cvd.get("15m")),
+        "cvd_1m_contracts": _num(cvd.get("1m")) if cvd.get("ready_1m") else None,
+        "cvd_5m_contracts": _num(cvd.get("5m")) if cvd.get("ready_5m") else None,
+        "cvd_15m_contracts": _num(cvd.get("15m")) if cvd.get("ready_15m") else None,
+        "cvd_ready_1m": bool(cvd.get("ready_1m")),
+        "cvd_ready_5m": bool(cvd.get("ready_5m")),
+        "cvd_ready_15m": bool(cvd.get("ready_15m")),
         "imbalance_top5": _num(book.get("imbalance_top5")),
         "imbalance_top10": _num(book.get("imbalance_top10")),
         "imbalance_top20": _num(book.get("imbalance_top20")),
