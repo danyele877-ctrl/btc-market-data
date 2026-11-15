@@ -196,7 +196,8 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
         queue_history = json.loads(QUEUE_HISTORY_PATH.read_text(encoding="utf-8"))
     except Exception:
         queue_history = {}
-    tick_size = _num((((snapshot.get("market") or {}).get("zec_xperp_instrument") or {}).get("first") or {}).get("tickSz"))
+    instrument_meta = ((snapshot.get("market") or {}).get("zec_xperp_instrument") or {}).get("first") or {}
+    tick_size = _num(instrument_meta.get("tickSz")) if instrument_meta.get("instId") == INSTRUMENT_ID else None
     archive = {"schema_version": 1, "instrument": INSTRUMENT_ID, "updated_at": snapshot.get("source_captured_at"), "events": []}
     if archive_path.exists():
         try:
