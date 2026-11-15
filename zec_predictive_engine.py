@@ -18,7 +18,7 @@ SCALP_HORIZONS = (5, 15, 30, 40)       # minutes
 SWING_HORIZONS = (60, 120, 240)        # minutes
 MAX_ARCHIVE = 12000
 MIN_ANALOGS = 30
-FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend")
+FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength")
 
 
 def _num(v: Any) -> float | None:
@@ -71,7 +71,7 @@ def _clean(rows: Any, seconds: int, captured: datetime | None = None) -> list[di
     return dedup
 
 
-def _features(rows: list[dict[str, Any]], i: int) -> dict[str, float] | None:
+def _features(rows: list[dict[str, Any]], i: int, benchmark: dict[int, float] | None = None) -> dict[str, float] | None:
     if i < 20:
         return None
     w = rows[i-20:i+1]
@@ -92,6 +92,12 @@ def _features(rows: list[dict[str, Any]], i: int) -> dict[str, float] | None:
     avg_gain = sum(max(0.0, closes[j]-closes[j-1]) for j in range(len(closes)-14, len(closes)))
     avg_loss = sum(max(0.0, closes[j-1]-closes[j]) for j in range(len(closes)-14, len(closes)))
     rsi = 50.0 if avg_gain + avg_loss == 0 else 100.0 * avg_gain / (avg_gain + avg_loss)
+    relative_strength = ret(3)
+    if benchmark:
+        current_btc = benchmark.get(rows[i]["ts_ms"])
+        prior_btc = benchmark.get(rows[i-3]["ts_ms"])
+        if current_btc and prior_btc:
+            relative_strength = ret(3) - (current_btc / prior_btc - 1.0)
     return {
         "ret1": ret(1), "ret3": ret(3), "ret6": ret(6),
         "atr_pct": atr / px,
@@ -99,6 +105,7 @@ def _features(rows: list[dict[str, Any]], i: int) -> dict[str, float] | None:
         "volume_rel": volumes[-1] / avgvol if avgvol > 0 else 1.0,
         "rsi14": rsi / 100.0,
         "trend": (px / closes[0] - 1.0),
+        "rel_strength": relative_strength,
     }
 
 
@@ -166,6 +173,8 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
     scalp5 = _clean(hist.get("xperp_5m"), 300, captured)
     swing_rows = _clean(hist.get("xperp_1H"), 3600, captured)
     swing5 = _clean(hist.get("xperp_5m"), 300, captured)
+    btc5 = _clean(hist.get("btc_5m"), 300, captured)
+    btc_by_ts = {r["ts_ms"]: r["close"] for r in btc5}
     archive = {"schema_version": 1, "instrument": INSTRUMENT_ID, "updated_at": snapshot.get("source_captured_at"), "events": []}
     if archive_path.exists():
         try:
@@ -178,13 +187,14 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
     added = 0
 
     def process(rows: list[dict[str, Any]], future_rows: list[dict[str, Any]], interval: int,
-                horizons: tuple[int, ...], family: str, fill_window: int) -> None:
+                horizons: tuple[int, ...], family: str, fill_window: int,
+                benchmark: dict[int, float] | None = None) -> None:
         nonlocal added
         if len(rows) < 25 or len(future_rows) < 25:
             return
         # Index future bars by event close; rows are already ordered and contiguous.
         for i in range(20, len(rows)):
-            feat = _features(rows, i)
+            feat = _features(rows, i, benchmark)
             if not feat:
                 continue
             bar = dict(rows[i])
@@ -208,7 +218,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
 
     # Scalping features are sampled from completed 5m bars; the 1m series
     # supplies finer outcome ordering. Swing samples use completed 1H bars.
-    process(scalp5, scalp_rows, 60, SCALP_HORIZONS, "scalp_5m", 5)
+    process(scalp5, scalp_rows, 60, SCALP_HORIZONS, "scalp_5m", 5, btc_by_ts)
     process(swing_rows, swing5, 300, SWING_HORIZONS, "swing_1H", 60)
     archive["events"] = sorted(existing.values(), key=lambda x: (x.get("timestamp_ms", 0), x.get("id", "")))[-MAX_ARCHIVE:]
     archive["updated_at"] = snapshot.get("source_captured_at")
@@ -301,6 +311,8 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     hist = snapshot.get("predictive_history") or {}
     now = _dt(snapshot.get("source_captured_at"))
     scalp = _clean(hist.get("xperp_5m"), 300, now)
+    btc5 = _clean(hist.get("btc_5m"), 300, now)
+    btc_by_ts = {r["ts_ms"]: r["close"] for r in btc5}
     swing = _clean(hist.get("xperp_1H"), 3600, now)
     four_hour = _clean(hist.get("xperp_4H"), 14400, now)
     four_hour_context = _features(four_hour, len(four_hour)-1) if four_hour else None
@@ -317,7 +329,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         (scalp, "scalp_5m", SCALP_HORIZONS, "scalping"),
         (swing, "swing_1H", SWING_HORIZONS, "reversals"),
     ):
-        feat = _features(rows, len(rows)-1) if rows else None
+        feat = _features(rows, len(rows)-1, btc_by_ts if target == "scalping" else None) if rows else None
         if not feat:
             result[target] = {"status": "DATI INSUFFICIENTI", "reason": "servono almeno 21 barre chiuse e continue"}
             continue
