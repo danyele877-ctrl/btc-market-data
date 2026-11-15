@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from zec_predictive_engine import (
-    INSTRUMENT_ID, MIN_ANALOGS, _analogs, _clean, _features,
+    INSTRUMENT_ID, MIN_ANALOGS, _analogs, _clean, _features, _label,
     evaluate_predictive_engine,
 )
 
@@ -26,6 +26,32 @@ class PredictiveEngineTests(unittest.TestCase):
         self.assertEqual(result["status"], "IN APPRENDIMENTO")
         self.assertIsNone(result["p_limit_touch_proxy"])
         self.assertIsNone(result["p_tp_before_sl_given_touch"])
+
+    def test_filled_limit_is_recorded_before_longer_tp_sl_horizon_matures(self):
+        entry = {
+            "ts_ms": 1000, "_close_ms": 61000, "open": 100.0,
+            "high": 100.1, "low": 99.9, "close": 100.0, "_atr": 1.0,
+        }
+        first = {
+            "ts_ms": 61000, "_close_ms": 121000, "open": 100.0,
+            "high": 100.2, "low": 99.7, "close": 100.0,
+        }
+        partial = _label(entry, [first], "LONG", 40, 60, 5)
+        self.assertTrue(partial["filled_proxy"])
+        self.assertIsNone(partial["tp_before_sl"])
+
+        future = [first]
+        for minute in range(2, 41):
+            high = 102.0 if minute == 30 else 100.2
+            future.append({
+                "ts_ms": 61000 + minute*60000 - 60000,
+                "_close_ms": 61000 + minute*60000,
+                "open": 100.0, "high": high, "low": 99.9, "close": 100.0,
+            })
+        matured = _label(entry, future, "LONG", 40, 60, 5)
+        self.assertTrue(matured["filled_proxy"])
+        self.assertTrue(matured["tp_before_sl"])
+        self.assertIsNotNone(matured["outcome_at_ms"])
 
     def test_engine_pins_exact_instrument_and_never_enables_orders(self):
         snapshot = {"market": {"zec_xperp_ticker": {"first": {"instId": "ZEC-USDT-SWAP"}}}}
