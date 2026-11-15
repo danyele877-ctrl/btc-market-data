@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-15T14:26:01.363326+00:00",
-  "snapshot_generated_at": "2026-11-15T14:26:01.270548+00:00",
+  "generated_at": "2026-11-15T15:09:36.186871+00:00",
+  "snapshot_generated_at": "2026-11-15T15:09:36.107085+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -76,19 +76,19 @@
     "swole_funding_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "swole_open_interest_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "swole_liquidations_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "swole_btc_snapshot": {
