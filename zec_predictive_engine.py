@@ -241,7 +241,8 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
 
     def nearest_context(close_ms: int) -> dict[str, Any] | None:
         candidates = [o for o in context_observations
-                      if 0 <= close_ms - int(o["minute_ms"]) <= 90000]
+                      if _time(o.get("captured_at")) is not None
+                      and 0 <= close_ms - int(_time(o["captured_at"]).timestamp() * 1000) <= 90000]
         return candidates[-1] if candidates else None
 
     def enrich(base: dict[str, float], obs: dict[str, Any] | None,
@@ -449,7 +450,9 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         prior = None
         if base and observations:
             close_ms = rows[-1]["_close_ms"]
-            eligible = [o for o in observations if 0 <= close_ms - int(o.get("minute_ms", 0)) <= 90000]
+            eligible = [o for o in observations
+                        if _time(o.get("captured_at")) is not None
+                        and 0 <= close_ms - int(_time(o["captured_at"]).timestamp() * 1000) <= 90000]
             obs = eligible[-1] if eligible else None
             if obs:
                 earlier = [o for o in observations
