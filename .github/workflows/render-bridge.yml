@@ -9,6 +9,7 @@ on:
       - "build_radar_snapshot.py"
       - "zec_early_signal.py"
       - "zec_predictive_engine.py"
+      - "zec_queue_model.py"
       - "zec_context_archive.py"
       - "replay_zec_signals.py"
       - "candle_service.py"
