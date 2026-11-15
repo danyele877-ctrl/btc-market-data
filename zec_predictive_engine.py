@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from zec_queue_model import estimate_queue_depletion
+
 INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
 ARCHIVE_PATH = Path("data/zec_predictive_archive.json")
 SCALP_HORIZONS = (5, 15, 30, 40)       # minutes
@@ -21,6 +23,7 @@ MIN_ANALOGS = 30
 FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength")
 MICRO_FEATURES = FEATURES + ("cvd1m_log", "cvd5m_log", "cvd15m_log", "imbalance_top10", "book_delta_top10", "book_delta_valid", "spread_bps", "oi_change_pct", "oi_change_valid")
 CONTEXT_ARCHIVE_PATH = Path("data/zec_context_archive.json")
+QUEUE_HISTORY_PATH = Path("data/zec_microstructure_history.json")
 
 
 def _num(v: Any) -> float | None:
@@ -112,14 +115,15 @@ def _features(rows: list[dict[str, Any]], i: int, benchmark: dict[int, float] | 
 
 
 def _label(entry_bar: dict[str, Any], future: list[dict[str, Any]], side: str,
-           horizon_min: int, bar_seconds: int, fill_window_min: int) -> dict[str, Any] | None:
+           horizon_min: int, bar_seconds: int, fill_window_min: int,
+           limit_price: float | None = None) -> dict[str, Any] | None:
     px = entry_bar["close"]
     # ATR proxy from the preceding 14 completed bars is attached by caller.
     atr = _num(entry_bar.get("_atr"))
     if not atr or atr <= 0 or not future:
         return None
     pullback = 0.20 * atr
-    entry = px - pullback if side == "LONG" else px + pullback
+    entry = limit_price if limit_price is not None else (px - pullback if side == "LONG" else px + pullback)
     fill_deadline = entry_bar["_close_ms"] + fill_window_min * 60_000
     horizon_deadline = entry_bar["_close_ms"] + horizon_min * 60_000
     fill_index = None
