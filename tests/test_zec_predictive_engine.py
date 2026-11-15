@@ -27,6 +27,23 @@ class PredictiveEngineTests(unittest.TestCase):
         self.assertIsNone(result["p_limit_touch_proxy"])
         self.assertIsNone(result["p_tp_before_sl_given_touch"])
 
+    def test_touch_frequency_can_be_shown_before_tp_sl_sample_threshold(self):
+        features = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
+                    "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
+                    "trend": 0.0, "rel_strength": 0.0}
+        events = []
+        for i in range(30):
+            events.append({
+                "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
+                "features": features,
+                "label": {"filled_proxy": i < 5, "tp_before_sl": None},
+            })
+        result = _analogs({"events": events}, "scalp_5m", "LONG", 5, features)
+        self.assertEqual(result["status"], "STIMA SPERIMENTALE")
+        self.assertAlmostEqual(result["p_limit_touch_proxy"], 5/30, places=4)
+        self.assertIsNone(result["p_tp_before_sl_given_touch"])
+        self.assertEqual(result["tp_status"], "IN APPRENDIMENTO")
+
     def test_filled_limit_is_recorded_before_longer_tp_sl_horizon_matures(self):
         entry = {
             "ts_ms": 1000, "_close_ms": 61000, "open": 100.0,
