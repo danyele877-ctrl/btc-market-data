@@ -110,3 +110,10 @@ The predictive engine also builds separate microstructure-enhanced analog famili
 
 
 The bridge replay step also backfills the context archive from up to 600 previously published radar snapshots. Historical observations are revalidated using each snapshot's own capture time; trigger outcomes are only matured when the complete minute-by-minute forward path is present. This avoids treating a truncated candle tail as a full 15–240 minute outcome.
+
+
+## ZEC movement event study
+
+The context archive also detects completed 5m/15m price displacements that exceed a volatility-scaled threshold. Each event is linked only to the latest valid microstructure observation captured before the event candle closed: CVD 1m/5m/15m, top-10 book imbalance and its short change, spread, OI change, funding rate, and paired BTC 1m relative return when available. The event record also stores subsequent 5/15/30/40/60/120/240-minute ATR-barrier outcomes when the complete forward path is available.
+
+The event study describes co-occurring factors and subsequent price paths. It does not infer that CVD, book imbalance, OI, funding or BTC caused the move. Missing or stale inputs remain missing; no interpolation or post-event feature leakage is allowed.
