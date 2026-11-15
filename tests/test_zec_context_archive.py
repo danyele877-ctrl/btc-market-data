@@ -139,6 +139,20 @@ class ZecContextArchiveTests(unittest.TestCase):
         self.assertEqual(matured, 0)
         self.assertEqual(setup["outcomes"], {})
 
+    def test_book_archive_continues_while_longer_cvd_windows_warm_up(self):
+        value = snapshot()
+        value["microstructure"]["cvd"]["ready_5m"] = False
+        value["microstructure"]["cvd"]["ready_15m"] = False
+        value["microstructure"]["cvd"]["5m"] = None
+        value["microstructure"]["cvd"]["15m"] = None
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "context.json"
+            result = update_context_archive(value, path, now=NOW)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(result["observations_total"], 1)
+        self.assertIsNone(saved["observations"][0]["cvd_5m_contracts"])
+        self.assertFalse(saved["observations"][0]["cvd_ready_15m"])
+
     def test_stale_or_wrong_contract_snapshot_is_blocked(self):
         value = snapshot()
         value["market"]["zec_xperp_ticker"]["first"]["instId"] = "ZEC-USDT-SWAP"
