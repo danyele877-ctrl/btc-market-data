@@ -669,12 +669,23 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         queue_data = json.loads(QUEUE_HISTORY_PATH.read_text(encoding="utf-8"))
     except Exception:
         queue_data = {}
+    last_capture = queue_data.get("capture_status", [{}])[-1] if queue_data.get("capture_status") else {}
+    ws_books = [row for row in queue_data.get("book_snapshots", []) if row.get("source") == "websocket"]
+    ws_trades = [row for row in queue_data.get("trades", []) if row.get("source") == "websocket"]
     queue_results["data_coverage"] = {
         "book_snapshots": len(queue_data.get("book_snapshots", [])),
-        "websocket_book_snapshots": sum(1 for row in queue_data.get("book_snapshots", []) if row.get("source") == "websocket"),
-        "websocket_trades": sum(1 for row in queue_data.get("trades", []) if row.get("source") == "websocket"),
+        "websocket_book_snapshots": len(ws_books),
+        "websocket_trades": len(ws_trades),
         "capture_checks": len(queue_data.get("capture_status", [])),
-        "last_capture_at": queue_data.get("capture_status", [{}])[-1].get("captured_at") if queue_data.get("capture_status") else None,
+        "last_capture_at": last_capture.get("captured_at"),
+        "last_capture_book_valid": last_capture.get("book_valid"),
+        "last_capture_trade_tape_truncated": last_capture.get("trade_events_truncated"),
+        "last_capture_trade_age_seconds": last_capture.get("trade_age_seconds"),
+        "last_capture_book_age_seconds": last_capture.get("book_age_seconds"),
+        "last_capture_trade_gap_count": last_capture.get("trade_gap_count"),
+        "last_capture_book_gap_count": last_capture.get("book_gap_count"),
+        "oldest_ws_book_ts_ms": ws_books[0].get("ts_ms") if ws_books else None,
+        "latest_ws_book_ts_ms": ws_books[-1].get("ts_ms") if ws_books else None,
     }
     queue_results["caveat"] = "Stima sperimentale: assume ordine in coda dopo la profondità visibile; cancellazioni, hidden liquidity, latenza e fill parziali non sono osservabili completamente."
     result["queue_execution_model"] = queue_results
