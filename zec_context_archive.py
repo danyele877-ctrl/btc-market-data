@@ -251,6 +251,7 @@ def _movement_candidates(snapshot: dict[str, Any], observations: list[dict[str, 
             "event_candle_completed_at": datetime.fromtimestamp(close_ms/1000, timezone.utc).isoformat().replace("+00:00", "Z"),
             "context_observation_at": obs.get("captured_at"),
             "entry_close_ms": close_ms, "direction": direction,
+            "entry_type": "movement_close_reference_not_limit_fill",
             "move_horizon_min": horizon, "move_return_pct": round(move*100, 4),
             "entry_reference": close, "atr_reference": atr,
             "features": {
@@ -348,7 +349,7 @@ def _mature_setups(setups: list[dict[str, Any]], bars: list[dict[str, Any]]) -> 
                 "mae_atr": round(mae, 4),
                 "hit_at_ms": hit_time,
                 "matured_at_ms": future[-1]["_close_ms"],
-                "entry_type": "trigger_close_reference_not_actual_limit_fill",
+                "entry_type": setup.get("entry_type") or ("movement_close_reference_not_limit_fill" if "move_horizon_min" in setup else "trigger_close_reference_not_actual_limit_fill"),
             }
             updated += 1
     return updated
