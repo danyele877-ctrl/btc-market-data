@@ -242,8 +242,8 @@ class FeedStateTests(unittest.TestCase):
                 base = {
                     "arg": {"channel": "trades", "instId": service.EXPECTED_XPERP_INST_ID},
                     "data": [
-                        {"tradeId": "100", "count": "1", "sz": "3", "side": "buy", "ts": str(now_ms - 2000)},
-                        {"tradeId": "101", "count": "1", "sz": "1", "side": "sell", "ts": str(now_ms - 1000)},
+                        {"tradeId": "100", "count": "1", "sz": "3", "side": "buy", "px": "100.5", "ts": str(now_ms - 2000)},
+                        {"tradeId": "101", "count": "1", "sz": "1", "side": "sell", "px": "100.4", "ts": str(now_ms - 1000)},
                     ],
                 }
                 await feed.handle_microstructure_message(json.dumps(base))
@@ -253,6 +253,11 @@ class FeedStateTests(unittest.TestCase):
                 self.assertTrue(cvd["ready_15m"])
                 self.assertEqual(cvd["unit"], "contracts")
                 self.assertEqual(cvd["1m"], 2.0)
+                tape = feed.microstructure_health()
+                self.assertEqual(tape["trade_events_count"], 2)
+                self.assertEqual(tape["trade_events"][0]["trade_id"], 100)
+                self.assertEqual(tape["trade_events"][0]["price"], "100.5")
+                self.assertFalse(tape["trade_events_truncated"])
 
                 gap = {
                     "arg": {"channel": "trades", "instId": service.EXPECTED_XPERP_INST_ID},
