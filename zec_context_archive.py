@@ -453,6 +453,8 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
                 for feature, value in (event.get("features") or {}).items():
                     if existing_features.get(feature) is None and value is not None:
                         existing_features[feature] = value
+                if event.get("features", {}).get("btc_return_5m_pct") is not None:
+                    existing_event["observed_factors"] = event.get("observed_factors", existing_event.get("observed_factors", []))
                 continue
             if elapsed is None or elapsed >= cooldown:
                 movement_ids.add(event["id"])
@@ -536,6 +538,8 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
             for feature, value in (event.get("features") or {}).items():
                 if existing_features.get(feature) is None and value is not None:
                     existing_features[feature] = value
+            if event.get("features", {}).get("btc_return_5m_pct") is not None:
+                existing_event["observed_factors"] = event.get("observed_factors", existing_event.get("observed_factors", []))
             continue
         if elapsed is None or elapsed >= cooldown:
             movement_ids.add(event["id"])
