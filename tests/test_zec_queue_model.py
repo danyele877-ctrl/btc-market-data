@@ -51,6 +51,23 @@ class QueueDepletionTests(unittest.TestCase):
         self.assertEqual(result["aggressive_volume_at_or_better_contracts"], 7.0)
         self.assertTrue(result["queue_depleted_proxy"])
 
+    def test_five_minute_bridge_cadence_accepts_one_health_checkpoint(self):
+        value = history()
+        value["capture_status"] = value["capture_status"][:1]
+        result = estimate_queue_depletion(value, ENTRY, 100.0, "LONG", 0.01)
+        self.assertEqual(result["status"], "STIMA QUEUE DISPONIBILE")
+        self.assertEqual(result["capture_checks"], 1)
+
+    def test_zero_second_capture_ages_are_valid_not_stale(self):
+        value = history()
+        value["capture_status"] = [{
+            **value["capture_status"][0],
+            "book_age_seconds": 0,
+            "trade_age_seconds": 0,
+        }]
+        result = estimate_queue_depletion(value, ENTRY, 100.0, "LONG", 0.01)
+        self.assertEqual(result["status"], "STIMA QUEUE DISPONIBILE")
+
     def test_sell_limit_uses_aggressive_buy_volume(self):
         value = history()
         value["book_snapshots"] = [
