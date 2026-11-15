@@ -302,7 +302,9 @@ class CandleFeed:
         result["trade_events_returned"] = min(len(events), 5000)
         result["trade_events_truncated"] = len(events) > 5000
         result["trade_events"] = events[-5000:]
+        result["trade_events_schema_version"] = 1
         result["book_depth_history"] = list(micro.get("book_depth_history") or [])
+        result["book_depth_history_window_seconds"] = 300
         return result
 
     async def persist(self) -> None:
