@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 from zec_early_signal import INSTRUMENT_ID, evaluate_signal
-from zec_context_archive import update_context_archive
+from zec_context_archive import backfill_context_archive
 
 
 PATH = "data/radar_snapshot.json"
@@ -52,6 +52,7 @@ def replay(rows):
     # sees no future OI sample. Exact instrument IDs are enforced.
     oi_points = []
     evaluated = []
+    context_rows = []
     for captured, snapshot in rows:
         market = snapshot.get("market", {})
         oi_record = market.get("zec_xperp_open_interest", {})
@@ -69,18 +70,18 @@ def replay(rows):
         ]
         signal = evaluate_signal(snapshot, now=captured)
         snapshot["zec_early_signal"] = signal
-        context_seed = update_context_archive(snapshot, now=captured)
+        context_rows.append((captured, snapshot))
         candle = latest_candle(snapshot)
-        evaluated.append({"captured": captured, "signal": signal, "candle": candle,
-                          "context_seed": context_seed})
+        evaluated.append({"captured": captured, "signal": signal, "candle": candle})
+    context_seed = backfill_context_archive(context_rows)
 
     counts = Counter(item["signal"]["status"] for item in evaluated)
     decisions = Counter(item["signal"]["decision"] for item in evaluated)
     outcomes = {"5m": Counter(), "15m": Counter()}
     trigger_count = 0
-    context_observations = max((item["context_seed"].get("observations_total", 0) for item in evaluated), default=0)
-    context_setups = max((item["context_seed"].get("setups_total", 0) for item in evaluated), default=0)
-    context_outcomes_matured = sum(item["context_seed"].get("outcomes_matured", 0) for item in evaluated)
+    context_observations = context_seed.get("observations_total", 0)
+    context_setups = context_seed.get("setups_total", 0)
+    context_outcomes_matured = context_seed.get("outcomes_matured", 0)
     for index, item in enumerate(evaluated):
         signal = item["signal"]
         if signal["status"] != "TRIGGER CONFERMATO" or not item["candle"]:
