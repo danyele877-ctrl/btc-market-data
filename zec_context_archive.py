@@ -414,7 +414,8 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
     added_setups = 0
     matured = 0
     movement_events = _dedupe_movement_events(archive.setdefault("movement_events", []))
-    movement_ids = {item.get("id") for item in movement_events if isinstance(item, dict)}
+    movement_by_id = {item.get("id"): item for item in movement_events if isinstance(item, dict)}
+    movement_ids = set(movement_by_id)
     movement_added = 0
     movement_matured = 0
     for captured, snapshot in sorted(rows, key=lambda item: item[0]):
@@ -442,9 +443,19 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
             last_event = movement_events[-1] if movement_events else None
             elapsed = (event["entry_close_ms"] - last_event["entry_close_ms"]) if last_event else None
             cooldown = 15*60000 if last_event and last_event.get("direction") == event.get("direction") else 5*60000
-            if event["id"] not in movement_ids and (elapsed is None or elapsed >= cooldown):
+            if event["id"] in movement_by_id:
+                existing_event = movement_by_id[event["id"]]
+                existing_event.setdefault("event_candle_completed_at", event.get("event_candle_completed_at"))
+                existing_event.setdefault("context_observation_at", event.get("context_observation_at"))
+                existing_features = existing_event.setdefault("features", {})
+                for feature, value in (event.get("features") or {}).items():
+                    if existing_features.get(feature) is None and value is not None:
+                        existing_features[feature] = value
+                continue
+            if elapsed is None or elapsed >= cooldown:
                 movement_ids.add(event["id"])
                 movement_events.append(event)
+                movement_by_id[event["id"]] = event
                 movement_added += 1
         movement_matured += _mature_setups(movement_events, bars)
     observations.sort(key=lambda item: item.get("minute_ms", 0))
@@ -487,7 +498,8 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
     before_obs = len(archive["observations"])
     before_setups = len(archive["setups"])
     movement_events = _dedupe_movement_events(archive.setdefault("movement_events", []))
-    movement_ids = {item.get("id") for item in movement_events if isinstance(item, dict)}
+    movement_by_id = {item.get("id"): item for item in movement_events if isinstance(item, dict)}
+    movement_ids = set(movement_by_id)
     movement_added = 0
     movement_matured = 0
     observation = _micro_observation(snapshot, captured)
@@ -512,9 +524,19 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
         last_event = movement_events[-1] if movement_events else None
         elapsed = (event["entry_close_ms"] - last_event["entry_close_ms"]) if last_event else None
         cooldown = 15*60000 if last_event and last_event.get("direction") == event.get("direction") else 5*60000
-        if event["id"] not in movement_ids and (elapsed is None or elapsed >= cooldown):
+        if event["id"] in movement_by_id:
+            existing_event = movement_by_id[event["id"]]
+            existing_event.setdefault("event_candle_completed_at", event.get("event_candle_completed_at"))
+            existing_event.setdefault("context_observation_at", event.get("context_observation_at"))
+            existing_features = existing_event.setdefault("features", {})
+            for feature, value in (event.get("features") or {}).items():
+                if existing_features.get(feature) is None and value is not None:
+                    existing_features[feature] = value
+            continue
+        if elapsed is None or elapsed >= cooldown:
             movement_ids.add(event["id"])
             movement_events.append(event)
+            movement_by_id[event["id"]] = event
             movement_added += 1
     movement_matured += _mature_setups(movement_events, bars)
     archive["setups"] = setups[-MAX_SETUPS:]
