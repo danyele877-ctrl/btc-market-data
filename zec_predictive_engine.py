@@ -485,6 +485,11 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     captured = _dt(snapshot.get("source_captured_at"))
     age = (datetime.now(timezone.utc) - captured).total_seconds() if captured else None
     history_quality = snapshot.get("zec_xperp_history") or {}
+    predictive_history = snapshot.get("predictive_history") or {}
+    scalp_1m_check = _clean(predictive_history.get("xperp_1m"), 60, captured)
+    scalp_5m_check = _clean(predictive_history.get("xperp_5m"), 300, captured)
+    scalp_1m_age = (captured.timestamp()*1000 - scalp_1m_check[-1]["_close_ms"]) if captured and scalp_1m_check else None
+    scalp_5m_age = (captured.timestamp()*1000 - scalp_5m_check[-1]["_close_ms"]) if captured and scalp_5m_check else None
     required_history = ("1m", "5m", "1H", "4H")
     blockers = []
     if snapshot.get("schema_version") != 3 or snapshot.get("source_status") != "ok":
@@ -499,7 +504,11 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     if ticker.get("http_status") != 200 or str(ticker.get("api_code")) != "0":
         blockers.append("ticker X-Perp HTTP/API non valido")
     if any(not (history_quality.get(k) or {}).get("ready_200") for k in required_history):
-        blockers.append("storico X-Perp 1m/5m/1H non pronto (200 barre, zero gap, fresco)")
+        blockers.append("storico X-Perp 1m/5m/1H/4H non pronto (200 barre, zero gap, fresco)")
+    if len(scalp_1m_check) < 200 or scalp_1m_age is None or scalp_1m_age > 180000:
+        blockers.append("serie Render X-Perp 1m insufficiente o non fresca (servono 200 barre e ultima chiusura <=180s)")
+    if len(scalp_5m_check) < 200 or scalp_5m_age is None or scalp_5m_age > 360000:
+        blockers.append("serie Render X-Perp 5m insufficiente o non fresca (servono 200 barre e ultima chiusura <=360s)")
     if any(v for v in (snapshot.get("read_errors") or {}).values()):
         blockers.append("errori di lettura nel bridge")
     if blockers:
