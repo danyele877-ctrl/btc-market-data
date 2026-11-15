@@ -387,6 +387,10 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
     by_minute = {int(item.get("minute_ms", 0)): index for index, item in enumerate(observations)}
     added_setups = 0
     matured = 0
+    movement_events = archive.setdefault("movement_events", [])
+    movement_ids = {item.get("id") for item in movement_events if isinstance(item, dict)}
+    movement_added = 0
+    movement_matured = 0
     for captured, snapshot in sorted(rows, key=lambda item: item[0]):
         ticker = ((snapshot.get("market") or {}).get("zec_xperp_ticker") or {}).get("first") or {}
         if (snapshot.get("schema_version") != 3 or snapshot.get("source_status") != "ok"
@@ -408,9 +412,16 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
         bars = _closed_1m(hist_rows, captured)
         added_setups += _record_confirmed_setup(snapshot, setups, captured, bars)
         matured += _mature_setups(setups, bars)
+        for event in _movement_candidates(snapshot, observations, captured):
+            if event["id"] not in movement_ids:
+                movement_ids.add(event["id"])
+                movement_events.append(event)
+                movement_added += 1
+        movement_matured += _mature_setups(movement_events, bars)
     observations.sort(key=lambda item: item.get("minute_ms", 0))
     archive["observations"] = observations[-MAX_OBSERVATIONS:]
     archive["setups"] = setups[-MAX_SETUPS:]
+    archive["movement_events"] = movement_events[-3000:]
     if rows:
         archive["updated_at"] = max(item[0] for item in rows).isoformat().replace("+00:00", "Z")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
@@ -423,6 +434,9 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
         "setups_total": len(archive["setups"]),
         "setups_added": added_setups,
         "outcomes_matured": matured,
+        "movement_events_total": len(archive["movement_events"]),
+        "movement_events_added": movement_added,
+        "movement_outcomes_matured": movement_matured,
         "observation_gaps": gaps,
         "last_observation_at": archive["observations"][-1].get("captured_at") if archive["observations"] else None,
     }
@@ -443,6 +457,10 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
     archive = _load(archive_path)
     before_obs = len(archive["observations"])
     before_setups = len(archive["setups"])
+    movement_events = archive.setdefault("movement_events", [])
+    movement_ids = {item.get("id") for item in movement_events if isinstance(item, dict)}
+    movement_added = 0
+    movement_matured = 0
     observation = _micro_observation(snapshot, captured)
     if observation:
         observations = archive["observations"]
@@ -461,7 +479,14 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
     setups = archive["setups"]
     added_setup = _record_confirmed_setup(snapshot, setups, captured, bars)
     matured = _mature_setups(setups, bars)
+    for event in _movement_candidates(snapshot, archive["observations"], captured):
+        if event["id"] not in movement_ids:
+            movement_ids.add(event["id"])
+            movement_events.append(event)
+            movement_added += 1
+    movement_matured += _mature_setups(movement_events, bars)
     archive["setups"] = setups[-MAX_SETUPS:]
+    archive["movement_events"] = movement_events[-3000:]
     archive["updated_at"] = captured.isoformat().replace("+00:00", "Z")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     archive_path.write_text(json.dumps(archive, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
@@ -489,6 +514,9 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
         "setups_total": len(setups),
         "setups_added": added_setup,
         "outcomes_matured": matured,
+        "movement_events_total": len(archive["movement_events"]),
+        "movement_events_added": movement_added,
+        "movement_outcomes_matured": movement_matured,
         "trigger_validation": matured_counts,
         "note": "Trigger riferiti alla chiusura della candela confermata, non a un fill LIMIT reale; osservazioni microstrutturali in contratti, ctVal non risolto.",
     }
