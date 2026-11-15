@@ -19,6 +19,8 @@ SWING_HORIZONS = (60, 120, 240)        # minutes
 MAX_ARCHIVE = 12000
 MIN_ANALOGS = 30
 FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength")
+MICRO_FEATURES = FEATURES + ("cvd1m_log", "cvd5m_log", "cvd15m_log", "imbalance_top10", "book_delta_top10", "spread_bps", "oi_change_5m_pct")
+CONTEXT_ARCHIVE_PATH = Path("data/zec_context_archive.json")
 
 
 def _num(v: Any) -> float | None:
@@ -175,6 +177,17 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
     swing5 = _clean(hist.get("xperp_5m"), 300, captured)
     btc5 = _clean(hist.get("btc_5m"), 300, captured)
     btc_by_ts = {r["ts_ms"]: r["close"] for r in btc5}
+    btc1h = _clean(hist.get("btc_1H"), 3600, captured)
+    btc1h_by_ts = {r["ts_ms"]: r["close"] for r in btc1h}
+    try:
+        context_archive = json.loads(CONTEXT_ARCHIVE_PATH.read_text(encoding="utf-8"))
+        context_observations = context_archive.get("observations", [])
+    except Exception:
+        context_observations = []
+    context_observations = sorted(
+        [o for o in context_observations if isinstance(o, dict) and _num(o.get("minute_ms")) is not None],
+        key=lambda o: o["minute_ms"]
+    )
     archive = {"schema_version": 1, "instrument": INSTRUMENT_ID, "updated_at": snapshot.get("source_captured_at"), "events": []}
     if archive_path.exists():
         try:
@@ -224,7 +237,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
     # Scalping features are sampled from completed 5m bars; the 1m series
     # supplies finer outcome ordering. Swing samples use completed 1H bars.
     process(scalp5, scalp_rows, 60, SCALP_HORIZONS, "scalp_5m", 5, btc_by_ts)
-    process(swing_rows, swing5, 300, SWING_HORIZONS, "swing_1H", 60)
+    process(swing_rows, swing5, 300, SWING_HORIZONS, "swing_1H", 60, btc1h_by_ts)
     archive["events"] = sorted(existing.values(), key=lambda x: (x.get("timestamp_ms", 0), x.get("id", "")))[-MAX_ARCHIVE:]
     archive["updated_at"] = snapshot.get("source_captured_at")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
@@ -238,7 +251,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
 
 
 def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
-             features: dict[str, float]) -> dict[str, Any]:
+             features: dict[str, float], feature_names: tuple[str, ...] = FEATURES) -> dict[str, Any]:
     pool = [e for e in archive.get("events", [])
             if e.get("family") == family and e.get("side") == side
             and e.get("horizon_min") == horizon and isinstance(e.get("label"), dict)]
@@ -248,7 +261,7 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
                 "p_limit_touch_proxy": None, "p_tp_before_sl_given_touch": None,
                 "reason": f"servono almeno {MIN_ANALOGS} campioni maturi e {MIN_ANALOGS} limit-touch proxy"}
     means, scales = {}, {}
-    for key in FEATURES:
+    for key in feature_names:
         vals = [_num(e.get("features", {}).get(key)) for e in pool]
         vals = [v for v in vals if v is not None]
         means[key] = sum(vals)/len(vals) if vals else 0.0
@@ -256,7 +269,7 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
         scales[key] = max(math.sqrt(variance), 1e-6)
     def distance(e: dict[str, Any]) -> float:
         f = e.get("features", {})
-        return math.sqrt(sum(((features[k]-means[k])/scales[k] - (_num(f.get(k)) - means[k])/scales[k])**2 for k in FEATURES))
+        return math.sqrt(sum(((features[k]-means[k])/scales[k] - (_num(f.get(k)) - means[k])/scales[k])**2 for k in feature_names))
     nearest = sorted(pool, key=distance)[:min(50, len(pool))]
     nearest_filled = [e for e in nearest if e["label"].get("filled_proxy") is True]
     if len(nearest) < MIN_ANALOGS or len(nearest_filled) < MIN_ANALOGS:
