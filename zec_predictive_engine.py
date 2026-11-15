@@ -344,11 +344,25 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                 continue
             for side in ("LONG", "SHORT"):
                 for offset in LIMIT_OFFSETS_ATR:
+                    family = f"scalp_queue_{int(offset*100):02d}"
+                    # Mature TP/SL outcomes for previously recorded queue fills,
+                    # even after their original book/trade window has aged out.
+                    for horizon in SCALP_HORIZONS:
+                        key = f"{family}:{bar['ts_ms']}:{side}:{horizon}"
+                        if key not in existing:
+                            continue
+                        old_label = existing[key].get("label", {})
+                        if old_label.get("filled_proxy") is True and old_label.get("tp_before_sl") is None:
+                            future = [x for x in future_rows if close_ms < x["_close_ms"] <= close_ms + horizon*60000]
+                            matured_label = _label(bar, future, side, horizon, 60, 5, _num(old_label.get("entry")))
+                            if matured_label and matured_label.get("filled_proxy") and isinstance(matured_label.get("tp_before_sl"), bool):
+                                old_label["tp_before_sl"] = matured_label["tp_before_sl"]
+                                old_label["matured_at_ms"] = matured_label.get("matured_at_ms")
+                        continue
                     raw_limit = bar["close"] - offset*bar["_atr"] if side == "LONG" else bar["close"] + offset*bar["_atr"]
                     queue_info = estimate_queue_depletion(queue_history, close_ms, raw_limit, side, tick_size, 5)
                     if queue_info.get("status") != "STIMA QUEUE DISPONIBILE":
                         continue
-                    family = f"scalp_queue_{int(offset*100):02d}"
                     for horizon in SCALP_HORIZONS:
                         key = f"{family}:{bar['ts_ms']}:{side}:{horizon}"
                         if key in existing:
@@ -358,7 +372,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                         if label is None:
                             continue
                         if queue_info["queue_depleted_proxy"]:
-                            if not label.get("filled_proxy") or not isinstance(label.get("tp_before_sl"), bool):
+                            if not label.get("filled_proxy"):
                                 continue
                         else:
                             label["filled_proxy"] = False
