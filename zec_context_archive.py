@@ -421,7 +421,7 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
     observations.sort(key=lambda item: item.get("minute_ms", 0))
     archive["observations"] = observations[-MAX_OBSERVATIONS:]
     archive["setups"] = setups[-MAX_SETUPS:]
-    archive["movement_events"] = movement_events[-3000:]
+    archive["movement_events"] = sorted(movement_events, key=lambda item: item.get("entry_close_ms", 0))[-3000:]
     if rows:
         archive["updated_at"] = max(item[0] for item in rows).isoformat().replace("+00:00", "Z")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
