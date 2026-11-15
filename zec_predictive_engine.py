@@ -434,8 +434,9 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
             "p_tp_before_sl_given_touch": None, "tp_status": "IN APPRENDIMENTO",
             "reason": "non ci sono abbastanza analoghi vicini",
         }
-    nearest_filled = [e for e in nearest if e["label"].get("filled_proxy") is True]
-    p_touch = sum(1 for e in nearest if e["label"].get("filled_proxy") is True) / len(nearest)
+    nearest_filled_proxy = [e for e in nearest if e["label"].get("filled_proxy") is True]
+    nearest_filled = [e for e in nearest_filled_proxy if isinstance(e["label"].get("tp_before_sl"), bool)]
+    p_touch = len(nearest_filled_proxy) / len(nearest)
     p_tp = None
     tp_status = "IN APPRENDIMENTO"
     if len(nearest_filled) >= MIN_ANALOGS:
@@ -444,6 +445,7 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
     return {
         "status": "STIMA SPERIMENTALE", "samples": len(pool), "neighbors": len(nearest),
         "filled_samples": len(filled_pool), "filled_neighbors": len(nearest_filled),
+        "filled_proxy_neighbors": len(nearest_filled_proxy),
         "p_limit_touch_proxy": round(p_touch, 4),
         "p_tp_before_sl_given_touch": round(p_tp, 4) if p_tp is not None else None,
         "tp_status": tp_status,
