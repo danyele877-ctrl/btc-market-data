@@ -499,7 +499,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     setup_summary = {}
     for side in ("LONG", "SHORT"):
         setup_summary[side] = {}
-        for horizon in HORIZONS:
+        for horizon in SCALP_HORIZONS + SWING_HORIZONS:
             outcomes = [setup.get("outcomes", {}).get(str(horizon), {}).get("status")
                         for setup in setup_rows if setup.get("direction") == side]
             outcomes = [x for x in outcomes if x is not None]
