@@ -263,8 +263,38 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
 
 def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = ARCHIVE_PATH) -> dict[str, Any]:
     """Update the persistent event archive and return horizon-specific analog estimates."""
-    if snapshot.get("market", {}).get("zec_xperp_ticker", {}).get("first", {}).get("instId") != INSTRUMENT_ID:
+    ticker = snapshot.get("market", {}).get("zec_xperp_ticker", {})
+    first = ticker.get("first", {}) if isinstance(ticker, dict) else {}
+    if first.get("instId") != INSTRUMENT_ID:
         return {"status": "BLOCCATO", "reason": "strumento X-Perp non esatto", "orders_enabled": False}
+    captured = _dt(snapshot.get("source_captured_at"))
+    age = (datetime.now(timezone.utc) - captured).total_seconds() if captured else None
+    history_quality = snapshot.get("zec_xperp_history") or {}
+    required_history = ("1m", "5m", "1H")
+    blockers = []
+    if snapshot.get("schema_version") != 3 or snapshot.get("source_status") != "ok":
+        blockers.append("snapshot schema/status non valido")
+    if snapshot.get("render_health_http") != 200 or snapshot.get("render_candles_http") != 200:
+        blockers.append("healthz/candles non entrambi HTTP 200")
+    health = snapshot.get("render_health") or {}
+    if health.get("status") != "ok" or health.get("websocket_connected") is not True:
+        blockers.append("feed WebSocket non connesso o health non OK")
+    if age is None or age < -60 or age > 180:
+        blockers.append("snapshot oltre 180 secondi o timestamp non valido")
+    if ticker.get("http_status") != 200 or str(ticker.get("api_code")) != "0":
+        blockers.append("ticker X-Perp HTTP/API non valido")
+    if any(not (history_quality.get(k) or {}).get("ready_200") for k in required_history):
+        blockers.append("storico X-Perp 1m/5m/1H non pronto (200 barre, zero gap, fresco)")
+    if any(v for v in (snapshot.get("read_errors") or {}).values()):
+        blockers.append("errori di lettura nel bridge")
+    if blockers:
+        return {
+            "status": "BLOCCATO", "reason": "; ".join(blockers),
+            "orders_enabled": False, "archive_updated": False,
+            "safety": {"orders_enabled": False, "position_sizing_enabled": False,
+                       "ctVal_status": "NON RISOLTO", "max_risk_usdc": 15,
+                       "instrument_id_pinned": INSTRUMENT_ID},
+        }
     archive, counts = _update_archive(snapshot, archive_path)
     hist = snapshot.get("predictive_history") or {}
     now = _dt(snapshot.get("source_captured_at"))
