@@ -313,8 +313,10 @@ def main():
         "candles_1m_5m": candles,
         "zec_xperp_history": xperp_history,
         "predictive_history": {
-            "xperp_1m": hist_bars.get("1m", {}).get("candles", []),
-            "xperp_5m": hist_bars.get("5m", {}).get("candles", []),
+            # Prefer longer Render completed-candle series for intraday outcome paths;
+            # use the OKX history archive only as a fallback.
+            "xperp_1m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USD_UM_XPERP", {}).get("1m", []) or hist_bars.get("1m", {}).get("candles", []),
+            "xperp_5m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USD_UM_XPERP", {}).get("5m", []) or hist_bars.get("5m", {}).get("candles", []),
             "xperp_1H": hist_bars.get("1H", {}).get("candles", []),
             "xperp_4H": hist_bars.get("4H", {}).get("candles", []),
             "btc_1m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("1m", []),
