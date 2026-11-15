@@ -306,6 +306,7 @@ def main():
             "xperp_5m": hist_bars.get("5m", {}).get("candles", []),
             "xperp_1H": hist_bars.get("1H", {}).get("candles", []),
             "xperp_4H": hist_bars.get("4H", {}).get("candles", []),
+            "btc_1m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("1m", []),
             "btc_5m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("5m", []),
             "btc_1H": okx_history.get("BTC-USDC", {}).get("1H", {}).get("candles", []),
         },
@@ -347,6 +348,7 @@ def main():
         "zec_context_observations": output["zec_context_archive"]["observations_total"],
         "zec_confirmed_setups": output["zec_context_archive"]["setups_total"],
         "zec_setup_outcomes_matured": output["zec_context_archive"]["outcomes_matured"],
+        "zec_movement_events": output["zec_context_archive"].get("movement_events_total", 0),
     }))
 
 
