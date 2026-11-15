@@ -241,8 +241,8 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
 
     def nearest_context(close_ms: int) -> dict[str, Any] | None:
         candidates = [o for o in context_observations
-                      if _time(o.get("captured_at")) is not None
-                      and 0 <= close_ms - int(_time(o["captured_at"]).timestamp() * 1000) <= 90000]
+                      if _dt(o.get("captured_at")) is not None
+                      and 0 <= close_ms - int(_dt(o["captured_at"]).timestamp() * 1000) <= 90000]
         return candidates[-1] if candidates else None
 
     def enrich(base: dict[str, float], obs: dict[str, Any] | None,
