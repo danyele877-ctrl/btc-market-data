@@ -269,6 +269,56 @@ def _record_confirmed_setup(snapshot: dict[str, Any], setups: list[dict[str, Any
     return 1
 
 
+def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
+                            archive_path: Path = ARCHIVE_PATH) -> dict[str, Any]:
+    """Backfill many historical snapshots with one archive read/write cycle."""
+    archive = _load(archive_path)
+    observations = archive["observations"]
+    setups = archive["setups"]
+    by_minute = {int(item.get("minute_ms", 0)): index for index, item in enumerate(observations)}
+    added_setups = 0
+    matured = 0
+    for captured, snapshot in sorted(rows, key=lambda item: item[0]):
+        ticker = ((snapshot.get("market") or {}).get("zec_xperp_ticker") or {}).get("first") or {}
+        if (snapshot.get("schema_version") != 3 or snapshot.get("source_status") != "ok"
+                or ticker.get("instId") != INSTRUMENT_ID):
+            continue
+        observation = _micro_observation(snapshot, captured)
+        if observation:
+            minute = observation["minute_ms"]
+            if minute in by_minute:
+                index = by_minute[minute]
+                if _time(observation["captured_at"]) >= _time(observations[index].get("captured_at")):
+                    observations[index] = observation
+            else:
+                by_minute[minute] = len(observations)
+                observations.append(observation)
+        hist_rows = (snapshot.get("predictive_history") or {}).get("xperp_1m")
+        if not hist_rows:
+            hist_rows = (((snapshot.get("candles_1m_5m") or {}).get("ZEC-USD_UM_XPERP") or {}).get("1m") or {}).get("tail", [])
+        bars = _closed_1m(hist_rows, captured)
+        added_setups += _record_confirmed_setup(snapshot, setups, captured, bars)
+        matured += _mature_setups(setups, bars)
+    observations.sort(key=lambda item: item.get("minute_ms", 0))
+    archive["observations"] = observations[-MAX_OBSERVATIONS:]
+    archive["setups"] = setups[-MAX_SETUPS:]
+    if rows:
+        archive["updated_at"] = max(item[0] for item in rows).isoformat().replace("+00:00", "Z")
+    archive_path.parent.mkdir(parents=True, exist_ok=True)
+    archive_path.write_text(json.dumps(archive, ensure_ascii=False, separators=(",", ":")) + "\\n", encoding="utf-8")
+    gaps = sum(1 for a, b in zip(archive["observations"], archive["observations"][1:])
+               if b["minute_ms"] - a["minute_ms"] > 60000)
+    return {
+        "status": "OK",
+        "observations_total": len(archive["observations"]),
+        "setups_total": len(archive["setups"]),
+        "setups_added": added_setups,
+        "outcomes_matured": matured,
+        "observation_gaps": gaps,
+        "last_observation_at": archive["observations"][-1].get("captured_at") if archive["observations"] else None,
+    }
+
+
 def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIVE_PATH,
                            now: datetime | None = None) -> dict[str, Any]:
     """Append one quality-gated microstructure observation and mature confirmed-trigger outcomes."""
