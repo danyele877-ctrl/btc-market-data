@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_CEILING, ROUND_FLOOR
 from typing import Any
 
 
@@ -28,10 +28,11 @@ def _time_ms(value: Any) -> int | None:
         return None
 
 
-def _round_tick(price: float, tick_size: float) -> float:
+def _round_tick(price: float, tick_size: float, side: str) -> float:
     try:
         p, tick = Decimal(str(price)), Decimal(str(tick_size))
-        return float((p / tick).quantize(Decimal("1")) * tick)
+        rounding = ROUND_FLOOR if side == "LONG" else ROUND_CEILING
+        return float((p / tick).quantize(Decimal("1"), rounding=rounding) * tick)
     except (InvalidOperation, ZeroDivisionError):
         return price
 
@@ -53,7 +54,7 @@ def estimate_queue_depletion(
         return {"status": "DATI NON VALIDI"}
     if history.get("instrument") != INSTRUMENT_ID:
         return {"status": "STRUMENTO NON ESATTO"}
-    limit_price = _round_tick(limit_price, tick_size)
+    limit_price = _round_tick(limit_price, tick_size, side)
     end_ms = entry_time_ms + fill_window_min * 60000
     books = [
         row for row in history.get("book_snapshots", [])
