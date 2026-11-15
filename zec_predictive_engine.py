@@ -141,8 +141,8 @@ def _label(entry_bar: dict[str, Any], future: list[dict[str, Any]], side: str,
             return None
         return {"filled_proxy": False, "tp_before_sl": None, "entry": round(entry, 8),
                 "fill_window_completed_at_ms": future[-1]["_close_ms"]}
-    if future[-1]["_close_ms"] < horizon_deadline:
-        return None  # wait for the complete forward horizon before storing a label
+    # A filled observation may be stored with an unresolved TP/SL outcome;
+    # later runs mature it when the full forward horizon becomes available.
     stop = entry - atr if side == "LONG" else entry + atr
     target = entry + 1.5 * atr if side == "LONG" else entry - 1.5 * atr
     outcome = None
