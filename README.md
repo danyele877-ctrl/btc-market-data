@@ -85,3 +85,14 @@ The output reports `PRE-ALLERTA`, `SETUP IN FORMAZIONE`, `TRIGGER CONFERMATO`, o
 The engine is simulation-only. Orders are disabled. Contract metadata still has an unresolved `ctVal` discrepancy (API 0.01 ZEC vs official specification 0.1 ZEC); sizing, quantity, margin, exposure and PnL fields remain uncomputed. The user risk cap is recorded as 15 USDC without calculating a position size. No CoinMarketCap data is used.
 
 Run regression tests with `python -m unittest discover -s tests -v`. Replay committed bridge snapshots, without PnL or order simulation, using `python replay_zec_signals.py` (optionally `--limit N`). Replay candle outcomes are descriptive only: bridge observations are sparse, overlapping and drawn from a short single-market regime, so they do not establish statistical performance.
+
+
+## ZEC Predictive Engine (simulation only)
+
+The existing build_radar_snapshot.py now also runs zec_predictive_engine.py and writes zec_predictive_engine into the same data/radar_snapshot.json. It consumes the exact OKX EEA X-Perp ZEC-USD_UM_XPERP-310530, completed 1m/5m/1H/4H history, and only updates the archive when the snapshot, health endpoints, WebSocket and required 200-bar history pass freshness/continuity checks.
+
+The persistent data/zec_predictive_archive.json stores timestamped feature vectors and forward outcomes. Primary scalping samples use completed 5m bars and 1m forward paths for 5/15/30/40-minute horizons. Secondary reversal samples use completed 1H bars and 5m forward paths for 1/2/4-hour horizons. The first version uses explainable nearest-neighbour analogs and withholds numerical estimates until at least 30 mature historical analogs and 30 filled-touch examples exist for that direction/horizon. Estimates are empirical and explicitly uncalibrated; the archive is not proof of predictive edge.
+
+A hypothetical limit fill is labelled only when the historical OHLC range touches an entry offset of 0.20 ATR within the defined fill window. This is a TOUCH PROXY, not a real fill probability: public candle data cannot reconstruct queue priority, order-book queue depletion, latency, spread or partial fills. TP/SL outcomes use 1.5 ATR / 1.0 ATR barriers; ambiguous same-candle touches are conservatively labelled as SL. Unmatured forward windows are not stored as outcomes.
+
+No order placement, API credentials, position sizing, leverage, margin, exposure or PnL are enabled. The unresolved contract multiplier discrepancy remains a hard block on sizing. The user's 15 USDC risk ceiling is retained as metadata only. The existing GitHub Actions schedule and Render deployment filters are not changed by this engine.
