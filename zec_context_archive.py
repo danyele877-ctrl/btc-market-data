@@ -75,6 +75,7 @@ def _load(path: Path) -> dict[str, Any]:
             if value.get("schema_version") == 1 and value.get("instrument") == INSTRUMENT_ID:
                 value.setdefault("observations", [])
                 value.setdefault("setups", [])
+                value.setdefault("movement_events", [])
                 return value
         except Exception:
             pass
@@ -84,6 +85,7 @@ def _load(path: Path) -> dict[str, Any]:
         "updated_at": None,
         "observations": [],
         "setups": [],
+        "movement_events": [],
     }
 
 
@@ -151,12 +153,119 @@ def _micro_observation(snapshot: dict[str, Any], captured: datetime) -> dict[str
         "oi_contracts": oi,
         "oi_reported_value": oi_price,
         "oi_valid": oi_valid,
+        "funding_rate": _num(((market.get("zec_xperp_funding") or {}).get("first") or {}).get("fundingRate")),
+        "funding_premium": _num(((market.get("zec_xperp_funding") or {}).get("first") or {}).get("premium")),
         "trade_gap_count": int(ws.get("trade_gap_count") or 0),
         "book_gap_count": int(ws.get("book_gap_count") or 0),
         "trade_age_seconds": _num(ws.get("trade_age_seconds")),
         "book_age_seconds": _num(ws.get("book_age_seconds")),
         "unit": "contracts; ctVal unresolved; no conversion to ZEC",
     }
+
+
+def _movement_candidates(snapshot: dict[str, Any], observations: list[dict[str, Any]],
+                         captured: datetime) -> list[dict[str, Any]]:
+    """Detect unusually large completed 5m/15m moves and attach only prior context."""
+    hist = snapshot.get("predictive_history") or {}
+    rows = hist.get("xperp_1m")
+    if not rows:
+        rows = (((snapshot.get("candles_1m_5m") or {}).get("ZEC-USD_UM_XPERP") or {}).get("1m") or {}).get("tail", [])
+    bars = _closed_1m(rows, captured)
+    btc_rows = hist.get("btc_1m") or []
+    btc_clean = []
+    for row in btc_rows:
+        if not isinstance(row, dict):
+            continue
+        ts = _num(row.get("ts_ms"))
+        done = _time(row.get("completed_at"))
+        close = _num(row.get("close"))
+        if ts is not None and done is not None and done <= captured and int(done.timestamp()*1000) == int(ts)+60000 and close and close > 0:
+            btc_clean.append({"ts_ms": int(ts), "_close_ms": int(done.timestamp()*1000), "close": close})
+    btc_by_ts = {row["ts_ms"]: row["close"] for row in btc_clean}
+    ordered_obs = sorted(observations, key=lambda item: item.get("minute_ms", 0))
+    events = []
+    for i in range(20, len(bars)):
+        bar = bars[i]
+        close = bar["close"]
+        atr_values = []
+        for j in range(max(1, i-14), i+1):
+            prev = bars[j-1]["close"]
+            atr_values.append(max(bars[j]["high"]-bars[j]["low"],
+                                  abs(bars[j]["high"]-prev), abs(bars[j]["low"]-prev)))
+        atr = sum(atr_values)/len(atr_values) if atr_values else 0.0
+        if close <= 0 or atr <= 0:
+            continue
+        ret5 = close / bars[i-5]["close"] - 1.0
+        ret15 = close / bars[i-15]["close"] - 1.0
+        threshold5 = max(0.004, 1.5 * atr / close * math.sqrt(5))
+        threshold15 = max(0.0075, 2.0 * atr / close * math.sqrt(15))
+        candidates = []
+        if abs(ret5) >= threshold5:
+            candidates.append((abs(ret5)/threshold5, 5, ret5))
+        if abs(ret15) >= threshold15:
+            candidates.append((abs(ret15)/threshold15, 15, ret15))
+        if not candidates:
+            continue
+        _strength, horizon, move = max(candidates)
+        direction = "LONG" if move > 0 else "SHORT"
+        close_ms = bar["_close_ms"]
+        prior_obs = [o for o in ordered_obs
+                     if _time(o.get("captured_at")) is not None
+                     and 0 <= close_ms - int(_time(o["captured_at"]).timestamp()*1000) <= 90000]
+        obs = prior_obs[-1] if prior_obs else None
+        if not obs:
+            continue
+        prior_target = close_ms - 5*60000
+        earlier = [o for o in ordered_obs
+                   if _time(o.get("captured_at")) is not None
+                   and 0 <= prior_target - int(_time(o["captured_at"]).timestamp()*1000) <= 90000]
+        prior = earlier[-1] if earlier else None
+        oi_change = None
+        if prior and prior.get("oi_valid") and obs.get("oi_valid"):
+            old_oi, new_oi = _num(prior.get("oi_contracts")), _num(obs.get("oi_contracts"))
+            if old_oi and new_oi is not None:
+                oi_change = new_oi/old_oi - 1.0
+        btc_return = None
+        if bar["ts_ms"] in btc_by_ts and bars[i-5]["ts_ms"] in btc_by_ts:
+            btc_return = btc_by_ts[bar["ts_ms"]]/btc_by_ts[bars[i-5]["ts_ms"]] - 1.0
+        relative = ret5 - btc_return if btc_return is not None else None
+        cvd = {key: _num(obs.get(f"cvd_{key}_contracts")) for key in ("1m", "5m", "15m")}
+        imbalance = _num(obs.get("imbalance_top10"))
+        flow_alignment = "non disponibile"
+        if cvd["5m"] is not None:
+            flow_alignment = "concorde" if (cvd["5m"] > 0) == (direction == "LONG") and cvd["5m"] != 0 else "contrario" if cvd["5m"] != 0 else "neutro"
+        book_alignment = "non disponibile"
+        if imbalance is not None:
+            book_alignment = "concorde" if (imbalance > 0) == (direction == "LONG") and imbalance != 0 else "contrario" if imbalance != 0 else "neutro"
+        event_id = f"{INSTRUMENT_ID}:{close_ms}:{direction}:{horizon}"
+        events.append({
+            "id": event_id, "instrument": INSTRUMENT_ID,
+            "captured_at": captured.isoformat().replace("+00:00", "Z"),
+            "entry_close_ms": close_ms, "direction": direction,
+            "move_horizon_min": horizon, "move_return_pct": round(move*100, 4),
+            "entry_reference": close, "atr_reference": atr,
+            "features": {
+                "return_1m": round((close/bars[i-1]["close"]-1)*100, 4),
+                "return_5m": round(ret5*100, 4), "return_15m": round(ret15*100, 4),
+                "atr_pct": round(atr/close*100, 4),
+                "btc_return_5m_pct": round(btc_return*100, 4) if btc_return is not None else None,
+                "zec_relative_btc_5m_pct": round(relative*100, 4) if relative is not None else None,
+                "cvd_contracts": cvd, "cvd_alignment": flow_alignment,
+                "book_imbalance_top10": imbalance, "book_alignment": book_alignment,
+                "book_delta_top10": _num(obs.get("book_delta_top10")),
+                "spread_bps": _num(obs.get("spread_bps")),
+                "oi_change_5m_pct": round(oi_change*100, 5) if oi_change is not None else None,
+                "funding_rate": _num(obs.get("funding_rate")),
+            },
+            "observed_factors": [
+                f"CVD 5m {flow_alignment}", f"book top10 {book_alignment}",
+                "BTC 5m disponibile" if btc_return is not None else "BTC 5m non allineato",
+                "OI 5m disponibile" if oi_change is not None else "OI 5m non disponibile",
+            ],
+            "causality_note": "Fattori temporalmente associati; non dimostrano causalità.",
+            "outcomes": {},
+        })
+    return events
 
 
 def _mature_setups(setups: list[dict[str, Any]], bars: list[dict[str, Any]]) -> int:
