@@ -453,10 +453,7 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
                 existing_event["entry_type"] = event.get("entry_type", existing_event.get("entry_type"))
                 for outcome in (existing_event.get("outcomes") or {}).values():
                     outcome["entry_type"] = existing_event.get("entry_type", "movement_close_reference_not_limit_fill")
-                existing_event["entry_type"] = event.get("entry_type", existing_event.get("entry_type"))
-            for outcome in (existing_event.get("outcomes") or {}).values():
-                outcome["entry_type"] = existing_event.get("entry_type", "movement_close_reference_not_limit_fill")
-            existing_features = existing_event.setdefault("features", {})
+                existing_features = existing_event.setdefault("features", {})
                 for feature, value in (event.get("features") or {}).items():
                     if existing_features.get(feature) is None and value is not None:
                         existing_features[feature] = value
