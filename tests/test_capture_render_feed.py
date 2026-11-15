@@ -20,6 +20,8 @@ class MicrostructureHistoryTests(unittest.TestCase):
             }],
             "trade_events_returned": 1,
             "trade_events_truncated": False,
+            "trade_gap_count": 0, "book_gap_count": 0, "book_valid": True,
+            "trade_age_seconds": 1, "book_age_seconds": 1,
             "book_depth_history": [{
                 "ts_ms": now_ms-500, "seq_id": 456,
                 "bids": [["900.0", "10"]], "asks": [["900.2", "12"]],
@@ -36,6 +38,8 @@ class MicrostructureHistoryTests(unittest.TestCase):
         self.assertEqual(saved["trades"][0]["gap_before"], False)
         self.assertEqual(saved["book_snapshots"][0]["seq_id"], 456)
         self.assertEqual(saved["book_snapshots"][0]["source"], "websocket")
+        self.assertEqual(len(saved["capture_status"]), 1)
+        self.assertTrue(saved["capture_status"][0]["book_valid"])
 
     def test_rest_duplicate_is_upgraded_to_websocket_record(self):
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
