@@ -423,13 +423,14 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
     pool = [e for e in archive.get("events", [])
             if e.get("family") == family and e.get("side") == side
             and e.get("horizon_min") == horizon and isinstance(e.get("label"), dict)]
-    filled_pool = [e for e in pool if e["label"].get("filled_proxy") is True
-                   and isinstance(e["label"].get("tp_before_sl"), bool)]
+    filled_proxy_pool = [e for e in pool if e["label"].get("filled_proxy") is True]
+    filled_pool = [e for e in filled_proxy_pool if isinstance(e["label"].get("tp_before_sl"), bool)]
     if len(pool) < MIN_ANALOGS:
         return {
             "status": "IN APPRENDIMENTO", "samples": len(pool),
-            "filled_samples": len(filled_pool), "neighbors": min(50, len(pool)),
-            "filled_neighbors": 0, "p_limit_touch_proxy": None,
+            "filled_samples": len(filled_pool), "filled_proxy_samples": len(filled_proxy_pool),
+            "neighbors": min(50, len(pool)), "filled_neighbors": 0,
+            "filled_proxy_neighbors": 0, "p_limit_touch_proxy": None,
             "p_tp_before_sl_given_touch": None,
             "tp_status": "IN APPRENDIMENTO",
             "reason": f"servono almeno {MIN_ANALOGS} osservazioni mature per stimare il tocco",
@@ -448,8 +449,9 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
     if len(nearest) < MIN_ANALOGS:
         return {
             "status": "IN APPRENDIMENTO", "samples": len(pool),
-            "filled_samples": len(filled_pool), "neighbors": len(nearest),
-            "filled_neighbors": 0, "p_limit_touch_proxy": None,
+            "filled_samples": len(filled_pool), "filled_proxy_samples": len(filled_proxy_pool),
+            "neighbors": len(nearest), "filled_neighbors": 0,
+            "filled_proxy_neighbors": 0, "p_limit_touch_proxy": None,
             "p_tp_before_sl_given_touch": None, "tp_status": "IN APPRENDIMENTO",
             "reason": "non ci sono abbastanza analoghi vicini",
         }
@@ -463,8 +465,8 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
         tp_status = "STIMA SPERIMENTALE"
     return {
         "status": "STIMA SPERIMENTALE", "samples": len(pool), "neighbors": len(nearest),
-        "filled_samples": len(filled_pool), "filled_neighbors": len(nearest_filled),
-        "filled_proxy_neighbors": len(nearest_filled_proxy),
+        "filled_samples": len(filled_pool), "filled_proxy_samples": len(filled_proxy_pool),
+        "filled_neighbors": len(nearest_filled), "filled_proxy_neighbors": len(nearest_filled_proxy),
         "p_limit_touch_proxy": round(p_touch, 4),
         "p_tp_before_sl_given_touch": round(p_tp, 4) if p_tp is not None else None,
         "tp_status": tp_status,
@@ -625,11 +627,17 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
                     if "p_limit_touch_proxy" in estimate:
                         estimate["p_queue_depletion_proxy"] = estimate.pop("p_limit_touch_proxy")
                     estimate["limit_offset_atr"] = offset
+                    estimate["pending_filled_neighbors"] = max(
+                        0, estimate.get("filled_proxy_neighbors", 0) - estimate.get("filled_neighbors", 0)
+                    )
                     if (estimate.get("p_queue_depletion_proxy") is not None
-                            and estimate.get("p_tp_before_sl_given_touch") is not None):
+                            and estimate.get("p_tp_before_sl_given_touch") is not None
+                            and estimate["pending_filled_neighbors"] == 0):
                         estimate["p_joint_tp1_proxy"] = round(
                             estimate["p_queue_depletion_proxy"] * estimate["p_tp_before_sl_given_touch"], 4
                         )
+                    else:
+                        estimate["p_joint_tp1_proxy"] = None
                     estimate["execution_note"] = "Deplezione della coda visibile stimata da book sequenziato e trades aggressivi; non equivale a fill reale."
                     queue_results["by_direction"][side][str(horizon)][str(offset)] = estimate
                     if estimate.get("status") == "STIMA SPERIMENTALE" and estimate.get("p_joint_tp1_proxy") is not None:
