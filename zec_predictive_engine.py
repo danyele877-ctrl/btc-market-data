@@ -92,7 +92,7 @@ def _features(rows: list[dict[str, Any]], i: int, benchmark: dict[int, float] | 
     avg_gain = sum(max(0.0, closes[j]-closes[j-1]) for j in range(len(closes)-14, len(closes)))
     avg_loss = sum(max(0.0, closes[j-1]-closes[j]) for j in range(len(closes)-14, len(closes)))
     rsi = 50.0 if avg_gain + avg_loss == 0 else 100.0 * avg_gain / (avg_gain + avg_loss)
-    relative_strength = ret(3)
+    relative_strength = 0.0
     if benchmark:
         current_btc = benchmark.get(rows[i]["ts_ms"])
         prior_btc = benchmark.get(rows[i-3]["ts_ms"])
