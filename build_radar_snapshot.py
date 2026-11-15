@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from zec_early_signal import evaluate_signal
+from zec_predictive_engine import evaluate_predictive_engine
 
 ROOT = Path("data")
 FEED = ROOT / "render_feed.json"
@@ -299,6 +300,12 @@ def main():
         "market": market_out,
         "candles_1m_5m": candles,
         "zec_xperp_history": xperp_history,
+        "predictive_history": {
+            "xperp_1m": hist_bars.get("1m", {}).get("candles", []),
+            "xperp_5m": hist_bars.get("5m", {}).get("candles", []),
+            "xperp_1H": hist_bars.get("1H", {}).get("candles", []),
+            "xperp_4H": hist_bars.get("4H", {}).get("candles", []),
+        },
         "spot_history": spot_history,
         "microstructure": micro_out,
         "read_errors": {
@@ -308,6 +315,7 @@ def main():
         },
     }
     output["zec_early_signal"] = evaluate_signal(output, now=now)
+    output["zec_predictive_engine"] = evaluate_predictive_engine(output)
     OUT.write_text(json.dumps(output, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(json.dumps({
         "output": str(OUT),
@@ -328,6 +336,9 @@ def main():
         "zec_early_signal_status": output["zec_early_signal"]["status"],
         "zec_early_signal_decision": output["zec_early_signal"]["decision"],
         "zec_early_signal_blockers": output["zec_early_signal"]["data_quality"]["blockers"],
+        "zec_predictive_engine_archive": output["zec_predictive_engine"]["archive"],
+        "zec_predictive_engine_scalping_status": output["zec_predictive_engine"]["scalping"]["status"],
+        "zec_predictive_engine_reversals_status": output["zec_predictive_engine"]["reversals"]["status"],
     }))
 
 
