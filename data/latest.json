@@ -1,42 +1,42 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-11-15T21:27:25.909536+00:00",
+  "generated_at": "2026-11-15T21:28:38.741319+00:00",
   "asset": "BTC",
-  "collection_duration_ms": 1127,
+  "collection_duration_ms": 1334,
   "sources": {
     "binance_spot": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.740698+00:00",
-      "latency_ms": 958,
+      "retrieved_at": "2026-11-15T21:28:38.355628+00:00",
+      "latency_ms": 948,
       "endpoint": "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT",
       "data": {
         "symbol": "BTCUSDT",
-        "priceChange": "395.49000000",
-        "priceChangePercent": "0.612",
-        "weightedAvgPrice": "64333.97538780",
-        "prevClosePrice": "64602.91000000",
-        "lastPrice": "64998.40000000",
-        "lastQty": "0.01407000",
-        "bidPrice": "64998.39000000",
-        "bidQty": "0.48724000",
-        "askPrice": "64998.40000000",
-        "askQty": "10.00988000",
-        "openPrice": "64602.91000000",
+        "priceChange": "378.74000000",
+        "priceChangePercent": "0.586",
+        "weightedAvgPrice": "64333.62956660",
+        "prevClosePrice": "64619.27000000",
+        "lastPrice": "64998.01000000",
+        "lastQty": "0.00294000",
+        "bidPrice": "64998.00000000",
+        "bidQty": "1.69407000",
+        "askPrice": "64998.01000000",
+        "askQty": "5.90133000",
+        "openPrice": "64619.27000000",
         "highPrice": "66132.01000000",
         "lowPrice": "62006.00000000",
-        "volume": "33166.59081000",
-        "quoteVolume": "2133738636.86781210",
-        "openTime": 1794691645013,
-        "closeTime": 1794778045013,
-        "firstId": 6857713544,
-        "lastId": 6865726514,
-        "count": 8012971
+        "volume": "33127.06306000",
+        "quoteVolume": "2131184203.53132230",
+        "openTime": 1794691718001,
+        "closeTime": 1794778118001,
+        "firstId": 6857728874,
+        "lastId": 6865728081,
+        "count": 7999208
       }
     },
     "okx_spot": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.042639+00:00",
-      "latency_ms": 260,
+      "retrieved_at": "2026-11-15T21:28:37.659073+00:00",
+      "latency_ms": 251,
       "endpoint": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT",
       "data": {
         "code": "0",
@@ -44,18 +44,18 @@
           {
             "instType": "SPOT",
             "instId": "BTC-USDT",
-            "last": "65004.6",
-            "lastSz": "0.1987",
-            "askPx": "65002",
-            "askSz": "0.74360784",
-            "bidPx": "65001.9",
-            "bidSz": "0.303968",
-            "open24h": "64689.2",
+            "last": "65011.2",
+            "lastSz": "0.00001",
+            "askPx": "65007.2",
+            "askSz": "0.43869272",
+            "bidPx": "65007.1",
+            "bidSz": "0.44215851",
+            "open24h": "64591.8",
             "high24h": "66134.2",
             "low24h": "62000",
-            "volCcy24h": "1023067791.808837773",
-            "vol24h": "15923.98329782",
-            "ts": "1794778044269",
+            "volCcy24h": "1022375383.483940839",
+            "vol24h": "15913.25925946",
+            "ts": "1794778116868",
             "sodUtc0": "64156.1",
             "sodUtc8": "64750.4"
           }
@@ -65,8 +65,8 @@
     },
     "okx_futures_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.041288+00:00",
-      "latency_ms": 258,
+      "retrieved_at": "2026-11-15T21:28:37.658798+00:00",
+      "latency_ms": 251,
       "endpoint": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -74,18 +74,18 @@
           {
             "instType": "SWAP",
             "instId": "BTC-USDT-SWAP",
-            "last": "64967.8",
-            "lastSz": "10.18",
-            "askPx": "64967.8",
-            "askSz": "306.76",
-            "bidPx": "64967.7",
-            "bidSz": "128.2",
-            "open24h": "64650.9",
+            "last": "64965.7",
+            "lastSz": "2.13",
+            "askPx": "64965.8",
+            "askSz": "49.46",
+            "bidPx": "64965.7",
+            "bidSz": "717.42",
+            "open24h": "64555.5",
             "high24h": "66122.7",
             "low24h": "61931.1",
-            "volCcy24h": "155120.0434",
-            "vol24h": "15512004.34",
-            "ts": "1794778044468",
+            "volCcy24h": "155022.2084",
+            "vol24h": "15502220.84",
+            "ts": "1794778116669",
             "sodUtc0": "64124.7",
             "sodUtc8": "64719"
           }
@@ -95,15 +95,15 @@
     },
     "okx_funding": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.038092+00:00",
-      "latency_ms": 254,
+      "retrieved_at": "2026-11-15T21:28:38.695433+00:00",
+      "latency_ms": 1287,
       "endpoint": "https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
         "data": [
           {
             "formulaType": "withRate",
-            "fundingRate": "0.0000103926061482",
+            "fundingRate": "0.0000100687945317",
             "fundingTime": "1794787200000",
             "impactValue": "20000.0000000000000000",
             "instId": "BTC-USDT-SWAP",
@@ -114,11 +114,11 @@
             "minFundingRate": "-0.00375",
             "nextFundingRate": "",
             "nextFundingTime": "1794816000000",
-            "premium": "-0.0005706375451819",
+            "premium": "-0.0005631557648840",
             "prevFundingTime": "1794758400000",
             "settFundingRate": "0.0000117815109256",
             "settState": "settled",
-            "ts": "1794778036647"
+            "ts": "1794778087605"
           }
         ],
         "msg": ""
@@ -126,8 +126,8 @@
     },
     "okx_open_interest": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.053626+00:00",
-      "latency_ms": 269,
+      "retrieved_at": "2026-11-15T21:28:37.651036+00:00",
+      "latency_ms": 242,
       "endpoint": "https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP",
       "data": {
         "code": "0",
@@ -135,10 +135,10 @@
           {
             "instId": "BTC-USDT-SWAP",
             "instType": "SWAP",
-            "oi": "3223734.59000001325",
-            "oiCcy": "32237.3459000001325",
-            "oiUsd": "2094711814.4210286095585",
-            "ts": "1794778044971"
+            "oi": "3224010.42000001323",
+            "oiCcy": "32240.1042000001323",
+            "oiUsd": "2094504161.43636859497534",
+            "ts": "1794778117569"
           }
         ],
         "msg": ""
@@ -146,8 +146,8 @@
     },
     "deribit_btc_perpetual": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:24.966977+00:00",
-      "latency_ms": 180,
+      "retrieved_at": "2026-11-15T21:28:37.576541+00:00",
+      "latency_ms": 164,
       "endpoint": "https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL",
       "data": {
         "jsonrpc": "2.0",
@@ -155,41 +155,41 @@
           {
             "high": 66111.5,
             "low": 61802.0,
-            "last": 64976.5,
+            "last": 64980.5,
             "instrument_name": "BTC-PERPETUAL",
-            "bid_price": 64976.0,
-            "ask_price": 64976.5,
-            "open_interest": 722998660,
-            "mark_price": 64977.78,
-            "creation_timestamp": 1794778044922,
+            "bid_price": 64980.0,
+            "ask_price": 64980.5,
+            "open_interest": 723101240,
+            "mark_price": 64979.33,
+            "creation_timestamp": 1794778117529,
             "current_funding": 0.0,
-            "estimated_delivery_price": 64965.8,
+            "estimated_delivery_price": 64966.42,
             "funding_8h": 6.6e-07,
-            "price_change": 0.6896,
-            "volume": 44348.08516333,
+            "price_change": 0.5081,
+            "volume": 44311.04514054,
             "base_currency": "BTC",
             "quote_currency": "USD",
             "volume_delayed": 0.0,
-            "volume_realtime": 44348.08516333,
+            "volume_realtime": 44311.04514054,
             "volume_delayed_usd": 0.0,
-            "volume_realtime_usd": 2855733320.0,
-            "volume_usd": 2855733320.0,
+            "volume_realtime_usd": 2853347980.0,
+            "volume_usd": 2853347980.0,
             "volume_delayed_notional": 0.0,
-            "volume_notional": 2855733320.0,
-            "volume_realtime_notional": 2855733320.0,
-            "mid_price": 64976.25
+            "volume_notional": 2853347980.0,
+            "volume_realtime_notional": 2853347980.0,
+            "mid_price": 64980.25
           }
         ],
-        "usIn": 1794778044922175,
-        "usOut": 1794778044922414,
-        "usDiff": 239,
+        "usIn": 1794778117529707,
+        "usOut": 1794778117529958,
+        "usDiff": 251,
         "testnet": false
       }
     },
     "edge_funding_all_exchanges": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:24.897456+00:00",
-      "latency_ms": 108,
+      "retrieved_at": "2026-11-15T21:28:38.097278+00:00",
+      "latency_ms": 682,
       "endpoint": "https://edgeornot.com/api/funding",
       "data": {
         "pairs": [
@@ -8879,14 +8879,14 @@
     },
     "swole_funding_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.228579+00:00",
-      "latency_ms": 439,
+      "retrieved_at": "2026-11-15T21:28:37.635633+00:00",
+      "latency_ms": 219,
       "endpoint": "https://swolecharts.com/api/series/funding?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "funding",
         "step": 3600000,
         "start": 1794690000000,
-        "end": 1794778008705,
+        "end": 1794778072780,
         "source": "market_1h",
         "fields": [
           "v"
@@ -8955,14 +8955,14 @@
     },
     "swole_open_interest_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.019515+00:00",
-      "latency_ms": 226,
+      "retrieved_at": "2026-11-15T21:28:37.709194+00:00",
+      "latency_ms": 289,
       "endpoint": "https://swolecharts.com/api/series/oi?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "oi",
         "step": 3600000,
         "start": 1794690000000,
-        "end": 1794778008333,
+        "end": 1794778072515,
         "source": "market_1h",
         "fields": [
           "v"
@@ -9031,14 +9031,14 @@
     },
     "swole_liquidations_btc_1d": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.245786+00:00",
-      "latency_ms": 449,
+      "retrieved_at": "2026-11-15T21:28:37.762678+00:00",
+      "latency_ms": 341,
       "endpoint": "https://swolecharts.com/api/series/liquidations?base=BTC&range=1d&step=1h",
       "data": {
         "metric": "liquidations",
         "step": 3600000,
         "start": 1794690000000,
-        "end": 1794778032845,
+        "end": 1794778117606,
         "source": "liquidations",
         "fields": [
           "long",
@@ -9135,8 +9135,8 @@
     },
     "swole_btc_snapshot": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.330927+00:00",
-      "latency_ms": 532,
+      "retrieved_at": "2026-11-15T21:28:37.718816+00:00",
+      "latency_ms": 297,
       "endpoint": "https://swolecharts.com/api/coin/BTC",
       "data": {
         "long_short": {
@@ -18470,20 +18470,20 @@
             ]
           }
         },
-        "server_ts": 1794778043847,
+        "server_ts": 1794778116250,
         "uptime_since": 1791290081265,
         "market": {
           "base": "BTC",
           "cat": [
             "layer-1"
           ],
-          "oi_1h": 0.003510553066206956,
-          "oi_4h": -0.004385493573817012,
-          "oi_24h": -0.017019444158554053,
-          "perp_vol24h": 59358077907.17495,
-          "spot_vol24h": 3888167368.1009426,
-          "oi_usd": 17501819719.635532,
-          "funding_avg": 3.0174762454835107e-05,
+          "oi_1h": 0.00300188666186596,
+          "oi_4h": -0.004890157575153209,
+          "oi_24h": -0.01751770417520182,
+          "perp_vol24h": 59324861709.82052,
+          "spot_vol24h": 3885141618.0358667,
+          "oi_usd": 17492948275.604366,
+          "funding_avg": 3.0258867988202235e-05,
           "funding_spread": 0.000114,
           "venues": [
             "aster",
@@ -18503,17 +18503,17 @@
               "venue": "binance",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 65008.1,
-              "price_ts": 1794777960.0,
+              "price": 64965.4,
+              "price_ts": 1794778020.0,
               "vol24h": 18637139685.29,
               "funding": -4.5e-07,
-              "oi_usd": 6095786239.763499,
+              "oi_usd": 6091597863.6162,
               "px_1h": 0.0007227315245013077,
               "px_4h": 0.001071371864695747,
               "px_24h": 0.008022004631900392,
-              "oi_1h": 0.0030175463087172005,
-              "oi_4h": -0.002038370176365545,
-              "oi_24h": -0.02466896125143736,
+              "oi_1h": 0.0023283793003863185,
+              "oi_4h": -0.0027240632964765643,
+              "oi_24h": -0.025339105035641518,
               "url": "https://www.binance.com/en/futures/BTCUSDT",
               "hip3": false,
               "stale": false,
@@ -18526,17 +18526,17 @@
               "venue": "bybit",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 65009.0,
-              "price_ts": 1794777960.0,
-              "vol24h": 8312429525.6613,
-              "funding": 6.925e-05,
-              "oi_usd": 2264417108.91,
+              "price": 64967.9,
+              "price_ts": 1794778020.0,
+              "vol24h": 8280100208.4923,
+              "funding": 7.012e-05,
+              "oi_usd": 2264040923.02,
               "px_1h": 0.0005469625091867325,
               "px_4h": 0.0011439107564612527,
               "px_24h": 0.007973526092848182,
-              "oi_1h": 0.004156475636799994,
-              "oi_4h": -0.01655495730209311,
-              "oi_24h": 9.333454222160142e-05,
+              "oi_1h": 0.003989655886145416,
+              "oi_4h": -0.01671833627816499,
+              "oi_24h": -7.281020189708887e-05,
               "url": "https://www.bybit.com/trade/usdt/BTCUSDT?affiliate_id=932&group_id=4043&group_type=1",
               "hip3": false,
               "stale": false,
@@ -18549,17 +18549,17 @@
               "venue": "mexc",
               "symbol": "BTC_USDT",
               "quote": "USDT",
-              "price": 64964.2,
+              "price": 64960.0,
               "price_ts": null,
-              "vol24h": 3798664119.20399,
+              "vol24h": 3801406449.03219,
               "funding": 0.0,
-              "oi_usd": 2146859963.9871998,
+              "oi_usd": 2144285030.944,
               "px_1h": 0.0007585662481190969,
               "px_4h": 0.0001741218020527846,
               "px_24h": 0.007515809276638308,
-              "oi_1h": 0.004227536365666973,
-              "oi_4h": -0.0073638038697407815,
-              "oi_24h": -0.46128064543654,
+              "oi_1h": 0.0030230709093002073,
+              "oi_4h": -0.008554366730927576,
+              "oi_24h": -0.4619267827209209,
               "url": "https://www.mexc.com/futures/BTC_USDT",
               "hip3": false,
               "stale": false,
@@ -18572,17 +18572,17 @@
               "venue": "gate",
               "symbol": "BTC_USDT",
               "quote": "USDT",
-              "price": 65003.06,
+              "price": 64959.67,
               "price_ts": null,
-              "vol24h": 6791814726.0,
-              "funding": 3.3e-05,
-              "oi_usd": 1828056017.2012882,
+              "vol24h": 6792501031.0,
+              "funding": 3.2e-05,
+              "oi_usd": 1826589813.650628,
               "px_1h": 0.0007369412620812366,
               "px_4h": 0.0007715023914416363,
               "px_24h": 0.0071703896979258275,
-              "oi_1h": 0.0038958361337473324,
-              "oi_4h": -0.0046167683867139875,
-              "oi_24h": 0.023761558025178653,
+              "oi_1h": 0.0030906553156639927,
+              "oi_4h": -0.005415121618084551,
+              "oi_24h": 0.022940443782900832,
               "url": "https://www.gate.com/futures/USDT/BTC_USDT",
               "hip3": false,
               "stale": false,
@@ -18595,17 +18595,17 @@
               "venue": "binance",
               "symbol": "BTCUSDC",
               "quote": "USDC",
-              "price": 64987.2,
-              "price_ts": 1794777960.0,
+              "price": 64946.7,
+              "price_ts": 1794778020.0,
               "vol24h": 4005545454.7,
               "funding": -2.89e-06,
-              "oi_usd": 1482025930.7688,
+              "oi_usd": 1481258087.8665555,
               "px_1h": 0.000713758268727549,
               "px_4h": 0.0009853462512894318,
               "px_24h": 0.008194251598935054,
-              "oi_1h": 0.0016137523385593155,
-              "oi_4h": -0.006823201558615155,
-              "oi_24h": 0.006967623265809797,
+              "oi_1h": 0.0010948126934717806,
+              "oi_4h": -0.007337769987901477,
+              "oi_24h": 0.006445909761165769,
               "url": "https://www.binance.com/en/futures/BTCUSDC",
               "hip3": false,
               "stale": false,
@@ -18618,17 +18618,17 @@
               "venue": "hyperliquid",
               "symbol": "BTC",
               "quote": "USD",
-              "price": 65024.0,
-              "price_ts": 1794777960.0,
-              "vol24h": 6030000408.010881,
+              "price": 64982.0,
+              "price_ts": 1794778020.0,
+              "vol24h": 6030224038.829726,
               "funding": 0.0001,
-              "oi_usd": 1195462934.4839299,
+              "oi_usd": 1194598335.7034998,
               "px_1h": 0.0006624659138179112,
               "px_4h": 0.001171465565078078,
               "px_24h": 0.00600954092063688,
-              "oi_1h": 0.025352788923013847,
-              "oi_4h": 0.015206848752442381,
-              "oi_24h": 0.014162850593610887,
+              "oi_1h": 0.024611219489749647,
+              "oi_4h": 0.01447261720247428,
+              "oi_24h": 0.013429374098031133,
               "url": "https://app.hyperliquid.xyz/trade/BTC",
               "hip3": false,
               "stale": false,
@@ -18641,17 +18641,17 @@
               "venue": "bitget",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 65006.2,
+              "price": 64960.8,
               "price_ts": null,
-              "vol24h": 5093262923.03954,
+              "vol24h": 5089629970.9059,
               "funding": -1.4e-05,
-              "oi_usd": 1181674678.5846133,
+              "oi_usd": 1180645468.3017633,
               "px_1h": 0.0009036362879362159,
               "px_4h": 0.0008928323603156763,
               "px_24h": 0.007504943794412577,
-              "oi_1h": -9.283770282420001e-05,
-              "oi_4h": -0.004547868691668788,
-              "oi_24h": -0.01588821590930556,
+              "oi_1h": -0.0009637328417166913,
+              "oi_4h": -0.005414883605498244,
+              "oi_24h": -0.01674535365289609,
               "url": "https://www.bitget.com/futures/usdt/BTCUSDT",
               "hip3": false,
               "stale": false,
@@ -18664,17 +18664,17 @@
               "venue": "binance",
               "symbol": "BTCUSD_PERP",
               "quote": "USD",
-              "price": 64965.7942658,
+              "price": 64929.6,
               "price_ts": null,
               "vol24h": 1472179600.0,
-              "funding": 4.37e-05,
-              "oi_usd": 1155541700.0,
+              "funding": 4.417e-05,
+              "oi_usd": 1155485200.0,
               "px_1h": 0.000873328755584657,
               "px_4h": 0.0006381679433291598,
               "px_24h": 0.008005503113729606,
-              "oi_1h": -0.006272255408827032,
-              "oi_4h": -0.029238809556213052,
-              "oi_24h": -0.05120344198324578,
+              "oi_1h": -0.006320843545083332,
+              "oi_4h": -0.02928627474700629,
+              "oi_24h": -0.05124983321735521,
               "url": "https://www.binance.com/en/delivery/btcusd_perpetual",
               "hip3": false,
               "stale": false,
@@ -18687,17 +18687,17 @@
               "venue": "htx",
               "symbol": "BTC-USDT",
               "quote": "USDT",
-              "price": 65018.8,
+              "price": 65015.9,
               "price_ts": null,
-              "vol24h": 782554687.9038,
+              "vol24h": 782012334.5042,
               "funding": 0.0001,
-              "oi_usd": 817301395.3128,
+              "oi_usd": 817385226.1038,
               "px_1h": 0.0008017663529498176,
               "px_4h": 0.0011907773369776997,
               "px_24h": 0.00758614159245341,
-              "oi_1h": 0.0016788100324354183,
-              "oi_4h": 0.00027119474909298447,
-              "oi_24h": -0.03188737414910214,
+              "oi_1h": 0.001781552457022606,
+              "oi_4h": 0.0003737927942588648,
+              "oi_24h": -0.031788074615701656,
               "url": "https://www.htx.com/en-us/futures/linear_swap/exchange#contract_code=BTC-USDT&contract_type=swap&type=cross",
               "hip3": false,
               "stale": false,
@@ -18710,17 +18710,17 @@
               "venue": "kucoin",
               "symbol": "XBTUSDTM",
               "quote": "USDT",
-              "price": 64949.87,
+              "price": 64958.87,
               "price_ts": null,
-              "vol24h": 1195025686.923,
+              "vol24h": 1194263668.7854,
               "funding": 4e-05,
-              "oi_usd": 572601626.16285,
+              "oi_usd": 572616726.33542,
               "px_1h": 0.0006183383332767356,
               "px_4h": 0.0003422963290606873,
               "px_24h": 0.0076552758389427655,
-              "oi_1h": 0.011090091941035496,
-              "oi_4h": 0.03054215218468248,
-              "oi_24h": -0.11572065448843138,
+              "oi_1h": 0.01111675556575209,
+              "oi_4h": 0.030569328782910077,
+              "oi_24h": -0.11569733501096713,
               "url": "https://www.kucoin.com/trade/futures/XBTUSDTM",
               "hip3": false,
               "stale": false,
@@ -18733,17 +18733,17 @@
               "venue": "aster",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 65000.0,
+              "price": 64968.94352173,
               "price_ts": null,
               "vol24h": 947712563.38,
-              "funding": 6.314e-05,
-              "oi_usd": 392022020.0,
+              "funding": 6.424e-05,
+              "oi_usd": 391820032.044218,
               "px_1h": 0.0010630414372732044,
               "px_4h": 0.0005817485210564133,
               "px_24h": 0.008042539867885834,
-              "oi_1h": 0.0018481398460974408,
-              "oi_4h": 0.0023421129775664795,
-              "oi_24h": -0.03371586192582787,
+              "oi_1h": 0.0013319411443726281,
+              "oi_4h": 0.001825659757937137,
+              "oi_24h": -0.034213736401741746,
               "url": "https://www.asterdex.com/en/trade/pro/futures/BTCUSDT",
               "hip3": false,
               "stale": false,
@@ -18756,17 +18756,17 @@
               "venue": "bybit",
               "symbol": "BTCUSD",
               "quote": "USD",
-              "price": 64958.6,
-              "price_ts": 1794777960.0,
-              "vol24h": 390636074.0,
+              "price": 64926.8,
+              "price_ts": 1794778020.0,
+              "vol24h": 390239706.0,
               "funding": 6.563e-05,
-              "oi_usd": 323827544.0,
+              "oi_usd": 323851144.0,
               "px_1h": 0.0005859676175790085,
               "px_4h": 0.0006986137221307587,
               "px_24h": 0.008290018569020008,
-              "oi_1h": -0.009286245856377828,
-              "oi_4h": 5.780725701676204e-05,
-              "oi_24h": -0.055659462089541756,
+              "oi_1h": -0.009214044324942328,
+              "oi_4h": 0.00013068976713226377,
+              "oi_24h": -0.055590640159141946,
               "url": "https://www.bybit.com/trade/inverse/BTCUSD?affiliate_id=932&group_id=4043&group_type=1",
               "hip3": false,
               "stale": false,
@@ -18779,17 +18779,17 @@
               "venue": "lighter",
               "symbol": "BTC",
               "quote": "USDC",
-              "price": 64993.4,
+              "price": 64991.2,
               "price_ts": null,
-              "vol24h": 1892663953.062441,
+              "vol24h": 1893458060.900805,
               "funding": 9.599999999999999e-05,
-              "oi_usd": 113874367.44775,
+              "oi_usd": 113829041.96228,
               "px_1h": 0.000833892087273469,
               "px_4h": 0.0003774683735426887,
               "px_24h": 0.007417865870214424,
-              "oi_1h": -0.02965595530793652,
-              "oi_4h": -0.031369089269792205,
-              "oi_24h": 0.03462202501563749,
+              "oi_1h": -0.030042181953004565,
+              "oi_4h": -0.031754634035081386,
+              "oi_24h": 0.03421021376598721,
               "url": "https://app.lighter.xyz/trade/BTC",
               "hip3": false,
               "stale": false,
@@ -18802,17 +18802,17 @@
               "venue": "kucoin",
               "symbol": "XBTUSDM",
               "quote": "USD",
-              "price": 64915.4,
+              "price": 64928.2,
               "price_ts": null,
-              "vol24h": 8448500.0,
-              "funding": 3.7e-05,
-              "oi_usd": 79228157.0,
+              "vol24h": 8448938.0,
+              "funding": 4e-05,
+              "oi_usd": 79230413.0,
               "px_1h": 0.0005845644146798001,
               "px_4h": 0.0012408920223299091,
               "px_24h": 0.007714066910132544,
-              "oi_1h": 0.00023536314084693366,
-              "oi_4h": -6.482123619422353e-05,
-              "oi_24h": -0.0724933382564249,
+              "oi_1h": 0.0002638445679643553,
+              "oi_4h": -3.634835674437564e-05,
+              "oi_24h": -0.07246692775909502,
               "url": "https://www.kucoin.com/trade/futures/XBTUSDM",
               "hip3": false,
               "stale": false,
@@ -18827,8 +18827,8 @@
               "venue": "binance",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 65032.01,
-              "price_ts": 1794777960.0,
+              "price": 64993.73,
+              "price_ts": 1794778020.0,
               "vol24h": 2135352231.586697,
               "funding": null,
               "oi_usd": null,
@@ -18847,9 +18847,9 @@
               "venue": "bybit",
               "symbol": "BTCUSDT",
               "quote": "USDT",
-              "price": 65041.6,
-              "price_ts": 1794777960.0,
-              "vol24h": 1005697739.1615738,
+              "price": 65002.7,
+              "price_ts": 1794778020.0,
+              "vol24h": 1003052856.1771216,
               "funding": null,
               "oi_usd": null,
               "px_1h": 0.0006422291048373552,
@@ -18867,8 +18867,8 @@
               "venue": "binance",
               "symbol": "BTCUSDC",
               "quote": "USDC",
-              "price": 65018.37,
-              "price_ts": 1794777960.0,
+              "price": 64978.34,
+              "price_ts": 1794778020.0,
               "vol24h": 659441834.1611904,
               "funding": null,
               "oi_usd": null,
@@ -18887,9 +18887,9 @@
               "venue": "bybit",
               "symbol": "BTCUSDC",
               "quote": "USDC",
-              "price": 65012.0,
-              "price_ts": 1794777960.0,
-              "vol24h": 87675563.19148129,
+              "price": 64970.9,
+              "price_ts": 1794778020.0,
+              "vol24h": 87294696.11085746,
               "funding": null,
               "oi_usd": null,
               "px_1h": 0.0007782568894998398,
@@ -22884,8 +22884,8 @@
             "rev": 2778572
           }
         ],
-        "hits24h": 479,
-        "net_flow24h": 83161238.58875619,
+        "hits24h": 478,
+        "net_flow24h": 82870165.00590383,
         "liquidations": {
           "since": 1791290140606,
           "totals": {
@@ -23258,15 +23258,6 @@
               "side": "long",
               "usd": 1700.063859649122,
               "price": 64641.21139350276
-            },
-            {
-              "ts": 1794777598138,
-              "venue": "binance",
-              "symbol": "BTCUSDT",
-              "base": "BTC",
-              "side": "short",
-              "usd": 64.9474,
-              "price": 64947.4
             }
           ],
           "timeline": [
@@ -24711,36 +24702,36 @@
               "short": 0.0
             }
           ],
-          "server_ts": 1794778043847,
+          "server_ts": 1794778116250,
           "uptime_since": 1791290081265
         }
       }
     },
     "coinboss_funding_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.908855+00:00",
-      "latency_ms": 1108,
+      "retrieved_at": "2026-11-15T21:28:38.115958+00:00",
+      "latency_ms": 694,
       "endpoint": "https://www.coinboss.com/api/sd/funding?coin=BTC",
       "data": {
         "success": true,
         "coin": "BTC",
-        "now": 1794778033365,
+        "now": 1794778117666,
         "unit": "fraction",
-        "avg_8h": 5.976782608695654e-05,
-        "oi_weighted_8h": 3.691975531778693e-05,
-        "apr_pct": 4.0427,
+        "avg_8h": 5.983739130434785e-05,
+        "oi_weighted_8h": 3.6925847988626885e-05,
+        "apr_pct": 4.0434,
         "apr_basis": "oi_weighted_8h",
         "n_exchanges": 23,
         "n_normalized": 23,
         "n_unknown_interval": 0,
         "settled_cum_7d": {
           "avg": 0.0012670793333333333,
-          "oi_weighted": 0.001251377079562803,
+          "oi_weighted": 0.001251394923949855,
           "n": 15
         },
         "settled_cum_30d": {
           "avg": 0.006465464666666668,
-          "oi_weighted": 0.006197393049897394,
+          "oi_weighted": 0.00619739541315356,
           "n": 15
         },
         "by_exchange": [
@@ -24757,9 +24748,9 @@
             "next_funding_time": 1794787200000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 6093228685.13,
-            "updated_at": 1794777997000,
-            "age_s": 36,
+            "oi_usd": 6091256354.64,
+            "updated_at": 1794778057000,
+            "age_s": 61,
             "is_stale": false,
             "settled": {
               "last_rate": -2.47e-06,
@@ -24789,9 +24780,9 @@
             "next_funding_time": 1794787200000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 4528658503.38,
-            "updated_at": 1794777999000,
-            "age_s": 34,
+            "oi_usd": 4527906496.77,
+            "updated_at": 1794778058000,
+            "age_s": 60,
             "is_stale": false,
             "settled": {
               "last_rate": -1.239e-05,
@@ -24823,7 +24814,7 @@
             "predicted_rate": null,
             "oi_usd": 3652084160.67,
             "updated_at": 1794777902000,
-            "age_s": 131,
+            "age_s": 216,
             "is_stale": false,
             "settled": {
               "last_rate": -6e-06,
@@ -24853,9 +24844,9 @@
             "next_funding_time": 1794780000000,
             "next_derived": true,
             "predicted_rate": null,
-            "oi_usd": 2390301138.22,
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "oi_usd": 2389036912.44,
+            "updated_at": 1794778067000,
+            "age_s": 51,
             "is_stale": false,
             "settled": {
               "last_rate": 1.25e-05,
@@ -24885,9 +24876,9 @@
             "next_funding_time": 1794787200000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 2361729555.75,
-            "updated_at": 1794777999000,
-            "age_s": 34,
+            "oi_usd": 2361249396.1,
+            "updated_at": 1794778059000,
+            "age_s": 59,
             "is_stale": false,
             "settled": {
               "last_rate": 4e-06,
@@ -24917,9 +24908,9 @@
             "next_funding_time": 1794787200000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 2146717123.99,
-            "updated_at": 1794778003000,
-            "age_s": 30,
+            "oi_usd": 2144135747.48,
+            "updated_at": 1794778062000,
+            "age_s": 56,
             "is_stale": false,
             "settled": {
               "last_rate": -2e-06,
@@ -24949,9 +24940,9 @@
             "next_funding_time": 1794787200000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 2094620695.66,
+            "oi_usd": 2094300721.57,
             "updated_at": 1794777842000,
-            "age_s": 191,
+            "age_s": 276,
             "is_stale": false,
             "settled": {
               "last_rate": 1.178e-05,
@@ -24981,9 +24972,9 @@
             "next_funding_time": 1794787200000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 1233831102.13,
-            "updated_at": 1794778004000,
-            "age_s": 29,
+            "oi_usd": 1234567652.53,
+            "updated_at": 1794778064000,
+            "age_s": 54,
             "is_stale": false,
             "settled": {
               "last_rate": 0.0001,
@@ -25015,7 +25006,7 @@
             "predicted_rate": null,
             "oi_usd": 816199015.95,
             "updated_at": 1794777903000,
-            "age_s": 130,
+            "age_s": 215,
             "is_stale": false,
             "settled": {
               "last_rate": 0.0001,
@@ -25045,9 +25036,9 @@
             "next_funding_time": null,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 723094110,
-            "updated_at": 1794778011000,
-            "age_s": 22,
+            "oi_usd": 722998660,
+            "updated_at": 1794778071000,
+            "age_s": 47,
             "is_stale": false,
             "settled": {
               "last_rate": 6.4e-07,
@@ -25079,7 +25070,7 @@
             "predicted_rate": null,
             "oi_usd": 699747253.9,
             "updated_at": 1794777842000,
-            "age_s": 191,
+            "age_s": 276,
             "is_stale": false,
             "settled": {
               "last_rate": 1.2e-05,
@@ -25109,9 +25100,9 @@
             "next_funding_time": 1794787200000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 576642738.81,
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "oi_usd": 576607462.28,
+            "updated_at": 1794778068000,
+            "age_s": 50,
             "is_stale": false,
             "settled": null
           },
@@ -25125,12 +25116,12 @@
             "interval_h": 8,
             "rate_8h": 4e-05,
             "apr_pct": 4.38,
-            "next_funding_time": 1794787200102,
+            "next_funding_time": 1794787200118,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 572707169.34,
-            "updated_at": 1794778003000,
-            "age_s": 30,
+            "oi_usd": 572655457.63,
+            "updated_at": 1794778063000,
+            "age_s": 55,
             "is_stale": false,
             "settled": {
               "last_rate": 4e-06,
@@ -25160,9 +25151,9 @@
             "next_funding_time": 1794780000000,
             "next_derived": true,
             "predicted_rate": null,
-            "oi_usd": 400447680.52,
+            "oi_usd": 400338187.01,
             "updated_at": 1794777917000,
-            "age_s": 116,
+            "age_s": 201,
             "is_stale": false,
             "settled": {
               "last_rate": -1.71e-05,
@@ -25194,7 +25185,7 @@
             "predicted_rate": null,
             "oi_usd": 391518032.24,
             "updated_at": 1794777865000,
-            "age_s": 168,
+            "age_s": 253,
             "is_stale": false,
             "settled": {
               "last_rate": 4.119e-05,
@@ -25226,7 +25217,7 @@
             "predicted_rate": null,
             "oi_usd": 159551500.07,
             "updated_at": 1794778016000,
-            "age_s": 17,
+            "age_s": 102,
             "is_stale": false,
             "settled": null
           },
@@ -25243,9 +25234,9 @@
             "next_funding_time": 1794780000000,
             "next_derived": true,
             "predicted_rate": null,
-            "oi_usd": 148609231.06,
-            "updated_at": 1794778009000,
-            "age_s": 24,
+            "oi_usd": 148562298.01,
+            "updated_at": 1794778069000,
+            "age_s": 49,
             "is_stale": false,
             "settled": {
               "last_rate": 1.107e-05,
@@ -25275,9 +25266,9 @@
             "next_funding_time": 1794780000000,
             "next_derived": true,
             "predicted_rate": null,
-            "oi_usd": 113835160.83,
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "oi_usd": 113811475.18,
+            "updated_at": 1794778068000,
+            "age_s": 50,
             "is_stale": false,
             "settled": null
           },
@@ -25294,9 +25285,9 @@
             "next_funding_time": 1794780000000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 29974145.95,
-            "updated_at": 1794778012000,
-            "age_s": 21,
+            "oi_usd": 29920953.99,
+            "updated_at": 1794778072000,
+            "age_s": 46,
             "is_stale": false,
             "settled": null
           },
@@ -25306,16 +25297,16 @@
             "margin": "usdc",
             "kind": "linear",
             "primary": true,
-            "rate": 1.405e-05,
+            "rate": 1.501e-05,
             "interval_h": 8,
-            "rate_8h": 1.405e-05,
-            "apr_pct": 1.5385,
+            "rate_8h": 1.501e-05,
+            "apr_pct": 1.6436,
             "next_funding_time": null,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 15971504.77,
-            "updated_at": 1794778011000,
-            "age_s": 22,
+            "oi_usd": 15969992.71,
+            "updated_at": 1794778072000,
+            "age_s": 46,
             "is_stale": false,
             "settled": null
           },
@@ -25325,16 +25316,16 @@
             "margin": "usdc",
             "kind": "linear",
             "primary": true,
-            "rate": 3.975e-05,
+            "rate": 3.983e-05,
             "interval_h": 1,
-            "rate_8h": 0.000318,
-            "apr_pct": 34.821,
+            "rate_8h": 0.00031864,
+            "apr_pct": 34.8911,
             "next_funding_time": 1794780000000,
             "next_derived": true,
             "predicted_rate": null,
-            "oi_usd": 13667249.42,
-            "updated_at": 1794778005000,
-            "age_s": 28,
+            "oi_usd": 13669966.12,
+            "updated_at": 1794778065000,
+            "age_s": 53,
             "is_stale": false,
             "settled": {
               "last_rate": 3.7e-05,
@@ -25366,7 +25357,7 @@
             "predicted_rate": null,
             "oi_usd": null,
             "updated_at": 1794777865000,
-            "age_s": 168,
+            "age_s": 253,
             "is_stale": false,
             "settled": null
           },
@@ -25384,8 +25375,8 @@
             "next_derived": false,
             "predicted_rate": null,
             "oi_usd": null,
-            "updated_at": 1794778006000,
-            "age_s": 27,
+            "updated_at": 1794778066000,
+            "age_s": 52,
             "is_stale": false,
             "settled": null
           }
@@ -25404,9 +25395,9 @@
             "next_funding_time": 1794787200000,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 1482081336.25,
+            "oi_usd": 1481196158.4,
             "updated_at": 1794778025525,
-            "age_s": 8,
+            "age_s": 92,
             "is_stale": false,
             "settled": null
           },
@@ -25425,7 +25416,7 @@
             "predicted_rate": null,
             "oi_usd": 1155514300,
             "updated_at": 1794777896000,
-            "age_s": 137,
+            "age_s": 222,
             "is_stale": false,
             "settled": {
               "last_rate": 1.77e-06,
@@ -25457,7 +25448,7 @@
             "predicted_rate": null,
             "oi_usd": 686260430,
             "updated_at": 1794777896000,
-            "age_s": 137,
+            "age_s": 222,
             "is_stale": false,
             "settled": {
               "last_rate": 2.7408e-05,
@@ -25489,7 +25480,7 @@
             "predicted_rate": null,
             "oi_usd": 647649036,
             "updated_at": 1794777896000,
-            "age_s": 137,
+            "age_s": 222,
             "is_stale": false,
             "settled": {
               "last_rate": 2.25e-05,
@@ -25521,7 +25512,7 @@
             "predicted_rate": null,
             "oi_usd": 163682500,
             "updated_at": 1794778026674,
-            "age_s": 7,
+            "age_s": 91,
             "is_stale": false,
             "settled": null
           },
@@ -25538,9 +25529,9 @@
             "next_funding_time": null,
             "next_derived": false,
             "predicted_rate": null,
-            "oi_usd": 141347713.23,
-            "updated_at": 1794778011000,
-            "age_s": 22,
+            "oi_usd": 141325505.83,
+            "updated_at": 1794778071000,
+            "age_s": 47,
             "is_stale": false,
             "settled": null
           },
@@ -25559,7 +25550,7 @@
             "predicted_rate": null,
             "oi_usd": 135644144.87,
             "updated_at": 1794778025468,
-            "age_s": 8,
+            "age_s": 92,
             "is_stale": false,
             "settled": null
           },
@@ -25578,7 +25569,7 @@
             "predicted_rate": null,
             "oi_usd": 120003654.84,
             "updated_at": 1794778025395,
-            "age_s": 8,
+            "age_s": 92,
             "is_stale": false,
             "settled": null
           },
@@ -25597,7 +25588,7 @@
             "predicted_rate": null,
             "oi_usd": 118105090.46,
             "updated_at": 1794778026674,
-            "age_s": 7,
+            "age_s": 91,
             "is_stale": false,
             "settled": null
           },
@@ -25616,7 +25607,7 @@
             "predicted_rate": null,
             "oi_usd": 88783739.37,
             "updated_at": 1794778025334,
-            "age_s": 8,
+            "age_s": 92,
             "is_stale": false,
             "settled": null
           },
@@ -25635,7 +25626,7 @@
             "predicted_rate": null,
             "oi_usd": 79231536,
             "updated_at": 1794778025327,
-            "age_s": 8,
+            "age_s": 92,
             "is_stale": false,
             "settled": null
           },
@@ -25654,7 +25645,7 @@
             "predicted_rate": null,
             "oi_usd": 30268175.19,
             "updated_at": 1794778025327,
-            "age_s": 8,
+            "age_s": 92,
             "is_stale": false,
             "settled": null
           },
@@ -25673,7 +25664,7 @@
             "predicted_rate": null,
             "oi_usd": 18013400,
             "updated_at": 1794777896000,
-            "age_s": 137,
+            "age_s": 222,
             "is_stale": false,
             "settled": null
           },
@@ -25692,7 +25683,7 @@
             "predicted_rate": 0.0001,
             "oi_usd": 16363870,
             "updated_at": 1794777896000,
-            "age_s": 137,
+            "age_s": 222,
             "is_stale": false,
             "settled": null
           },
@@ -25711,7 +25702,7 @@
             "predicted_rate": null,
             "oi_usd": 15867352.75,
             "updated_at": 1794778026674,
-            "age_s": 7,
+            "age_s": 91,
             "is_stale": false,
             "settled": null
           },
@@ -25730,7 +25721,7 @@
             "predicted_rate": null,
             "oi_usd": 13764741.16,
             "updated_at": 1794778030514,
-            "age_s": 3,
+            "age_s": 87,
             "is_stale": false,
             "settled": null
           },
@@ -25749,7 +25740,7 @@
             "predicted_rate": null,
             "oi_usd": 4180516.82,
             "updated_at": 1794778030649,
-            "age_s": 3,
+            "age_s": 87,
             "is_stale": false,
             "settled": null
           },
@@ -25768,7 +25759,7 @@
             "predicted_rate": null,
             "oi_usd": null,
             "updated_at": 1794778025802,
-            "age_s": 8,
+            "age_s": 92,
             "is_stale": false,
             "settled": null
           }
@@ -25817,70 +25808,70 @@
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.738409+00:00",
-      "latency_ms": 841,
+      "retrieved_at": "2026-11-15T21:28:38.366252+00:00",
+      "latency_ms": 790,
       "endpoint": "https://www.coinboss.com/api/sd/oi?coin=BTC",
       "data": {
         "success": true,
         "coin": "BTC",
-        "now": 1794778033482,
-        "total_usd": 42252169524.81,
+        "now": 1794778117778,
+        "total_usd": 42244209326.84,
         "n_exchanges": 22,
         "n_contracts": 95,
-        "asof": 1794778031000,
-        "total_usd_single_adjusted": 37740884069.04499,
+        "asof": 1794778072000,
+        "total_usd_single_adjusted": 37733299874.38,
         "double_sided": {
           "exchanges": [
             "bybit",
             "gate"
           ],
-          "oi_usd": 9022570911.53
+          "oi_usd": 9021818904.92
         },
         "by_kind": {
-          "linear_usd": 37977526142.81,
-          "inverse_usd": 4274643382
+          "linear_usd": 37969661394.84,
+          "inverse_usd": 4274547932
         },
         "by_margin": {
-          "other": 8157764287.170001,
-          "usdt": 25267866247.560005,
-          "usdc": 4551895608.079999,
-          "coin": 4274643382
+          "other": 8157607860.610001,
+          "usdt": 25262405210.149998,
+          "usdc": 4549648324.079999,
+          "coin": 4274547932
         },
         "by_contract_type": {
-          "perpetual_usd": 34079897294.73,
-          "delivery_usd": 8172272230.08
+          "perpetual_usd": 34071941848.98,
+          "delivery_usd": 8172267477.86
         },
         "change": {
           "h1": {
-            "pct": 0.37,
-            "cur": 34976641128.81,
+            "pct": 0.35,
+            "cur": 34968680930.84,
             "prev": 34846755690.6,
             "n_matched": 94,
             "n_total": 94,
             "matched_share_pct": 100,
             "prev_ts": 1794774600000,
-            "span_min": 57,
+            "span_min": 59,
             "basis": "15m_snapshot"
           },
           "h4": {
-            "pct": -0.3,
-            "cur": 34976551796.95,
+            "pct": -0.32,
+            "cur": 34968591598.98,
             "prev": 35081823149.46,
             "n_matched": 93,
             "n_total": 94,
             "matched_share_pct": 100,
             "prev_ts": 1794763800000,
-            "span_min": 237,
+            "span_min": 239,
             "basis": "15m_snapshot"
           },
           "h24": {
-            "pct": -5.8,
-            "cur": 42250880631.4,
+            "pct": -5.82,
+            "cur": 42242920433.43,
             "prev": 44852095507.05,
             "n_matched": 22,
             "n_total": 22,
             "prev_ts": 1794690000000,
-            "span_min": 1467,
+            "span_min": 1469,
             "basis": "hourly_snapshot_by_exchange",
             "frozen_excluded": {
               "n_baseline": 3,
@@ -25893,17 +25884,17 @@
         "by_exchange": [
           {
             "exchange": "binance",
-            "oi_usd": 8890547846.54,
+            "oi_usd": 8887685585.98,
             "share_pct": 21.04,
             "n_contracts": 9,
-            "linear_usd": 7646701946.54,
+            "linear_usd": 7643839685.98,
             "inverse_usd": 1243845900,
-            "perpetual_usd": 8748769579.36,
-            "delivery_usd": 141778267.18,
+            "perpetual_usd": 8745912071.02,
+            "delivery_usd": 141773514.96,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "updated_at": 1794778060000,
+            "age_s": 58,
             "is_stale": false
           },
           {
@@ -25918,22 +25909,22 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794629415000,
-            "age_s": 148618,
+            "age_s": 148703,
             "is_stale": true
           },
           {
             "exchange": "bybit",
-            "oi_usd": 5354122880.86,
+            "oi_usd": 5353370874.25,
             "share_pct": 12.67,
             "n_contracts": 13,
-            "linear_usd": 4695330290.86,
+            "linear_usd": 4694578284.25,
             "inverse_usd": 658792590,
-            "perpetual_usd": 5296311194.22,
+            "perpetual_usd": 5295559187.61,
             "delivery_usd": 57811686.64,
             "oi_side": "double",
-            "oi_usd_single_adjusted": 2677061440.4300003,
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "oi_usd_single_adjusted": 2676685437.1250005,
+            "updated_at": 1794778058000,
+            "age_s": 60,
             "is_stale": false
           },
           {
@@ -25948,97 +25939,97 @@
             "oi_side": "mixed",
             "oi_usd_single_adjusted": 1834291426.125,
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false
           },
           {
             "exchange": "okx",
-            "oi_usd": 3027369655.33,
+            "oi_usd": 3027049681.24,
             "share_pct": 7.17,
             "n_contracts": 13,
-            "linear_usd": 2232316945.33,
+            "linear_usd": 2231996971.24,
             "inverse_usd": 795052710,
-            "perpetual_usd": 2916525270.53,
+            "perpetual_usd": 2916205296.44,
             "delivery_usd": 110844384.8,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "updated_at": 1794778058000,
+            "age_s": 60,
             "is_stale": false
           },
           {
             "exchange": "bitget",
-            "oi_usd": 2450513295.12,
+            "oi_usd": 2450033135.47,
             "share_pct": 5.8,
             "n_contracts": 2,
-            "linear_usd": 2450513295.12,
+            "linear_usd": 2450033135.47,
             "inverse_usd": 0,
-            "perpetual_usd": 2450513295.12,
+            "perpetual_usd": 2450033135.47,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "updated_at": 1794778059000,
+            "age_s": 59,
             "is_stale": false
           },
           {
             "exchange": "mexc",
-            "oi_usd": 2444372067.2,
-            "share_pct": 5.79,
+            "oi_usd": 2441790690.69,
+            "share_pct": 5.78,
             "n_contracts": 4,
-            "linear_usd": 2280689567.2,
+            "linear_usd": 2278108190.69,
             "inverse_usd": 163682500,
-            "perpetual_usd": 2444372067.2,
+            "perpetual_usd": 2441790690.69,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "updated_at": 1794778062000,
+            "age_s": 56,
             "is_stale": false
           },
           {
             "exchange": "hyperliquid",
-            "oi_usd": 2390301138.22,
+            "oi_usd": 2389036912.44,
             "share_pct": 5.66,
             "n_contracts": 1,
-            "linear_usd": 2390301138.22,
+            "linear_usd": 2389036912.44,
             "inverse_usd": 0,
-            "perpetual_usd": 2390301138.22,
+            "perpetual_usd": 2389036912.44,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "updated_at": 1794778067000,
+            "age_s": 51,
             "is_stale": false
           },
           {
             "exchange": "deribit",
-            "oi_usd": 1448466572.78,
+            "oi_usd": 1448348915.38,
             "share_pct": 3.43,
             "n_contracts": 22,
-            "linear_usd": 148904412.78,
-            "inverse_usd": 1299562160,
-            "perpetual_usd": 864441823.23,
+            "linear_usd": 148882205.38,
+            "inverse_usd": 1299466710,
+            "perpetual_usd": 864324165.83,
             "delivery_usd": 584024749.55,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "updated_at": 1794778071000,
+            "age_s": 47,
             "is_stale": false
           },
           {
             "exchange": "whitebit",
-            "oi_usd": 1233831102.13,
+            "oi_usd": 1234567652.53,
             "share_pct": 2.92,
             "n_contracts": 1,
-            "linear_usd": 1233831102.13,
+            "linear_usd": 1234567652.53,
             "inverse_usd": 0,
-            "perpetual_usd": 1233831102.13,
+            "perpetual_usd": 1234567652.53,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778004000,
-            "age_s": 29,
+            "updated_at": 1794778064000,
+            "age_s": 54,
             "is_stale": false
           },
           {
@@ -26053,7 +26044,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false
           },
           {
@@ -26068,52 +26059,52 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794777864000,
-            "age_s": 169,
+            "age_s": 254,
             "is_stale": false
           },
           {
             "exchange": "kucoin",
-            "oi_usd": 682260596.53,
+            "oi_usd": 682208884.82,
             "share_pct": 1.61,
             "n_contracts": 4,
-            "linear_usd": 602975344.53,
+            "linear_usd": 602923632.82,
             "inverse_usd": 79285252,
-            "perpetual_usd": 682206880.53,
+            "perpetual_usd": 682155168.82,
             "delivery_usd": 53716,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "updated_at": 1794778063000,
+            "age_s": 55,
             "is_stale": false
           },
           {
             "exchange": "bitfinex",
-            "oi_usd": 576642738.81,
+            "oi_usd": 576607462.28,
             "share_pct": 1.36,
             "n_contracts": 1,
-            "linear_usd": 576642738.81,
+            "linear_usd": 576607462.28,
             "inverse_usd": 0,
-            "perpetual_usd": 576642738.81,
+            "perpetual_usd": 576607462.28,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "updated_at": 1794778068000,
+            "age_s": 50,
             "is_stale": false
           },
           {
             "exchange": "cryptocom",
-            "oi_usd": 400447680.52,
+            "oi_usd": 400338187.01,
             "share_pct": 0.95,
             "n_contracts": 1,
-            "linear_usd": 400447680.52,
+            "linear_usd": 400338187.01,
             "inverse_usd": 0,
-            "perpetual_usd": 400447680.52,
+            "perpetual_usd": 400338187.01,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778006000,
-            "age_s": 27,
+            "updated_at": 1794778065000,
+            "age_s": 53,
             "is_stale": false
           },
           {
@@ -26128,7 +26119,7 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794777901000,
-            "age_s": 132,
+            "age_s": 217,
             "is_stale": false
           },
           {
@@ -26143,82 +26134,82 @@
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
             "updated_at": 1794778016000,
-            "age_s": 17,
+            "age_s": 102,
             "is_stale": false
           },
           {
             "exchange": "kraken",
-            "oi_usd": 150727850.18,
+            "oi_usd": 150680917.13,
             "share_pct": 0.36,
             "n_contracts": 5,
-            "linear_usd": 150727850.18,
+            "linear_usd": 150680917.13,
             "inverse_usd": 0,
-            "perpetual_usd": 148609231.06,
+            "perpetual_usd": 148562298.01,
             "delivery_usd": 2118619.12,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "updated_at": 1794778069000,
+            "age_s": 49,
             "is_stale": false
           },
           {
             "exchange": "lighter",
-            "oi_usd": 113835160.83,
+            "oi_usd": 113811475.18,
             "share_pct": 0.27,
             "n_contracts": 1,
-            "linear_usd": 113835160.83,
+            "linear_usd": 113811475.18,
             "inverse_usd": 0,
-            "perpetual_usd": 113835160.83,
+            "perpetual_usd": 113811475.18,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "updated_at": 1794778067000,
+            "age_s": 51,
             "is_stale": false
           },
           {
             "exchange": "backpack",
-            "oi_usd": 29974145.95,
+            "oi_usd": 29920953.99,
             "share_pct": 0.07,
             "n_contracts": 1,
-            "linear_usd": 29974145.95,
+            "linear_usd": 29920953.99,
             "inverse_usd": 0,
-            "perpetual_usd": 29974145.95,
+            "perpetual_usd": 29920953.99,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778012000,
-            "age_s": 21,
+            "updated_at": 1794778072000,
+            "age_s": 46,
             "is_stale": false
           },
           {
             "exchange": "paradex",
-            "oi_usd": 15971504.77,
+            "oi_usd": 15969992.71,
             "share_pct": 0.04,
             "n_contracts": 1,
-            "linear_usd": 15971504.77,
+            "linear_usd": 15969992.71,
             "inverse_usd": 0,
-            "perpetual_usd": 15971504.77,
+            "perpetual_usd": 15969992.71,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778011000,
-            "age_s": 22,
+            "updated_at": 1794778072000,
+            "age_s": 46,
             "is_stale": false
           },
           {
             "exchange": "dydx",
-            "oi_usd": 13667249.42,
+            "oi_usd": 13669966.12,
             "share_pct": 0.03,
             "n_contracts": 1,
-            "linear_usd": 13667249.42,
+            "linear_usd": 13669966.12,
             "inverse_usd": 0,
-            "perpetual_usd": 13667249.42,
+            "perpetual_usd": 13669966.12,
             "delivery_usd": 0,
             "oi_side": "unstated",
             "oi_usd_single_adjusted": null,
-            "updated_at": 1794778005000,
-            "age_s": 28,
+            "updated_at": 1794778065000,
+            "age_s": 53,
             "is_stale": false
           }
         ],
@@ -26236,7 +26227,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794629415000,
-            "age_s": 148618,
+            "age_s": 148703,
             "is_stale": true,
             "collector": "metrics",
             "included_since": null
@@ -26245,7 +26236,7 @@
             "exchange": "binance",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 6093228685.13,
+            "oi_usd": 6091256354.64,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26253,8 +26244,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778000000,
-            "age_s": 33,
+            "updated_at": 1794778060000,
+            "age_s": 58,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26263,16 +26254,16 @@
             "exchange": "bybit",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 4528658503.38,
+            "oi_usd": 4527906496.77,
             "oi_side": "double",
-            "oi_usd_single": 2264329251.69,
+            "oi_usd_single": 2263953248.385,
             "margin": "usdt",
             "kind": "linear",
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794777999000,
-            "age_s": 34,
+            "updated_at": 1794778058000,
+            "age_s": 60,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26290,7 +26281,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794777902000,
-            "age_s": 131,
+            "age_s": 216,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26299,7 +26290,7 @@
             "exchange": "hyperliquid",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 2390301138.22,
+            "oi_usd": 2389036912.44,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdc",
@@ -26307,8 +26298,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "updated_at": 1794778067000,
+            "age_s": 51,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26317,7 +26308,7 @@
             "exchange": "bitget",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 2361729555.75,
+            "oi_usd": 2361249396.1,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26325,8 +26316,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794777999000,
-            "age_s": 34,
+            "updated_at": 1794778059000,
+            "age_s": 59,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26335,7 +26326,7 @@
             "exchange": "mexc",
             "symbol": "BTC_USDT",
             "native_symbol": null,
-            "oi_usd": 2146717123.99,
+            "oi_usd": 2144135747.48,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26343,8 +26334,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778003000,
-            "age_s": 30,
+            "updated_at": 1794778062000,
+            "age_s": 56,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26353,7 +26344,7 @@
             "exchange": "okx",
             "symbol": "BTC-USDT-SWAP",
             "native_symbol": null,
-            "oi_usd": 2094620695.66,
+            "oi_usd": 2094300721.57,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26361,8 +26352,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794777998000,
-            "age_s": 35,
+            "updated_at": 1794778058000,
+            "age_s": 60,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26371,7 +26362,7 @@
             "exchange": "binance",
             "symbol": "BTCUSDC",
             "native_symbol": "BTCUSDC",
-            "oi_usd": 1482081336.25,
+            "oi_usd": 1481196158.4,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdc",
@@ -26379,8 +26370,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "contract_spec",
-            "updated_at": 1794778031000,
-            "age_s": 2,
+            "updated_at": 1794778060000,
+            "age_s": 58,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383584894
@@ -26389,7 +26380,7 @@
             "exchange": "whitebit",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 1233831102.13,
+            "oi_usd": 1234567652.53,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26397,8 +26388,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778004000,
-            "age_s": 29,
+            "updated_at": 1794778064000,
+            "age_s": 54,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26416,7 +26407,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044810
@@ -26434,7 +26425,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794777903000,
-            "age_s": 130,
+            "age_s": 215,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26443,7 +26434,7 @@
             "exchange": "deribit",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 723094110,
+            "oi_usd": 722998660,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "coin",
@@ -26451,8 +26442,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778011000,
-            "age_s": 22,
+            "updated_at": 1794778071000,
+            "age_s": 47,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26470,7 +26461,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794777864000,
-            "age_s": 169,
+            "age_s": 254,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26488,7 +26479,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383589281
@@ -26506,7 +26497,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383590179
@@ -26515,7 +26506,7 @@
             "exchange": "bitfinex",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 576642738.81,
+            "oi_usd": 576607462.28,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26523,8 +26514,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "updated_at": 1794778068000,
+            "age_s": 50,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26533,7 +26524,7 @@
             "exchange": "kucoin",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 572707169.34,
+            "oi_usd": 572655457.63,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26541,8 +26532,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778003000,
-            "age_s": 30,
+            "updated_at": 1794778063000,
+            "age_s": 55,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26551,7 +26542,7 @@
             "exchange": "cryptocom",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 400447680.52,
+            "oi_usd": 400338187.01,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "other",
@@ -26559,8 +26550,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778006000,
-            "age_s": 27,
+            "updated_at": 1794778065000,
+            "age_s": 53,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26578,7 +26569,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794777901000,
-            "age_s": 132,
+            "age_s": 217,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26596,7 +26587,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044818
@@ -26614,7 +26605,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044821
@@ -26632,7 +26623,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794778016000,
-            "age_s": 17,
+            "age_s": 102,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26641,7 +26632,7 @@
             "exchange": "kraken",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 148609231.06,
+            "oi_usd": 148562298.01,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "other",
@@ -26649,8 +26640,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778009000,
-            "age_s": 24,
+            "updated_at": 1794778069000,
+            "age_s": 49,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26659,7 +26650,7 @@
             "exchange": "deribit",
             "symbol": "BTCUSDC",
             "native_symbol": null,
-            "oi_usd": 141347713.23,
+            "oi_usd": 141325505.83,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdc",
@@ -26667,8 +26658,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778011000,
-            "age_s": 22,
+            "updated_at": 1794778071000,
+            "age_s": 47,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26686,7 +26677,7 @@
             "expiry_ts": 1933056000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383595204
@@ -26704,7 +26695,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383597739
@@ -26722,7 +26713,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044824
@@ -26731,7 +26722,7 @@
             "exchange": "lighter",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 113835160.83,
+            "oi_usd": 113811475.18,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdc",
@@ -26739,8 +26730,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778008000,
-            "age_s": 25,
+            "updated_at": 1794778067000,
+            "age_s": 51,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26758,7 +26749,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044833
@@ -26776,7 +26767,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044840
@@ -26794,7 +26785,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044836
@@ -26812,7 +26803,7 @@
             "expiry_ts": 1813910400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044849
@@ -26830,7 +26821,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044856
@@ -26848,7 +26839,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044846
@@ -26866,7 +26857,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383599745
@@ -26884,7 +26875,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044891
@@ -26893,7 +26884,7 @@
             "exchange": "backpack",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 29974145.95,
+            "oi_usd": 29920953.99,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdc",
@@ -26901,8 +26892,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778012000,
-            "age_s": 21,
+            "updated_at": 1794778072000,
+            "age_s": 46,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26920,7 +26911,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794492244816
@@ -26929,7 +26920,7 @@
             "exchange": "binance",
             "symbol": "BTCUSDT_270326",
             "native_symbol": null,
-            "oi_usd": 29564099.04,
+            "oi_usd": 29559346.82,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdt",
@@ -26937,8 +26928,8 @@
             "contract_type": "delivery",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778000000,
-            "age_s": 33,
+            "updated_at": 1794778060000,
+            "age_s": 58,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26956,7 +26947,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383608692
@@ -26974,7 +26965,7 @@
             "expiry_ts": null,
             "margin_basis": "venue_default",
             "updated_at": 1794777841000,
-            "age_s": 192,
+            "age_s": 277,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -26992,7 +26983,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044941
@@ -27010,7 +27001,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383613355
@@ -27028,7 +27019,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383623702
@@ -27046,7 +27037,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383615363
@@ -27064,7 +27055,7 @@
             "expiry_ts": 1821772800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044908
@@ -27073,7 +27064,7 @@
             "exchange": "paradex",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 15971504.77,
+            "oi_usd": 15969992.71,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdc",
@@ -27081,8 +27072,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778011000,
-            "age_s": 22,
+            "updated_at": 1794778072000,
+            "age_s": 46,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27100,7 +27091,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044896
@@ -27118,7 +27109,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383617387
@@ -27127,7 +27118,7 @@
             "exchange": "dydx",
             "symbol": "BTCUSDT",
             "native_symbol": null,
-            "oi_usd": 13667249.42,
+            "oi_usd": 13669966.12,
             "oi_side": "unstated",
             "oi_usd_single": null,
             "margin": "usdc",
@@ -27135,8 +27126,8 @@
             "contract_type": "perpetual",
             "expiry_ts": null,
             "margin_basis": "venue_default",
-            "updated_at": 1794778005000,
-            "age_s": 28,
+            "updated_at": 1794778065000,
+            "age_s": 53,
             "is_stale": false,
             "collector": "metrics",
             "included_since": null
@@ -27154,7 +27145,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383617777
@@ -27172,7 +27163,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383627983
@@ -27190,7 +27181,7 @@
             "expiry_ts": 1801209600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467044963
@@ -27208,7 +27199,7 @@
             "expiry_ts": 1813910400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383636278
@@ -27226,7 +27217,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383624470
@@ -27244,7 +27235,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383630348
@@ -27262,7 +27253,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383638011
@@ -27280,7 +27271,7 @@
             "expiry_ts": 1796371200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794499744824
@@ -27298,7 +27289,7 @@
             "expiry_ts": 1821772800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383639142
@@ -27316,7 +27307,7 @@
             "expiry_ts": 1813910400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383641893
@@ -27334,7 +27325,7 @@
             "expiry_ts": null,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383640701
@@ -27352,7 +27343,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383664036
@@ -27370,7 +27361,7 @@
             "expiry_ts": 1821772800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383685347
@@ -27388,7 +27379,7 @@
             "expiry_ts": 1830240000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383700707
@@ -27406,7 +27397,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045027
@@ -27424,7 +27415,7 @@
             "expiry_ts": 1794816000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794500344826
@@ -27442,7 +27433,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045109
@@ -27460,7 +27451,7 @@
             "expiry_ts": 1794902400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794586744936
@@ -27478,7 +27469,7 @@
             "expiry_ts": 1798214400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045082
@@ -27496,7 +27487,7 @@
             "expiry_ts": 1794988800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794672845171
@@ -27514,7 +27505,7 @@
             "expiry_ts": 1794816000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794501544825
@@ -27532,7 +27523,7 @@
             "expiry_ts": 1801209600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383731179
@@ -27550,7 +27541,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383721210
@@ -27568,7 +27559,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045298
@@ -27586,7 +27577,7 @@
             "expiry_ts": 1796371200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794557944880
@@ -27604,7 +27595,7 @@
             "expiry_ts": 1806076800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045169
@@ -27622,7 +27613,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383749331
@@ -27640,7 +27631,7 @@
             "expiry_ts": 1794902400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794588244966
@@ -27658,7 +27649,7 @@
             "expiry_ts": 1795075200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794759245302
@@ -27676,7 +27667,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045443
@@ -27694,7 +27685,7 @@
             "expiry_ts": 1813910400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383880073
@@ -27712,7 +27703,7 @@
             "expiry_ts": 1794988800000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794676145118
@@ -27730,7 +27721,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794383871677
@@ -27748,7 +27739,7 @@
             "expiry_ts": 1795190400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794560644888
@@ -27766,7 +27757,7 @@
             "expiry_ts": 1795075200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794764045244
@@ -27784,7 +27775,7 @@
             "expiry_ts": 1795795200000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045340
@@ -27802,7 +27793,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045501
@@ -27820,7 +27811,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045514
@@ -27838,7 +27829,7 @@
             "expiry_ts": 1806048000000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045526
@@ -27856,7 +27847,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045568
@@ -27874,7 +27865,7 @@
             "expiry_ts": 1795161600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045618
@@ -27892,7 +27883,7 @@
             "expiry_ts": 1798185600000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794467045543
@@ -27910,7 +27901,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794557344884
@@ -27928,7 +27919,7 @@
             "expiry_ts": 1795766400000,
             "margin_basis": "contract_spec",
             "updated_at": 1794778031000,
-            "age_s": 2,
+            "age_s": 87,
             "is_stale": false,
             "collector": "selfdata",
             "included_since": 1794573244900
@@ -27966,84 +27957,84 @@
               "exchange": "deribit",
               "symbol": "BTC-13NOV26",
               "oi_usd": 20515580,
-              "age_s": 220683,
+              "age_s": 220768,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "bybit",
               "symbol": "BTCUSDT-13NOV26",
               "oi_usd": 9311831.19,
-              "age_s": 220683,
+              "age_s": 220768,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC-14NOV26",
               "oi_usd": 3517530,
-              "age_s": 134283,
+              "age_s": 134368,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC-15NOV26",
               "oi_usd": 2967060,
-              "age_s": 47883,
+              "age_s": 47968,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC-12NOV26",
               "oi_usd": 1412840,
-              "age_s": 307082,
+              "age_s": 307167,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC_USDC-13NOV26",
               "oi_usd": 1191170.44,
-              "age_s": 220683,
+              "age_s": 220768,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC_USDC-14NOV26",
               "oi_usd": 469947.52,
-              "age_s": 134283,
+              "age_s": 134368,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC_USDC-12NOV26",
               "oi_usd": 422501.81,
-              "age_s": 307082,
+              "age_s": 307167,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "deribit",
               "symbol": "BTC_USDC-15NOV26",
               "oi_usd": 361050.7,
-              "age_s": 47883,
+              "age_s": 47968,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "kraken",
               "symbol": "BTCUSD-261113",
               "oi_usd": 163305.03,
-              "age_s": 220683,
+              "age_s": 220768,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "htx",
               "symbol": "BTC-USD-261113",
               "oi_usd": 16200,
-              "age_s": 220683,
+              "age_s": 220768,
               "reason": "older_than_usable_window"
             },
             {
               "exchange": "gate",
               "symbol": "BTC_USDT_20261113",
               "oi_usd": 123.46,
-              "age_s": 220683,
+              "age_s": 220768,
               "reason": "older_than_usable_window"
             }
           ],
@@ -28070,43 +28061,43 @@
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.758652+00:00",
-      "latency_ms": 792,
+      "retrieved_at": "2026-11-15T21:28:38.483944+00:00",
+      "latency_ms": 848,
       "endpoint": "https://www.coinboss.com/api/liquidations/overview",
       "data": {
         "success": true,
         "data": {
           "1h": {
-            "long_usd": 6589390.250000014,
-            "short_usd": 6144859.32000001,
-            "total_usd": 12734249.570000023,
-            "cnt": 3978
+            "long_usd": 6700614.5300000105,
+            "short_usd": 6135813.2000000095,
+            "total_usd": 12836427.73000002,
+            "cnt": 4022
           },
           "4h": {
-            "long_usd": 10661721.680000016,
-            "short_usd": 12819633.53,
-            "total_usd": 23481355.210000016,
-            "cnt": 9651
+            "long_usd": 10772313.110000016,
+            "short_usd": 12834151.36,
+            "total_usd": 23606464.470000014,
+            "cnt": 9709
           },
           "12h": {
-            "long_usd": 60942135.70000002,
-            "short_usd": 37504688.610000044,
-            "total_usd": 98446824.31000006,
-            "cnt": 30872
+            "long_usd": 61029031.70000002,
+            "short_usd": 37511914.210000046,
+            "total_usd": 98540945.91000006,
+            "cnt": 30879
           },
           "24h": {
-            "long_usd": 475414933.6599998,
-            "short_usd": 328169084.5399996,
-            "total_usd": 803584018.1999993,
-            "cnt": 107944
+            "long_usd": 475484199.87999976,
+            "short_usd": 328183341.1699996,
+            "total_usd": 803667541.0499994,
+            "cnt": 107945
           }
         }
       }
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.741345+00:00",
-      "latency_ms": 722,
+      "retrieved_at": "2026-11-15T21:28:38.740610+00:00",
+      "latency_ms": 1090,
       "endpoint": "https://www.coinboss.com/api/liquidations?symbol=BTCUSDT&limit=100",
       "data": {
         "success": true,
@@ -29516,18 +29507,18 @@
     },
     "coinboss_market_tickers_btc": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.361060+00:00",
-      "latency_ms": 323,
+      "retrieved_at": "2026-11-15T21:28:38.724517+00:00",
+      "latency_ms": 1066,
       "endpoint": "https://www.coinboss.com/api/market/tickers?coin=BTC",
       "data": {
         "success": true,
-        "now": 1794778033525,
+        "now": 1794778118400,
         "data": [
           {
             "coin": "BTC",
-            "price": 64968,
-            "change_pct": 0.846,
-            "volume_usd": 77289735322.14,
+            "price": 64971.3,
+            "change_pct": 0.488,
+            "volume_usd": 77220816233.64,
             "high_24h": 67393.8,
             "low_24h": 61802,
             "ex_count": 23
@@ -29537,8 +29528,8 @@
     },
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.242209+00:00",
-      "latency_ms": 201,
+      "retrieved_at": "2026-11-15T21:28:37.932472+00:00",
+      "latency_ms": 273,
       "endpoint": "https://www.tftc.io/bitcoin-etf-flows/latest.json",
       "data": {
         "name": "US Spot Bitcoin ETF Flows, latest session",
@@ -29622,7 +29613,7 @@
     },
     "fred_macro": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.149592+00:00",
+      "retrieved_at": "2026-11-15T21:28:37.816866+00:00",
       "latency_ms": 105,
       "endpoint": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=<one-series-per-request>",
       "data": {
@@ -29989,8 +29980,8 @@
     },
     "okx_eea_btc_usdc_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.230317+00:00",
-      "latency_ms": 177,
+      "retrieved_at": "2026-11-15T21:28:37.934874+00:00",
+      "latency_ms": 216,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=BTC-USDC",
       "data": {
         "code": "0",
@@ -29998,18 +29989,18 @@
           {
             "instType": "SPOT",
             "instId": "BTC-USDC",
-            "last": "64977.7",
-            "lastSz": "0.00008",
-            "askPx": "64977.5",
-            "askSz": "0.0067",
-            "bidPx": "64977.4",
-            "bidSz": "0.0135",
-            "open24h": "64661.2",
+            "last": "64986.9",
+            "lastSz": "0.00038457",
+            "askPx": "64987",
+            "askSz": "0.05431181",
+            "bidPx": "64986.9",
+            "bidSz": "0.00038458",
+            "open24h": "64576.3",
             "high24h": "66106.2",
             "low24h": "62000",
-            "volCcy24h": "126401401.317541473",
-            "vol24h": "1969.32564242",
-            "ts": "1794778044771",
+            "volCcy24h": "126428509.740118253",
+            "vol24h": "1969.73732249",
+            "ts": "1794778116770",
             "sodUtc0": "64133.4",
             "sodUtc8": "64727.4"
           }
@@ -30019,8 +30010,8 @@
     },
     "okx_eea_zec_usdc_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.278771+00:00",
-      "latency_ms": 129,
+      "retrieved_at": "2026-11-15T21:28:37.948580+00:00",
+      "latency_ms": 186,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=ZEC-USDC",
       "data": {
         "code": "0",
@@ -30028,18 +30019,18 @@
           {
             "instType": "SPOT",
             "instId": "ZEC-USDC",
-            "last": "900.35",
-            "lastSz": "0.05392",
-            "askPx": "900.08",
-            "askSz": "0.24744",
-            "bidPx": "899.66",
-            "bidSz": "4.78208",
-            "open24h": "826.71",
+            "last": "900.36",
+            "lastSz": "0.01388",
+            "askPx": "900.44",
+            "askSz": "0.83317",
+            "bidPx": "900.01",
+            "bidSz": "0.82352",
+            "open24h": "823.49",
             "high24h": "929.85",
             "low24h": "820.75",
-            "volCcy24h": "4441688.275651",
-            "vol24h": "4995.76763",
-            "ts": "1794778045063",
+            "volCcy24h": "4442014.7093741",
+            "vol24h": "4995.54445",
+            "ts": "1794778116565",
             "sodUtc0": "863.53",
             "sodUtc8": "893.7"
           }
@@ -30049,7 +30040,7 @@
     },
     "okx_eea_zec_xperp_ticker": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.359189+00:00",
+      "retrieved_at": "2026-11-15T21:28:37.947571+00:00",
       "latency_ms": 131,
       "endpoint": "https://eea.okx.com/api/v5/market/ticker?instId=ZEC-USD_UM_XPERP-310530",
       "data": {
@@ -30058,18 +30049,18 @@
           {
             "instType": "FUTURES",
             "instId": "ZEC-USD_UM_XPERP-310530",
-            "last": "899.42",
+            "last": "899.4",
             "lastSz": "8",
-            "askPx": "899.23",
-            "askSz": "89",
-            "bidPx": "899.01",
+            "askPx": "899.63",
+            "askSz": "22",
+            "bidPx": "899.51",
             "bidSz": "8",
-            "open24h": "825.45",
+            "open24h": "822.8",
             "high24h": "929.21",
             "low24h": "819.71",
-            "volCcy24h": "25603.09",
-            "vol24h": "2560309",
-            "ts": "1794778044367",
+            "volCcy24h": "25549.46",
+            "vol24h": "2554946",
+            "ts": "1794778117468",
             "sodUtc0": "861.77",
             "sodUtc8": "893.23"
           }
@@ -30079,8 +30070,8 @@
     },
     "okx_eea_zec_xperp_book": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.377623+00:00",
-      "latency_ms": 147,
+      "retrieved_at": "2026-11-15T21:28:38.078196+00:00",
+      "latency_ms": 146,
       "endpoint": "https://eea.okx.com/api/v5/market/books?instId=ZEC-USD_UM_XPERP-310530&sz=50",
       "data": {
         "code": "0",
@@ -30089,98 +30080,80 @@
           {
             "asks": [
               [
-                "899.07",
+                "899.58",
                 "22",
                 "0",
                 "1"
               ],
               [
-                "899.18",
+                "899.62",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "899.19",
-                "221",
-                "0",
-                "1"
-              ],
-              [
-                "899.21",
+                "899.7",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "899.23",
+                "899.72",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "899.42",
-                "79",
+                "899.74",
+                "8",
                 "0",
                 "1"
               ],
               [
-                "899.44",
-                "12",
+                "899.76",
+                "8",
                 "0",
                 "1"
               ],
               [
-                "899.46",
-                "221",
-                "0",
-                "1"
-              ],
-              [
-                "899.5",
-                "201",
-                "0",
-                "1"
-              ],
-              [
-                "899.68",
-                "2599",
+                "899.79",
+                "85",
                 "0",
                 "2"
               ],
               [
-                "899.75",
+                "899.9",
                 "221",
                 "0",
                 "1"
               ],
               [
-                "899.95",
+                "899.94",
                 "201",
                 "0",
                 "1"
               ],
               [
-                "900.03",
-                "221",
-                "0",
-                "1"
-              ],
-              [
-                "900.14",
-                "222",
+                "900.05",
+                "2000",
                 "0",
                 "1"
               ],
               [
                 "900.17",
-                "111",
+                "221",
+                "0",
+                "1"
+              ],
+              [
+                "900.23",
+                "110",
                 "0",
                 "1"
               ],
               [
                 "900.31",
-                "221",
+                "600",
                 "0",
                 "1"
               ],
@@ -30191,12 +30164,6 @@
                 "1"
               ],
               [
-                "900.39",
-                "219",
-                "0",
-                "2"
-              ],
-              [
                 "900.4",
                 "200",
                 "0",
@@ -30204,25 +30171,19 @@
               ],
               [
                 "900.45",
-                "77",
+                "221",
                 "0",
                 "1"
               ],
               [
-                "900.49",
+                "900.51",
                 "27",
                 "0",
                 "1"
               ],
               [
-                "900.53",
-                "79",
-                "0",
-                "1"
-              ],
-              [
-                "900.59",
-                "37319",
+                "900.58",
+                "222",
                 "0",
                 "1"
               ],
@@ -30233,20 +30194,26 @@
                 "1"
               ],
               [
+                "900.67",
+                "37344",
+                "0",
+                "1"
+              ],
+              [
                 "900.7",
                 "1",
                 "0",
                 "1"
               ],
               [
-                "900.71",
-                "499",
+                "900.73",
+                "300",
                 "0",
-                "1"
+                "2"
               ],
               [
-                "900.73",
-                "221",
+                "900.79",
+                "78",
                 "0",
                 "1"
               ],
@@ -30263,6 +30230,12 @@
                 "1"
               ],
               [
+                "901.09",
+                "499",
+                "0",
+                "1"
+              ],
+              [
                 "901.16",
                 "1",
                 "0",
@@ -30275,22 +30248,10 @@
                 "1"
               ],
               [
-                "901.25",
-                "41065",
-                "0",
-                "1"
-              ],
-              [
-                "901.29",
-                "388",
-                "0",
-                "1"
-              ],
-              [
                 "901.3",
-                "200",
+                "310",
                 "0",
-                "1"
+                "2"
               ],
               [
                 "901.33",
@@ -30299,8 +30260,8 @@
                 "1"
               ],
               [
-                "901.39",
-                "221",
+                "901.38",
+                "41089",
                 "0",
                 "1"
               ],
@@ -30317,7 +30278,7 @@
                 "1"
               ],
               [
-                "901.54",
+                "901.55",
                 "27",
                 "0",
                 "1"
@@ -30329,8 +30290,20 @@
                 "1"
               ],
               [
+                "901.59",
+                "110",
+                "0",
+                "1"
+              ],
+              [
                 "901.68",
                 "1",
+                "0",
+                "1"
+              ],
+              [
+                "901.73",
+                "388",
                 "0",
                 "1"
               ],
@@ -30377,60 +30350,108 @@
                 "1"
               ],
               [
-                "902.22",
-                "56028",
+                "902.27",
+                "2",
                 "0",
                 "1"
               ],
               [
-                "902.27",
-                "2",
+                "902.28",
+                "56030",
+                "0",
+                "1"
+              ],
+              [
+                "902.4",
+                "5",
+                "0",
+                "2"
+              ],
+              [
+                "902.5",
+                "1",
+                "0",
+                "1"
+              ],
+              [
+                "902.53",
+                "221",
                 "0",
                 "1"
               ]
             ],
             "bids": [
               [
-                "898.95",
+                "899.45",
+                "22",
+                "0",
+                "1"
+              ],
+              [
+                "899.37",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "898.93",
+                "899.35",
                 "8",
                 "0",
                 "1"
               ],
               [
-                "898.9",
-                "8",
+                "899.22",
+                "83",
                 "0",
-                "1"
+                "2"
               ],
               [
-                "898.89",
+                "899.18",
                 "221",
                 "0",
                 "1"
               ],
               [
-                "898.67",
+                "899.09",
                 "201",
                 "0",
                 "1"
               ],
               [
-                "898.65",
+                "899.07",
                 "12",
                 "0",
                 "1"
               ],
               [
-                "898.62",
+                "898.66",
                 "221",
                 "0",
                 "1"
+              ],
+              [
+                "898.64",
+                "201",
+                "0",
+                "1"
+              ],
+              [
+                "898.51",
+                "27",
+                "0",
+                "1"
+              ],
+              [
+                "898.5",
+                "111",
+                "0",
+                "1"
+              ],
+              [
+                "898.46",
+                "2109",
+                "0",
+                "2"
               ],
               [
                 "898.35",
@@ -30445,16 +30466,28 @@
                 "1"
               ],
               [
+                "898.28",
+                "111",
+                "0",
+                "1"
+              ],
+              [
                 "898.19",
-                "201",
+                "37554",
+                "0",
+                "2"
+              ],
+              [
+                "898.13",
+                "600",
                 "0",
                 "1"
               ],
               [
                 "898.12",
-                "2600",
+                "1",
                 "0",
-                "3"
+                "1"
               ],
               [
                 "898.08",
@@ -30464,21 +30497,39 @@
               ],
               [
                 "898.05",
-                "27",
-                "0",
-                "1"
-              ],
-              [
-                "898.04",
                 "111",
                 "0",
                 "1"
               ],
               [
                 "898",
-                "123",
+                "12",
                 "0",
-                "2"
+                "1"
+              ],
+              [
+                "897.99",
+                "77",
+                "0",
+                "1"
+              ],
+              [
+                "897.98",
+                "222",
+                "0",
+                "1"
+              ],
+              [
+                "897.92",
+                "79",
+                "0",
+                "1"
+              ],
+              [
+                "897.87",
+                "80",
+                "0",
+                "1"
               ],
               [
                 "897.81",
@@ -30493,26 +30544,14 @@
                 "1"
               ],
               [
-                "897.71",
-                "37331",
-                "0",
-                "1"
-              ],
-              [
-                "897.59",
+                "897.61",
                 "111",
                 "0",
                 "1"
               ],
               [
                 "897.55",
-                "333",
-                "0",
-                "2"
-              ],
-              [
-                "897.54",
-                "41099",
+                "41074",
                 "0",
                 "1"
               ],
@@ -30529,22 +30568,22 @@
                 "1"
               ],
               [
-                "897.42",
+                "897.47",
+                "27",
+                "0",
+                "1"
+              ],
+              [
+                "897.36",
                 "111",
                 "0",
                 "1"
               ],
               [
-                "897.38",
-                "77",
+                "897.3",
+                "1",
                 "0",
                 "1"
-              ],
-              [
-                "897.3",
-                "80",
-                "0",
-                "2"
               ],
               [
                 "897.26",
@@ -30559,26 +30598,8 @@
                 "1"
               ],
               [
-                "897.14",
-                "86",
-                "0",
-                "1"
-              ],
-              [
                 "897.11",
                 "1",
-                "0",
-                "1"
-              ],
-              [
-                "897.04",
-                "222",
-                "0",
-                "1"
-              ],
-              [
-                "897.01",
-                "27",
                 "0",
                 "1"
               ],
@@ -30589,8 +30610,20 @@
                 "1"
               ],
               [
+                "896.83",
+                "388",
+                "0",
+                "1"
+              ],
+              [
                 "896.8",
-                "201",
+                "424",
+                "0",
+                "2"
+              ],
+              [
+                "896.75",
+                "86",
                 "0",
                 "1"
               ],
@@ -30601,20 +30634,14 @@
                 "1"
               ],
               [
-                "896.7",
-                "55979",
+                "896.63",
+                "56016",
                 "0",
                 "1"
               ],
               [
                 "896.53",
                 "5",
-                "0",
-                "1"
-              ],
-              [
-                "896.52",
-                "111",
                 "0",
                 "1"
               ],
@@ -30627,12 +30654,6 @@
               [
                 "896.47",
                 "1",
-                "0",
-                "1"
-              ],
-              [
-                "896.4",
-                "388",
                 "0",
                 "1"
               ],
@@ -30659,52 +30680,166 @@
                 "18",
                 "0",
                 "4"
-              ],
-              [
-                "895.9",
-                "201",
-                "0",
-                "1"
-              ],
-              [
-                "895.85",
-                "111",
-                "0",
-                "1"
-              ],
-              [
-                "895.67",
-                "1",
-                "0",
-                "1"
-              ],
-              [
-                "895.64",
-                "1",
-                "0",
-                "1"
-              ],
-              [
-                "895.6",
-                "1",
-                "0",
-                "1"
               ]
             ],
-            "ts": "1794778045254",
-            "seqId": 2997393449
+            "ts": "1794778117954",
+            "seqId": 2997402594
           }
         ]
       }
     },
     "okx_eea_zec_xperp_trades": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.362915+00:00",
-      "latency_ms": 121,
+      "retrieved_at": "2026-11-15T21:28:38.155729+00:00",
+      "latency_ms": 221,
       "endpoint": "https://eea.okx.com/api/v5/market/trades?instId=ZEC-USD_UM_XPERP-310530&limit=100",
       "data": {
         "code": "0",
         "data": [
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247547",
+            "px": "899.4",
+            "sz": "8",
+            "side": "buy",
+            "ts": "1794778088750",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247546",
+            "px": "899.38",
+            "sz": "8",
+            "side": "buy",
+            "ts": "1794778088750",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247545",
+            "px": "899.27",
+            "sz": "8",
+            "side": "buy",
+            "ts": "1794778088750",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247544",
+            "px": "899.2",
+            "sz": "22",
+            "side": "buy",
+            "ts": "1794778088750",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247543",
+            "px": "899.19",
+            "sz": "6",
+            "side": "buy",
+            "ts": "1794778088750",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247542",
+            "px": "899.19",
+            "sz": "2",
+            "side": "buy",
+            "ts": "1794778088749",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247541",
+            "px": "898.82",
+            "sz": "7",
+            "side": "sell",
+            "ts": "1794778078132",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247540",
+            "px": "898.82",
+            "sz": "1",
+            "side": "sell",
+            "ts": "1794778078132",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247539",
+            "px": "898.84",
+            "sz": "8",
+            "side": "sell",
+            "ts": "1794778078132",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247538",
+            "px": "898.86",
+            "sz": "8",
+            "side": "sell",
+            "ts": "1794778078132",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247537",
+            "px": "898.91",
+            "sz": "8",
+            "side": "sell",
+            "ts": "1794778078132",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247536",
+            "px": "898.93",
+            "sz": "8",
+            "side": "sell",
+            "ts": "1794778078132",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247535",
+            "px": "898.95",
+            "sz": "22",
+            "side": "sell",
+            "ts": "1794778078132",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247534",
+            "px": "898.96",
+            "sz": "8",
+            "side": "sell",
+            "ts": "1794778078132",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247533",
+            "px": "899.07",
+            "sz": "229",
+            "side": "buy",
+            "ts": "1794778077583",
+            "source": "0"
+          },
+          {
+            "instId": "ZEC-USD_UM_XPERP-310530",
+            "tradeId": "8247532",
+            "px": "899.42",
+            "sz": "8",
+            "side": "sell",
+            "ts": "1794778041008",
+            "source": "0"
+          },
           {
             "instId": "ZEC-USD_UM_XPERP-310530",
             "tradeId": "8247531",
@@ -31460,150 +31595,6 @@
             "side": "sell",
             "ts": "1794777738780",
             "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247447",
-            "px": "898.48",
-            "sz": "1",
-            "side": "buy",
-            "ts": "1794777733518",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247446",
-            "px": "898.33",
-            "sz": "1",
-            "side": "buy",
-            "ts": "1794777725597",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247445",
-            "px": "898.28",
-            "sz": "72",
-            "side": "buy",
-            "ts": "1794777725564",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247444",
-            "px": "898.28",
-            "sz": "5",
-            "side": "buy",
-            "ts": "1794777725564",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247443",
-            "px": "898.27",
-            "sz": "3",
-            "side": "buy",
-            "ts": "1794777725564",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247442",
-            "px": "897.43",
-            "sz": "18",
-            "side": "buy",
-            "ts": "1794777712435",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247441",
-            "px": "898.27",
-            "sz": "2",
-            "side": "sell",
-            "ts": "1794777708091",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247440",
-            "px": "897.4",
-            "sz": "8",
-            "side": "buy",
-            "ts": "1794777692052",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247439",
-            "px": "897.21",
-            "sz": "8",
-            "side": "buy",
-            "ts": "1794777688070",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247438",
-            "px": "897.13",
-            "sz": "94",
-            "side": "buy",
-            "ts": "1794777678859",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247437",
-            "px": "896.98",
-            "sz": "16",
-            "side": "sell",
-            "ts": "1794777674331",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247436",
-            "px": "897.04",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794777671835",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247435",
-            "px": "896.91",
-            "sz": "8",
-            "side": "sell",
-            "ts": "1794777669300",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247434",
-            "px": "897.11",
-            "sz": "12",
-            "side": "sell",
-            "ts": "1794777669300",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247433",
-            "px": "896.91",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794777669289",
-            "source": "0"
-          },
-          {
-            "instId": "ZEC-USD_UM_XPERP-310530",
-            "tradeId": "8247432",
-            "px": "896.91",
-            "sz": "1",
-            "side": "sell",
-            "ts": "1794777669289",
-            "source": "0"
           }
         ],
         "msg": ""
@@ -31611,8 +31602,8 @@
     },
     "okx_eea_zec_xperp_mark": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.377300+00:00",
-      "latency_ms": 131,
+      "retrieved_at": "2026-11-15T21:28:38.074903+00:00",
+      "latency_ms": 127,
       "endpoint": "https://eea.okx.com/api/v5/public/mark-price?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
@@ -31620,8 +31611,8 @@
           {
             "instId": "ZEC-USD_UM_XPERP-310530",
             "instType": "FUTURES",
-            "markPx": "899.49",
-            "ts": "1794778045326"
+            "markPx": "899.52",
+            "ts": "1794778118024"
           }
         ],
         "msg": ""
@@ -31629,21 +31620,21 @@
     },
     "okx_eea_zec_index": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.420962+00:00",
-      "latency_ms": 142,
+      "retrieved_at": "2026-11-15T21:28:38.093171+00:00",
+      "latency_ms": 144,
       "endpoint": "https://eea.okx.com/api/v5/market/index-tickers?quoteCcy=USD",
       "data": {
         "code": "0",
         "data": [
           {
             "instId": "ZEC-USD",
-            "idxPx": "900.03",
+            "idxPx": "900.04",
             "high24h": "929.82",
             "low24h": "820.59",
-            "open24h": "825.88",
+            "open24h": "823.68",
             "sodUtc0": "863.38",
             "sodUtc8": "894.43",
-            "ts": "1794778040999"
+            "ts": "1794778110363"
           }
         ],
         "msg": ""
@@ -31651,7 +31642,7 @@
     },
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.470977+00:00",
+      "retrieved_at": "2026-11-15T21:28:38.215139+00:00",
       "latency_ms": 140,
       "endpoint": "https://eea.okx.com/api/v5/public/funding-rate?instId=ZEC-USD_UM_XPERP-310530",
       "data": {
@@ -31659,7 +31650,7 @@
         "data": [
           {
             "formulaType": "withRate",
-            "fundingRate": "-0.0000962851106867",
+            "fundingRate": "-0.0000951934899290",
             "fundingTime": "1794787200000",
             "impactValue": "4000.0000000000000000",
             "instId": "ZEC-USD_UM_XPERP-310530",
@@ -31670,11 +31661,11 @@
             "minFundingRate": "-0.01",
             "nextFundingRate": "",
             "nextFundingTime": "1794816000000",
-            "premium": "-0.0002896084325732",
+            "premium": "-0.0003000166675926",
             "prevFundingTime": "1794758400000",
             "settFundingRate": "-0.0000912311341219",
             "settState": "settled",
-            "ts": "1794777990563"
+            "ts": "1794778038872"
           }
         ],
         "msg": ""
@@ -31682,7 +31673,7 @@
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.490214+00:00",
+      "retrieved_at": "2026-11-15T21:28:38.209675+00:00",
       "latency_ms": 131,
       "endpoint": "https://eea.okx.com/api/v5/public/open-interest?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
       "data": {
@@ -31691,10 +31682,10 @@
           {
             "instId": "ZEC-USD_UM_XPERP-310530",
             "instType": "FUTURES",
-            "oi": "465220",
-            "oiCcy": "4652.2",
-            "oiUsd": "4187817.396",
-            "ts": "1794778045440"
+            "oi": "465432",
+            "oiCcy": "4654.32",
+            "oiUsd": "4186095.408",
+            "ts": "1794778118158"
           }
         ],
         "msg": ""
@@ -31702,8 +31693,8 @@
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
-      "retrieved_at": "2026-11-15T21:27:25.503375+00:00",
-      "latency_ms": 142,
+      "retrieved_at": "2026-11-15T21:28:38.222040+00:00",
+      "latency_ms": 129,
       "endpoint": "https://eea.okx.com/api/v5/public/instruments?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
       "data": {
         "code": "0",
