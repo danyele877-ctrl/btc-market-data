@@ -328,7 +328,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                             matured_label = _label(bar, future, side, horizon, interval, fill_window, _num(old_label.get("entry")))
                             if matured_label and isinstance(matured_label.get("tp_before_sl"), bool):
                                 old_label["tp_before_sl"] = matured_label["tp_before_sl"]
-                                old_label["matured_at_ms"] = matured_label.get("matured_at_ms")
+                                old_label["matured_at_ms"] = matured_label.get("outcome_at_ms")
                         continue
                     label = _label(bar, future, side, horizon, interval, fill_window)
                     if label is None:
@@ -376,7 +376,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                             matured_label = _label(bar, future, side, horizon, 60, 5, _num(old_label.get("entry")))
                             if matured_label and matured_label.get("filled_proxy") and isinstance(matured_label.get("tp_before_sl"), bool):
                                 old_label["tp_before_sl"] = matured_label["tp_before_sl"]
-                                old_label["matured_at_ms"] = matured_label.get("matured_at_ms")
+                                old_label["matured_at_ms"] = matured_label.get("outcome_at_ms")
                         continue
                     raw_limit = bar["close"] - offset*bar["_atr"] if side == "LONG" else bar["close"] + offset*bar["_atr"]
                     queue_info = estimate_queue_depletion(queue_history, close_ms, raw_limit, side, tick_size, 5)
