@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-15T22:06:14.976066+00:00",
-  "snapshot_generated_at": "2026-11-15T22:06:14.912351+00:00",
+  "generated_at": "2026-11-15T22:27:30.711373+00:00",
+  "snapshot_generated_at": "2026-11-15T22:27:30.586289+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -190,13 +190,13 @@
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     }
   }
