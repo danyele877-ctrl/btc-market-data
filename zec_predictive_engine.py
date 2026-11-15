@@ -554,6 +554,33 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
             target_result["reason"] = "osservazione microstrutturale non allineata alla candela completata"
         micro_results[target] = target_result
     result["microstructure_models"] = micro_results
+    queue_results = {"status": "IN APPRENDIMENTO", "by_direction": {}}
+    current_scalp_features = micro_results.get("scalping", {}).get("current_features")
+    if current_scalp_features:
+        for side in ("LONG", "SHORT"):
+            queue_results["by_direction"][side] = {}
+            for horizon in SCALP_HORIZONS:
+                estimate = _analogs(archive, "scalp_queue_5m", side, horizon,
+                                    current_scalp_features, MICRO_FEATURES)
+                if "p_limit_touch_proxy" in estimate:
+                    estimate["p_queue_depletion_proxy"] = estimate.pop("p_limit_touch_proxy")
+                estimate["execution_note"] = "Deplezione della coda visibile stimata da book sequenziato e trades aggressivi; non equivale a fill reale."
+                queue_results["by_direction"][side][str(horizon)] = estimate
+        queue_statuses = [item["status"] for side in queue_results["by_direction"].values() for item in side.values()]
+        queue_results["status"] = "STIME SPERIMENTALI" if any(x == "STIMA SPERIMENTALE" for x in queue_statuses) else "IN APPRENDIMENTO"
+    try:
+        queue_data = json.loads(QUEUE_HISTORY_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        queue_data = {}
+    queue_results["data_coverage"] = {
+        "book_snapshots": len(queue_data.get("book_snapshots", [])),
+        "websocket_book_snapshots": sum(1 for row in queue_data.get("book_snapshots", []) if row.get("source") == "websocket"),
+        "websocket_trades": sum(1 for row in queue_data.get("trades", []) if row.get("source") == "websocket"),
+        "capture_checks": len(queue_data.get("capture_status", [])),
+        "last_capture_at": queue_data.get("capture_status", [{}])[-1].get("captured_at") if queue_data.get("capture_status") else None,
+    }
+    queue_results["caveat"] = "Stima sperimentale: assume ordine in coda dopo la profondità visibile; cancellazioni, hidden liquidity, latenza e fill parziali non sono osservabili completamente."
+    result["queue_execution_model"] = queue_results
     setup_rows = context_data.get("setups", [])
     setup_summary = {}
     for side in ("LONG", "SHORT"):
