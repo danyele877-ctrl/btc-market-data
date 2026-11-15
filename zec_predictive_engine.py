@@ -453,8 +453,8 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         if base and observations:
             close_ms = rows[-1]["_close_ms"]
             eligible = [o for o in observations
-                        if _time(o.get("captured_at")) is not None
-                        and 0 <= close_ms - int(_time(o["captured_at"]).timestamp() * 1000) <= 90000]
+                        if _dt(o.get("captured_at")) is not None
+                        and 0 <= close_ms - int(_dt(o["captured_at"]).timestamp() * 1000) <= 90000]
             obs = eligible[-1] if eligible else None
             if obs:
                 earlier = [o for o in observations
