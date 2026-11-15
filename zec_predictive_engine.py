@@ -217,7 +217,8 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
     archive = {"schema_version": 1, "instrument": INSTRUMENT_ID, "updated_at": snapshot.get("source_captured_at"), "events": []}
     if archive_path.exists():
         try:
-            loaded = json.loads(archive_path.read_text(encoding="utf-8"))            if loaded.get("schema_version") == 1 and loaded.get("instrument") == INSTRUMENT_ID and isinstance(loaded.get("events"), list):
+            loaded = json.loads(archive_path.read_text(encoding="utf-8"))
+            if loaded.get("schema_version") == 1 and loaded.get("instrument") == INSTRUMENT_ID and isinstance(loaded.get("events"), list):
                 archive = loaded
         except Exception:
             pass
@@ -436,7 +437,8 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                         }
                         added += 1
 
-    process_queue(scalp5, scalp_rows)    archive["events"] = sorted(existing.values(), key=lambda x: (x.get("timestamp_ms", 0), x.get("id", "")))[-MAX_ARCHIVE:]
+    process_queue(scalp5, scalp_rows)
+    archive["events"] = sorted(existing.values(), key=lambda x: (x.get("timestamp_ms", 0), x.get("id", "")))[-MAX_ARCHIVE:]
     archive["updated_at"] = snapshot.get("source_captured_at")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     archive_path.write_text(json.dumps(archive, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
@@ -594,8 +596,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         context_data = {}
     observations = sorted(context_data.get("observations", []), key=lambda o: o.get("minute_ms", 0))
 
-    # Local helpers are required here: the similarly named helpers inside
-    # _update_archive are function-local and cannot be reused by the evaluator.
+    # Evaluator-local helpers; _update_archive helpers are not in this scope.
     def nearest_context(close_ms: int) -> dict[str, Any] | None:
         candidates = [
             o for o in observations
@@ -686,7 +687,8 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         current_bar = scalp[-1]
         current_base = _features(scalp, len(scalp)-1, btc_by_ts)
         if current_base:
-            current_close_ms = current_bar["_close_ms"]            current_obs = nearest_context(current_close_ms)
+            current_close_ms = current_bar["_close_ms"]
+            current_obs = nearest_context(current_close_ms)
             current_prior = nearest_context(current_close_ms - 5*60000)
             queue_features = enrich_queue(current_base, current_obs, current_prior)
     result["microstructure_models"] = micro_results
