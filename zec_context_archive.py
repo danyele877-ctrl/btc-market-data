@@ -120,9 +120,16 @@ def _micro_observation(snapshot: dict[str, Any], captured: datetime) -> dict[str
         elapsed = (_num(last.get("ts_ms")) or 0) - (_num(first.get("ts_ms")) or 0)
         if 1000 <= elapsed <= 300000:
             book_delta = _num(last.get("imbalance_top10")) - _num(first.get("imbalance_top10"))
-    oi_record = (market.get("zec_xperp_open_interest") or {}).get("first") or {}
-    oi = _num(oi_record.get("oi")) if oi_record.get("instId") == INSTRUMENT_ID else None
-    oi_price = _num(oi_record.get("oiCcy")) if oi_record.get("instId") == INSTRUMENT_ID else None
+    oi_market = market.get("zec_xperp_open_interest") or {}
+    oi_record = oi_market.get("first") or {}
+    oi_age = _num(oi_market.get("exchange_age_seconds"))
+    oi_valid = (
+        oi_market.get("http_status") == 200 and str(oi_market.get("api_code")) == "0"
+        and oi_record.get("instId") == INSTRUMENT_ID
+        and oi_age is not None and 0 <= oi_age <= 180
+    )
+    oi = _num(oi_record.get("oi")) if oi_valid else None
+    oi_price = _num(oi_record.get("oiCcy")) if oi_valid else None
     price = _num(ticker.get("last"))
     if price is None or price <= 0:
         return None
@@ -137,11 +144,13 @@ def _micro_observation(snapshot: dict[str, Any], captured: datetime) -> dict[str
         "imbalance_top10": _num(book.get("imbalance_top10")),
         "imbalance_top20": _num(book.get("imbalance_top20")),
         "book_delta_top10": book_delta,
+        "book_delta_valid": book_delta is not None,
         "spread_bps": ((ask - bid) / ((ask + bid) / 2)) * 10000,
         "best_bid": bid,
         "best_ask": ask,
         "oi_contracts": oi,
         "oi_reported_value": oi_price,
+        "oi_valid": oi_valid,
         "trade_gap_count": int(ws.get("trade_gap_count") or 0),
         "book_gap_count": int(ws.get("book_gap_count") or 0),
         "trade_age_seconds": _num(ws.get("trade_age_seconds")),
