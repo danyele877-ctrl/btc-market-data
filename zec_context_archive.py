@@ -181,7 +181,10 @@ def _movement_candidates(snapshot: dict[str, Any], observations: list[dict[str, 
         close = _num(row.get("close"))
         if ts is not None and done is not None and done <= captured and int(done.timestamp()*1000) == int(ts)+60000 and close and close > 0:
             btc_clean.append({"ts_ms": int(ts), "_close_ms": int(done.timestamp()*1000), "close": close})
-    btc_by_ts = {row["ts_ms"]: row["close"] for row in btc_clean}
+    btc_clean.sort(key=lambda row: row["_close_ms"])
+    def btc_close_at(close_ms: int) -> float | None:
+        eligible = [row for row in btc_clean if 0 <= close_ms - row["_close_ms"] <= 90000]
+        return eligible[-1]["close"] if eligible else None
     ordered_obs = sorted(observations, key=lambda item: item.get("minute_ms", 0))
     events = []
     for i in range(20, len(bars)):
@@ -226,8 +229,10 @@ def _movement_candidates(snapshot: dict[str, Any], observations: list[dict[str, 
             if old_oi and new_oi is not None:
                 oi_change = new_oi/old_oi - 1.0
         btc_return = None
-        if bar["ts_ms"] in btc_by_ts and bars[i-5]["ts_ms"] in btc_by_ts:
-            btc_return = btc_by_ts[bar["ts_ms"]]/btc_by_ts[bars[i-5]["ts_ms"]] - 1.0
+        btc_now = btc_close_at(bar["_close_ms"])
+        btc_prior = btc_close_at(bars[i-5]["_close_ms"])
+        if btc_now is not None and btc_prior is not None and btc_prior > 0:
+            btc_return = btc_now / btc_prior - 1.0
         relative = ret5 - btc_return if btc_return is not None else None
         cvd = {key: _num(obs.get(f"cvd_{key}_contracts")) for key in ("1m", "5m", "15m")}
         imbalance = _num(obs.get("imbalance_top10"))
@@ -241,6 +246,8 @@ def _movement_candidates(snapshot: dict[str, Any], observations: list[dict[str, 
         events.append({
             "id": event_id, "instrument": INSTRUMENT_ID,
             "captured_at": captured.isoformat().replace("+00:00", "Z"),
+            "event_candle_completed_at": datetime.fromtimestamp(close_ms/1000, timezone.utc).isoformat().replace("+00:00", "Z"),
+            "context_observation_at": obs.get("captured_at"),
             "entry_close_ms": close_ms, "direction": direction,
             "move_horizon_min": horizon, "move_return_pct": round(move*100, 4),
             "entry_reference": close, "atr_reference": atr,
