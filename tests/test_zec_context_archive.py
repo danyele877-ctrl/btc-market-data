@@ -97,11 +97,11 @@ class ZecContextArchiveTests(unittest.TestCase):
             "atr_reference": 1, "direction": "LONG", "outcomes": {},
         }
         future = []
-        for i in range(1, 6):
+        for i in range(5):
             start = NOW + timedelta(minutes=i)
-            # On the fifth minute, both TP1=101.5 and SL=99 are touched.
-            future.append(bar(start, 100, high=102 if i == 5 else 100.5,
-                              low=98 if i == 5 else 99.5))
+            # On the fifth completed minute, both TP1=101.5 and SL=99 are touched.
+            future.append(bar(start, 100, high=102 if i == 4 else 100.5,
+                              low=98 if i == 4 else 99.5))
         matured = _mature_setups([setup], _closed_1m(future, NOW + timedelta(minutes=6)))
         self.assertEqual(matured, 1)
         self.assertEqual(setup["outcomes"]["5"]["status"], "SL_AMBIGUO")
