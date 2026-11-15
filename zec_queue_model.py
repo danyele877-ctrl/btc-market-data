@@ -63,7 +63,7 @@ def estimate_queue_depletion(
     books.sort(key=lambda row: int(row["ts_ms"]))
     before = [row for row in books if 0 <= entry_time_ms - int(row["ts_ms"]) <= 2000]
     if not before:
-        return {"status": "BOOK_ENTRY_NON DISPONIBILE", "limit_price": limit_price}
+        return {"status": "BOOK ENTRY NON DISPONIBILE", "limit_price": limit_price}
     entry_book = before[-1]
     window_books = [row for row in books if entry_time_ms <= int(row["ts_ms"]) <= end_ms]
     if len(window_books) < max(60, int(fill_window_min * 60 * 0.5)):
