@@ -270,7 +270,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     captured = _dt(snapshot.get("source_captured_at"))
     age = (datetime.now(timezone.utc) - captured).total_seconds() if captured else None
     history_quality = snapshot.get("zec_xperp_history") or {}
-    required_history = ("1m", "5m", "1H")
+    required_history = ("1m", "5m", "1H", "4H")
     blockers = []
     if snapshot.get("schema_version") != 3 or snapshot.get("source_status") != "ok":
         blockers.append("snapshot schema/status non valido")
@@ -300,6 +300,8 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     now = _dt(snapshot.get("source_captured_at"))
     scalp = _clean(hist.get("xperp_5m"), 300, now)
     swing = _clean(hist.get("xperp_1H"), 3600, now)
+    four_hour = _clean(hist.get("xperp_4H"), 14400, now)
+    four_hour_context = _features(four_hour, len(four_hour)-1) if four_hour else None
     result: dict[str, Any] = {
         "schema_version": 1, "engine": "ZEC Predictive Engine",
         "mode": "simulation_only", "instrument": INSTRUMENT_ID,
@@ -324,6 +326,8 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
             "status": "IN APPRENDIMENTO" if all(v["status"] == "IN APPRENDIMENTO" for d in side_results.values() for v in d.values()) else "STIME SPERIMENTALI",
             "features": feat, "by_direction": side_results,
         }
+    result["reversals"]["context_4h"] = four_hour_context
+    result["reversals"]["context_4h_note"] = "Contesto descrittivo separato; non entra ancora nel calcolo delle frequenze analogiche."
     # Safety is explicit and deliberately duplicated at the engine boundary.
     result["safety"] = {
         "orders_enabled": False, "position_sizing_enabled": False,
