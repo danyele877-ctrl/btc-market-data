@@ -23,6 +23,7 @@ MAX_ARCHIVE = 12000
 MIN_ANALOGS = 30
 FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength")
 MICRO_FEATURES = FEATURES + ("cvd1m_log", "cvd5m_log", "cvd15m_log", "imbalance_top10", "book_delta_top10", "book_delta_valid", "spread_bps", "oi_change_pct", "oi_change_valid")
+QUEUE_FEATURES = FEATURES + ("imbalance_top10", "book_delta_top10", "book_delta_valid", "spread_bps", "oi_change_pct", "oi_change_valid")
 CONTEXT_ARCHIVE_PATH = Path("data/zec_context_archive.json")
 QUEUE_HISTORY_PATH = Path("data/zec_microstructure_history.json")
 
@@ -276,6 +277,26 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                       and 0 <= close_ms - int(_dt(o["captured_at"]).timestamp() * 1000) <= 90000]
         return candidates[-1] if candidates else None
 
+    def enrich_queue(base: dict[str, float], obs: dict[str, Any] | None,
+                     prior: dict[str, Any] | None) -> dict[str, float] | None:
+        if not obs:
+            return None
+        imbalance, spread = _num(obs.get("imbalance_top10")), _num(obs.get("spread_bps"))
+        if imbalance is None or spread is None:
+            return None
+        oi_delta = 0.0
+        if prior:
+            old_oi, new_oi = _num(prior.get("oi_contracts")), _num(obs.get("oi_contracts"))
+            if old_oi and new_oi is not None:
+                oi_delta = new_oi / old_oi - 1.0
+        return {
+            **base, "imbalance_top10": imbalance,
+            "book_delta_top10": _num(obs.get("book_delta_top10")) or 0.0,
+            "book_delta_valid": 1.0 if obs.get("book_delta_valid") else 0.0,
+            "spread_bps": spread, "oi_change_pct": oi_delta,
+            "oi_change_valid": 1.0 if (prior and prior.get("oi_valid") and obs.get("oi_valid")) else 0.0,
+        }
+
     def enrich(base: dict[str, float], obs: dict[str, Any] | None,
                prior: dict[str, Any] | None) -> dict[str, float] | None:
         if not obs:
@@ -317,7 +338,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
             if not obs:
                 continue
             prior = nearest_context(close_ms - prior_minutes * 60000)
-            feat = enrich(base, obs, prior)
+            feat = enrich_queue(base, obs, prior)
             if not feat:
                 continue
             bar = dict(rows[i])
@@ -630,9 +651,19 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         else:
             target_result["reason"] = "osservazione microstrutturale non allineata alla candela completata"
         micro_results[target] = target_result
+    # Queue execution needs current book/spread context, not CVD readiness.
+    queue_features = None
+    if scalp:
+        current_bar = scalp[-1]
+        current_base = _features(scalp, len(scalp)-1, btc_by_ts)
+        if current_base:
+            current_close_ms = current_bar["_close_ms"]
+            current_obs = nearest_context(current_close_ms)
+            current_prior = nearest_context(current_close_ms - 5*60000)
+            queue_features = enrich_queue(current_base, current_obs, current_prior)
     result["microstructure_models"] = micro_results
     queue_results = {"status": "IN APPRENDIMENTO", "by_direction": {}, "preferred_offsets": {}}
-    current_scalp_features = micro_results.get("scalping", {}).get("current_features")
+    current_scalp_features = queue_features
     if current_scalp_features:
         for side in ("LONG", "SHORT"):
             queue_results["by_direction"][side] = {}
@@ -643,7 +674,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
                 for offset in LIMIT_OFFSETS_ATR:
                     family = f"scalp_queue_{int(offset*100):02d}"
                     estimate = _analogs(archive, family, side, horizon,
-                                        current_scalp_features, MICRO_FEATURES)
+                                        current_scalp_features, QUEUE_FEATURES)
                     if "p_limit_touch_proxy" in estimate:
                         estimate["p_queue_depletion_proxy"] = estimate.pop("p_limit_touch_proxy")
                     estimate["limit_offset_atr"] = offset
