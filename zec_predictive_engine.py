@@ -204,6 +204,13 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
         queue_history = json.loads(QUEUE_HISTORY_PATH.read_text(encoding="utf-8"))
     except Exception:
         queue_history = {}
+    queue_book_times = [
+        int(_num(row.get("ts_ms")) or 0)
+        for row in queue_history.get("book_snapshots", [])
+        if isinstance(row, dict) and row.get("source") == "websocket" and _num(row.get("ts_ms")) is not None
+    ]
+    queue_book_start_ms = min(queue_book_times) if queue_book_times else None
+    queue_book_end_ms = max(queue_book_times) if queue_book_times else None
     instrument_meta = ((snapshot.get("market") or {}).get("zec_xperp_instrument") or {}).get("first") or {}
     tick_size = _num(instrument_meta.get("tickSz")) if instrument_meta.get("instId") == INSTRUMENT_ID else None
     archive = {"schema_version": 1, "instrument": INSTRUMENT_ID, "updated_at": snapshot.get("source_captured_at"), "events": []}
@@ -377,6 +384,10 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                             if matured_label and matured_label.get("filled_proxy") and isinstance(matured_label.get("tp_before_sl"), bool):
                                 old_label["tp_before_sl"] = matured_label["tp_before_sl"]
                                 old_label["matured_at_ms"] = matured_label.get("outcome_at_ms")
+                        continue
+                    if (queue_book_start_ms is None or queue_book_end_ms is None
+                            or close_ms < queue_book_start_ms - 2000
+                            or close_ms + 5*60000 > queue_book_end_ms):
                         continue
                     raw_limit = bar["close"] - offset*bar["_atr"] if side == "LONG" else bar["close"] + offset*bar["_atr"]
                     queue_info = estimate_queue_depletion(queue_history, close_ms, raw_limit, side, tick_size, 5)
