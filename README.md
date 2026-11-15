@@ -117,3 +117,12 @@ The bridge replay step also backfills the context archive from up to 600 previou
 The context archive also detects completed 5m/15m price displacements that exceed a volatility-scaled threshold. Each event is linked only to the latest valid microstructure observation captured before the event candle closed: CVD 1m/5m/15m, top-10 book imbalance and its short change, spread, OI change, funding rate, and paired BTC 1m relative return when available. The event record also stores subsequent 5/15/30/40/60/120/240-minute ATR-barrier outcomes when the complete forward path is available.
 
 The event study describes co-occurring factors and subsequent price paths. It does not infer that CVD, book imbalance, OI, funding or BTC caused the move. Missing or stale inputs remain missing; no interpolation or post-event feature leakage is allowed.
+
+
+## Queue-aware LIMIT execution research
+
+The Render service now exposes a bounded 15-minute WebSocket trade tape (trade ID, aggressor side, price, size in contracts, count and gap flag) plus sequenced top-10 book-depth snapshots sampled at approximately one-second intervals. The bridge merges these with REST microstructure history, deduplicates by trade ID/source timestamp, records per-capture truncation and sequence-health metadata, and retains up to 15,000 WebSocket depth snapshots (about four hours) and 30,000 unique trades.
+
+The separate zec_queue_model.py evaluates a hypothetical passive LIMIT by reading the displayed queue at the candidate price and summing aggressive trades at or through that price during the five-minute validity window. It only labels a historical sample when the entry book, book sequence coverage, capture checks and trade tape pass quality gates. If the limit is marketable, book depth is missing, the tape is truncated, or a sequence gap occurs, it returns no estimate. The engine trains a separate scalp_queue_5m family and exposes queue-depletion frequency separately from OHLC touch frequency.
+
+Queue depletion is still only a proxy for fill: cancellations, hidden liquidity, exact queue position, network latency and partial fills cannot be reconstructed from public aggregated market data. It must never be described as a guaranteed fill or a calibrated execution probability. No orders are sent and no position size is computed.
