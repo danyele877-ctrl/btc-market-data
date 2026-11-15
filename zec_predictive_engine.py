@@ -515,10 +515,31 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         "by_direction": setup_summary,
         "interpretation": "Esiti su trigger confermati, entry di riferimento alla chiusura candela; non sono fill LIMIT reali né win-rate indipendenti.",
     }
+    movement_rows = context_data.get("movement_events", [])
+    movement_summary = {}
+    for side in ("LONG", "SHORT"):
+        movement_summary[side] = {}
+        for horizon in SCALP_HORIZONS + SWING_HORIZONS:
+            values = [event.get("outcomes", {}).get(str(horizon), {}).get("status")
+                      for event in movement_rows if event.get("direction") == side]
+            values = [value for value in values if value is not None]
+            movement_summary[side][str(horizon)] = {
+                "matured_events": len(values),
+                "tp1": values.count("TP1"),
+                "sl": values.count("SL") + values.count("SL_AMBIGUO"),
+                "none": values.count("NONE"),
+            }
+    result["movement_event_study"] = {
+        "events_total": len(movement_rows),
+        "outcomes_by_direction": movement_summary,
+        "recent_events": movement_rows[-8:],
+        "interpretation": "Eventi selezionati per movimenti anomali 5m/15m; fattori osservati prima della chiusura, non prova di causalità.",
+    }
     result["context_archive"] = {
         "observations_total": len(observations),
         "last_observation_at": observations[-1].get("captured_at") if observations else None,
         "setups_total": len(setup_rows),
+        "movement_events_total": len(movement_rows),
         "observation_gaps": sum(1 for a, b in zip(observations, observations[1:]) if int(b.get("minute_ms", 0)) - int(a.get("minute_ms", 0)) > 60000),
     }
     result["reversals"]["context_4h"] = four_hour_context
