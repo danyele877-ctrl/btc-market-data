@@ -445,8 +445,10 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
             cooldown = 15*60000 if last_event and last_event.get("direction") == event.get("direction") else 5*60000
             if event["id"] in movement_by_id:
                 existing_event = movement_by_id[event["id"]]
-                existing_event.setdefault("event_candle_completed_at", event.get("event_candle_completed_at"))
-                existing_event.setdefault("context_observation_at", event.get("context_observation_at"))
+                if not existing_event.get("event_candle_completed_at"):
+                    existing_event["event_candle_completed_at"] = event.get("event_candle_completed_at")
+                if not existing_event.get("context_observation_at"):
+                    existing_event["context_observation_at"] = event.get("context_observation_at")
                 existing_features = existing_event.setdefault("features", {})
                 for feature, value in (event.get("features") or {}).items():
                     if existing_features.get(feature) is None and value is not None:
