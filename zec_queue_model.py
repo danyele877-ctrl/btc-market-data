@@ -115,10 +115,11 @@ def estimate_queue_depletion(
            or (_num(row.get("trade_age_seconds")) or 9999) > 180 for row in capture_rows):
         return {"status": "MICROSTRUTTURA STALE", "limit_price": limit_price}
     trade_gap_counts = [_num(row.get("trade_gap_count")) for row in capture_rows]
-    if any(value is None for value in trade_gap_counts) or any(
+    book_gap_counts = [_num(row.get("book_gap_count")) for row in capture_rows]
+    if any(value is None for value in trade_gap_counts + book_gap_counts) or any(
         later > earlier for earlier, later in zip(trade_gap_counts, trade_gap_counts[1:])
-    ):
-        return {"status": "GAP TRADE NELLA FINESTRA", "limit_price": limit_price}
+    ) or any(later > earlier for earlier, later in zip(book_gap_counts, book_gap_counts[1:])):
+        return {"status": "GAP SEQUENZA NELLA FINESTRA", "limit_price": limit_price}
 
     trades = []
     for row in history.get("trades", []):
