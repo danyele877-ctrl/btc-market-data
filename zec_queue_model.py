@@ -112,15 +112,26 @@ def estimate_queue_depletion(
         ts = _time_ms(row.get("captured_at"))
         if ts is not None and entry_time_ms <= ts <= end_ms:
             capture_rows.append(row)
-    if len(capture_rows) < max(3, fill_window_min - 1):
+    # The bridge captures a validation row every five minutes, while the
+    # underlying sequenced WebSocket book/trade history is continuous. Requiring
+    # one capture row per minute made a five-minute queue window impossible to
+    # validate under the bridge's actual cadence. Require at least one explicit
+    # health checkpoint; continuous book coverage and trade-gap checks below
+    # validate the full window.
+    if not capture_rows:
         return {"status": "COPERTURA TRADES INSUFFICIENTE", "limit_price": limit_price,
-                "capture_checks": len(capture_rows)}
+                "capture_checks": 0}
     if any(row.get("trade_events_truncated") for row in capture_rows):
         return {"status": "TRADE TAPE TRONCATO", "limit_price": limit_price}
     if any(not row.get("book_valid") for row in capture_rows):
         return {"status": "BOOK NON VALIDO NELLA FINESTRA", "limit_price": limit_price}
-    if any((_num(row.get("book_age_seconds")) or 9999) > 5
-           or (_num(row.get("trade_age_seconds")) or 9999) > 180 for row in capture_rows):
+    if any(
+        _num(row.get("book_age_seconds")) is None
+        or _num(row.get("book_age_seconds")) > 5
+        or _num(row.get("trade_age_seconds")) is None
+        or _num(row.get("trade_age_seconds")) > 180
+        for row in capture_rows
+    ):
         return {"status": "MICROSTRUTTURA STALE", "limit_price": limit_price}
     trade_gap_counts = [_num(row.get("trade_gap_count")) for row in capture_rows]
     book_gap_counts = [_num(row.get("book_gap_count")) for row in capture_rows]
