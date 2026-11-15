@@ -277,6 +277,18 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                       and 0 <= close_ms - int(_dt(o["captured_at"]).timestamp() * 1000) <= 90000]
         return candidates[-1] if candidates else None
 
+    def nearest_context_any(close_ms: int, tolerance_ms: int) -> dict[str, Any] | None:
+        candidates = []
+        for observation in context_observations:
+            captured_at = _dt(observation.get("captured_at"))
+            if captured_at is None:
+                continue
+            observed_ms = int(captured_at.timestamp() * 1000)
+            delta = abs(observed_ms - close_ms)
+            if delta <= tolerance_ms:
+                candidates.append((delta, observed_ms, observation))
+        return min(candidates, key=lambda item: (item[0], item[1]))[2] if candidates else None
+
     def enrich_queue(base: dict[str, float], obs: dict[str, Any] | None,
                      prior: dict[str, Any] | None) -> dict[str, float] | None:
         if not obs:
@@ -380,12 +392,20 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
             if not base:
                 continue
             close_ms = rows[i]["_close_ms"]
-            obs = nearest_context(close_ms)
-            prior = nearest_context(close_ms - 5*60000)
-            feat = enrich(base, obs, prior)
+            # Context capture may land shortly after a completed 5m close.
+            # Align to the nearest observation within 90s and start labels
+            # only after that observation to avoid using pre-observation moves.
+            obs = nearest_context_any(close_ms, 90000)
+            if not obs:
+                continue
+            obs_ms = int(_dt(obs["captured_at"]).timestamp() * 1000)
+            prior = nearest_context(obs_ms - 5*60000)
+            feat = enrich_queue(base, obs, prior)
             if not feat:
                 continue
             bar = dict(rows[i])
+            bar["_close_ms"] = max(close_ms, obs_ms)
+            event_ms = bar["_close_ms"]
             bar["_atr"] = _atr(rows, i)
             if not bar["_atr"] or bar["_atr"] <= 0:
                 continue
@@ -400,25 +420,25 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                             continue
                         old_label = existing[key].get("label", {})
                         if old_label.get("filled_proxy") is True and old_label.get("tp_before_sl") is None:
-                            future = [x for x in future_rows if close_ms < x["_close_ms"] <= close_ms + horizon*60000]
+                            future = [x for x in future_rows if event_ms < x["_close_ms"] <= event_ms + horizon*60000]
                             matured_label = _label(bar, future, side, horizon, 60, 5, _num(old_label.get("entry")))
                             if matured_label and matured_label.get("filled_proxy") and isinstance(matured_label.get("tp_before_sl"), bool):
                                 old_label["tp_before_sl"] = matured_label["tp_before_sl"]
                                 old_label["matured_at_ms"] = matured_label.get("outcome_at_ms")
                         continue
                     if (queue_book_start_ms is None or queue_book_end_ms is None
-                            or close_ms < queue_book_start_ms - 2000
-                            or close_ms + 5*60000 > queue_book_end_ms):
+                            or event_ms < queue_book_start_ms - 2000
+                            or event_ms + 5*60000 > queue_book_end_ms):
                         continue
                     raw_limit = bar["close"] - offset*bar["_atr"] if side == "LONG" else bar["close"] + offset*bar["_atr"]
-                    queue_info = estimate_queue_depletion(queue_history, close_ms, raw_limit, side, tick_size, 5)
+                    queue_info = estimate_queue_depletion(queue_history, event_ms, raw_limit, side, tick_size, 5)
                     if queue_info.get("status") != "STIMA QUEUE DISPONIBILE":
                         continue
                     for horizon in SCALP_HORIZONS:
                         key = f"{family}:{bar['ts_ms']}:{side}:{horizon}"
                         if key in existing:
                             continue
-                        future = [x for x in future_rows if close_ms < x["_close_ms"] <= close_ms + horizon*60000]
+                        future = [x for x in future_rows if event_ms < x["_close_ms"] <= event_ms + horizon*60000]
                         label = _label(bar, future, side, horizon, 60, 5, queue_info["limit_price"])
                         if label is None:
                             continue
@@ -432,7 +452,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                         label["limit_offset_atr"] = offset
                         existing[key] = {
                             "id": key, "family": family,
-                            "timestamp_ms": bar["ts_ms"], "side": side,
+                            "timestamp_ms": event_ms, "side": side,
                             "horizon_min": horizon, "features": feat, "label": label,
                         }
                         added += 1
@@ -688,9 +708,14 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         current_base = _features(scalp, len(scalp)-1, btc_by_ts)
         if current_base:
             current_close_ms = current_bar["_close_ms"]
-            current_obs = nearest_context(current_close_ms)
-            current_prior = nearest_context(current_close_ms - 5*60000)
-            queue_features = enrich_queue(current_base, current_obs, current_prior)
+            captured_ms = int(captured.timestamp() * 1000) if captured else current_close_ms
+            # The latest completed 5m candle can be up to 6m old while the
+            # live book/context remains fresh; never use observations after snapshot capture.
+            current_obs = nearest_context_any(current_close_ms, 360000)
+            if current_obs and _dt(current_obs.get("captured_at")) and int(_dt(current_obs["captured_at"]).timestamp() * 1000) <= captured_ms:
+                current_obs_ms = int(_dt(current_obs["captured_at"]).timestamp() * 1000)
+                current_prior = nearest_context(current_obs_ms - 5*60000)
+                queue_features = enrich_queue(current_base, current_obs, current_prior)
     result["microstructure_models"] = micro_results
     queue_results = {"status": "IN APPRENDIMENTO", "by_direction": {}, "preferred_offsets": {}}
     current_scalp_features = queue_features
