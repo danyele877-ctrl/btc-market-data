@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from zec_queue_model import INSTRUMENT_ID, estimate_queue_depletion
+from zec_queue_model import INSTRUMENT_ID, _round_tick, estimate_queue_depletion
 
 
 BASE = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
@@ -40,6 +40,10 @@ def history():
 
 
 class QueueDepletionTests(unittest.TestCase):
+    def test_passive_limit_tick_rounding_is_conservative(self):
+        self.assertEqual(_round_tick(100.005, 0.01, "LONG"), 100.00)
+        self.assertEqual(_round_tick(100.005, 0.01, "SHORT"), 100.01)
+
     def test_buy_limit_queue_is_depleted_by_aggressive_sell_volume(self):
         result = estimate_queue_depletion(history(), ENTRY, 100.0, "LONG", 0.01)
         self.assertEqual(result["status"], "STIMA QUEUE DISPONIBILE")
