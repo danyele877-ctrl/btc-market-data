@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-15T05:33:21.431776+00:00",
-  "snapshot_generated_at": "2026-11-15T05:33:21.364664+00:00",
+  "generated_at": "2026-11-15T06:34:00.125988+00:00",
+  "snapshot_generated_at": "2026-11-15T06:34:00.023752+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -94,7 +94,7 @@
     "swole_btc_snapshot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_funding_btc": {
@@ -154,7 +154,7 @@
     "okx_eea_zec_xperp_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_zec_xperp_book": {
