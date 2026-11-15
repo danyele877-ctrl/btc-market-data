@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -74,11 +75,13 @@ class ZecContextArchiveTests(unittest.TestCase):
         second_time = NOW + timedelta(seconds=30)
         second["source_captured_at"] = second_time.isoformat().replace("+00:00", "Z")
         with tempfile.TemporaryDirectory() as tmp:
-            result = backfill_context_archive(
-                [(NOW, first), (second_time, second)],
-                Path(tmp) / "context.json",
-            )
+            path = Path(tmp) / "context.json"
+            result = backfill_context_archive([(NOW, first), (second_time, second)], path)
+            reloaded = json.loads(path.read_text(encoding="utf-8"))
+            repeated = backfill_context_archive([(NOW, first), (second_time, second)], path)
         self.assertEqual(result["observations_total"], 1)
+        self.assertEqual(len(reloaded["observations"]), 1)
+        self.assertEqual(repeated["observations_total"], 1)
 
     def test_large_move_records_preceding_cvd_book_and_btc_context(self):
         rows = []
