@@ -96,3 +96,14 @@ The persistent data/zec_predictive_archive.json stores timestamped feature vecto
 A hypothetical limit fill is labelled only when the historical OHLC range touches an entry offset of 0.20 ATR within the defined fill window. This is a TOUCH PROXY, not a real fill probability: public candle data cannot reconstruct queue priority, order-book queue depletion, latency, spread or partial fills. TP/SL outcomes use 1.5 ATR / 1.0 ATR barriers; ambiguous same-candle touches are conservatively labelled as SL. Unmatured forward windows are not stored as outcomes.
 
 No order placement, API credentials, position sizing, leverage, margin, exposure or PnL are enabled. The unresolved contract multiplier discrepancy remains a hard block on sizing. The user's 15 USDC risk ceiling is retained as metadata only. The existing GitHub Actions schedule and Render deployment filters are not changed by this engine.
+
+
+## ZEC Context Archive and trigger validation
+
+The radar now writes a separate `data/zec_context_archive.json` alongside the OHLC predictive archive. It records at most one quality-gated observation per UTC minute from the exact OKX EEA X-Perp: WebSocket CVD 1m/5m/15m in contracts, book imbalance top5/10/20, short book-imbalance change, spread in basis points, OI in contracts, feed ages and sequence-gap counters. Observations are kept for up to 30 days. No contract-size conversion is made while ctVal is unresolved.
+
+Only fresh schema-v3 snapshots with the exact instrument and healthy, connected, sequence-valid microstructure are archived. Missing/stale data are skipped rather than filled or interpolated. The bridge stores the context archive in the same GitHub publication step as the radar snapshot.
+
+Confirmed Early Signal triggers are recorded as separate episodes with a 40-minute same-direction cooldown (5-minute opposite-direction cooldown). Forward outcomes are measured from the completed trigger candle close, using 1m bars and ATR barriers (SL 1 ATR, TP1 1.5 ATR) at 5/15/30/40/60/120/240 minutes. Ambiguous same-candle TP/SL is conservatively labelled SL_AMBIGUO; no-barrier outcomes remain NONE. These are signal-close reference outcomes, not actual limit fills, not net PnL, and not independent trade win-rates.
+
+The predictive engine also builds separate microstructure-enhanced analog families, using only observations timestamped at or before each completed candle close (no look-ahead): log-signed CVD windows, book imbalance, book-imbalance change, spread and OI change, plus price/volatility/volume/RSI/trend and BTC-relative strength. These estimates remain experimental and separate from OHLC-only analogs. The secondary 1H model uses paired BTC 1H bars when available.
