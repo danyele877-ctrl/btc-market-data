@@ -475,37 +475,68 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
     pool = [e for e in archive.get("events", [])
             if e.get("family") == family and e.get("side") == side
             and e.get("horizon_min") == horizon and isinstance(e.get("label"), dict)]
-    filled_proxy_pool = [e for e in pool if e["label"].get("filled_proxy") is True]
+
+    # Historical archives can contain older or partially populated feature
+    # schemas. Keep those observations in the archive, but never pass None
+    # into the distance calculation or silently impute missing values.
+    current_vector = {key: _num(features.get(key)) for key in feature_names}
+    valid_current = all(value is not None for value in current_vector.values())
+    valid_pool = []
+    for event in pool:
+        stored = event.get("features")
+        if not isinstance(stored, dict):
+            continue
+        vector = {key: _num(stored.get(key)) for key in feature_names}
+        if all(value is not None for value in vector.values()):
+            valid_pool.append((event, vector))
+
+    filled_proxy_pool = [e for e, _ in valid_pool if e["label"].get("filled_proxy") is True]
     filled_pool = [e for e in filled_proxy_pool if isinstance(e["label"].get("tp_before_sl"), bool)]
-    if len(pool) < MIN_ANALOGS:
+    base = {
+        "samples": len(valid_pool),
+        "archive_samples": len(pool),
+        "incomplete_feature_samples": len(pool) - len(valid_pool),
+        "filled_samples": len(filled_pool),
+        "filled_proxy_samples": len(filled_proxy_pool),
+        "neighbors": min(50, len(valid_pool)),
+        "filled_neighbors": 0,
+        "filled_proxy_neighbors": 0,
+        "p_limit_touch_proxy": None,
+        "p_tp_before_sl_given_touch": None,
+        "tp_status": "IN APPRENDIMENTO",
+    }
+    if not valid_current:
         return {
-            "status": "IN APPRENDIMENTO", "samples": len(pool),
-            "filled_samples": len(filled_pool), "filled_proxy_samples": len(filled_proxy_pool),
-            "neighbors": min(50, len(pool)), "filled_neighbors": 0,
-            "filled_proxy_neighbors": 0, "p_limit_touch_proxy": None,
-            "p_tp_before_sl_given_touch": None,
-            "tp_status": "IN APPRENDIMENTO",
-            "reason": f"servono almeno {MIN_ANALOGS} osservazioni mature per stimare il tocco",
+            **base, "status": "IN APPRENDIMENTO",
+            "reason": "feature correnti incomplete; probabilità non calcolata",
         }
+    if len(valid_pool) < MIN_ANALOGS:
+        return {
+            **base, "status": "IN APPRENDIMENTO",
+            "reason": f"servono almeno {MIN_ANALOGS} osservazioni con feature complete per stimare il tocco",
+        }
+
     means, scales = {}, {}
     for key in feature_names:
-        vals = [_num(e.get("features", {}).get(key)) for e in pool]
-        vals = [v for v in vals if v is not None]
-        means[key] = sum(vals)/len(vals) if vals else 0.0
-        variance = sum((v-means[key])**2 for v in vals)/len(vals) if vals else 1.0
+        vals = [vector[key] for _, vector in valid_pool]
+        means[key] = sum(vals) / len(vals)
+        variance = sum((value - means[key]) ** 2 for value in vals) / len(vals)
         scales[key] = max(math.sqrt(variance), 1e-6)
-    def distance(e: dict[str, Any]) -> float:
-        f = e.get("features", {})
-        return math.sqrt(sum(((features[k]-means[k])/scales[k] - (_num(f.get(k)) - means[k])/scales[k])**2 for k in feature_names))
-    nearest = sorted(pool, key=distance)[:min(50, len(pool))]
+
+    def distance(item: tuple[dict[str, Any], dict[str, float]]) -> float:
+        _, vector = item
+        return math.sqrt(sum(
+            ((current_vector[key] - vector[key]) / scales[key]) ** 2
+            for key in feature_names
+        ))
+
+    nearest_items = sorted(valid_pool, key=distance)[:min(50, len(valid_pool))]
+    nearest = [event for event, _ in nearest_items]
     if len(nearest) < MIN_ANALOGS:
         return {
-            "status": "IN APPRENDIMENTO", "samples": len(pool),
-            "filled_samples": len(filled_pool), "filled_proxy_samples": len(filled_proxy_pool),
-            "neighbors": len(nearest), "filled_neighbors": 0,
-            "filled_proxy_neighbors": 0, "p_limit_touch_proxy": None,
-            "p_tp_before_sl_given_touch": None, "tp_status": "IN APPRENDIMENTO",
-            "reason": "non ci sono abbastanza analoghi vicini",
+            **base, "status": "IN APPRENDIMENTO",
+            "neighbors": len(nearest),
+            "reason": "non ci sono abbastanza analoghi vicini con feature complete",
         }
     nearest_filled_proxy = [e for e in nearest if e["label"].get("filled_proxy") is True]
     nearest_filled = [e for e in nearest_filled_proxy if isinstance(e["label"].get("tp_before_sl"), bool)]
@@ -516,9 +547,10 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
         p_tp = sum(1 for e in nearest_filled if e["label"].get("tp_before_sl") is True) / len(nearest_filled)
         tp_status = "STIMA SPERIMENTALE"
     return {
-        "status": "STIMA SPERIMENTALE", "samples": len(pool), "neighbors": len(nearest),
-        "filled_samples": len(filled_pool), "filled_proxy_samples": len(filled_proxy_pool),
-        "filled_neighbors": len(nearest_filled), "filled_proxy_neighbors": len(nearest_filled_proxy),
+        **base, "status": "STIMA SPERIMENTALE",
+        "neighbors": len(nearest),
+        "filled_neighbors": len(nearest_filled),
+        "filled_proxy_neighbors": len(nearest_filled_proxy),
         "p_limit_touch_proxy": round(p_touch, 4),
         "p_tp_before_sl_given_touch": round(p_tp, 4) if p_tp is not None else None,
         "tp_status": tp_status,
