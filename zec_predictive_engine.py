@@ -711,8 +711,15 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
             captured_ms = int(captured.timestamp() * 1000) if captured else current_close_ms
             # The latest completed 5m candle can be up to 6m old while the
             # live book/context remains fresh; never use observations after snapshot capture.
-            current_obs = nearest_context_any(current_close_ms, 360000)
-            if current_obs and _dt(current_obs.get("captured_at")) and int(_dt(current_obs["captured_at"]).timestamp() * 1000) <= captured_ms:
+            current_obs = None
+            if observations:
+                candidate = observations[-1]
+                candidate_dt = _dt(candidate.get("captured_at"))
+                if candidate_dt is not None:
+                    candidate_ms = int(candidate_dt.timestamp() * 1000)
+                    if 0 <= captured_ms - candidate_ms <= 180000:
+                        current_obs = candidate
+            if current_obs:
                 current_obs_ms = int(_dt(current_obs["captured_at"]).timestamp() * 1000)
                 current_prior = nearest_context(current_obs_ms - 5*60000)
                 queue_features = enrich_queue(current_base, current_obs, current_prior)
