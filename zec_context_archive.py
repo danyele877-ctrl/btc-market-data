@@ -538,6 +538,9 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
                 existing_event["event_candle_completed_at"] = event.get("event_candle_completed_at")
             if not existing_event.get("context_observation_at"):
                 existing_event["context_observation_at"] = event.get("context_observation_at")
+            existing_event["entry_type"] = event.get("entry_type", existing_event.get("entry_type"))
+            for outcome in (existing_event.get("outcomes") or {}).values():
+                outcome["entry_type"] = existing_event.get("entry_type", "movement_close_reference_not_limit_fill")
             existing_features = existing_event.setdefault("features", {})
             for feature, value in (event.get("features") or {}).items():
                 if existing_features.get(feature) is None and value is not None:
