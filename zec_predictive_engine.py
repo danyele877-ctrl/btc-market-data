@@ -18,6 +18,7 @@ INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
 ARCHIVE_PATH = Path("data/zec_predictive_archive.json")
 SCALP_HORIZONS = (5, 15, 30, 40)       # minutes
 SWING_HORIZONS = (60, 120, 240)        # minutes
+LIMIT_OFFSETS_ATR = (0.10, 0.20, 0.30, 0.40)
 MAX_ARCHIVE = 12000
 MIN_ANALOGS = 30
 FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength")
@@ -342,31 +343,34 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
             if not bar["_atr"] or bar["_atr"] <= 0:
                 continue
             for side in ("LONG", "SHORT"):
-                raw_limit = bar["close"] - 0.20*bar["_atr"] if side == "LONG" else bar["close"] + 0.20*bar["_atr"]
-                queue_info = estimate_queue_depletion(queue_history, close_ms, raw_limit, side, tick_size, 5)
-                if queue_info.get("status") != "STIMA QUEUE DISPONIBILE":
-                    continue
-                for horizon in SCALP_HORIZONS:
-                    key = f"scalp_queue_5m:{bar['ts_ms']}:{side}:{horizon}"
-                    if key in existing:
+                for offset in LIMIT_OFFSETS_ATR:
+                    raw_limit = bar["close"] - offset*bar["_atr"] if side == "LONG" else bar["close"] + offset*bar["_atr"]
+                    queue_info = estimate_queue_depletion(queue_history, close_ms, raw_limit, side, tick_size, 5)
+                    if queue_info.get("status") != "STIMA QUEUE DISPONIBILE":
                         continue
-                    future = [x for x in future_rows if close_ms < x["_close_ms"] <= close_ms + horizon*60000]
-                    label = _label(bar, future, side, horizon, 60, 5, queue_info["limit_price"])
-                    if label is None:
-                        continue
-                    if queue_info["queue_depleted_proxy"]:
-                        if not label.get("filled_proxy") or not isinstance(label.get("tp_before_sl"), bool):
+                    family = f"scalp_queue_{int(offset*100):02d}"
+                    for horizon in SCALP_HORIZONS:
+                        key = f"{family}:{bar['ts_ms']}:{side}:{horizon}"
+                        if key in existing:
                             continue
-                    else:
-                        label["filled_proxy"] = False
-                        label["tp_before_sl"] = None
-                    label["queue_info"] = queue_info
-                    existing[key] = {
-                        "id": key, "family": "scalp_queue_5m",
-                        "timestamp_ms": bar["ts_ms"], "side": side,
-                        "horizon_min": horizon, "features": feat, "label": label,
-                    }
-                    added += 1
+                        future = [x for x in future_rows if close_ms < x["_close_ms"] <= close_ms + horizon*60000]
+                        label = _label(bar, future, side, horizon, 60, 5, queue_info["limit_price"])
+                        if label is None:
+                            continue
+                        if queue_info["queue_depleted_proxy"]:
+                            if not label.get("filled_proxy") or not isinstance(label.get("tp_before_sl"), bool):
+                                continue
+                        else:
+                            label["filled_proxy"] = False
+                            label["tp_before_sl"] = None
+                        label["queue_info"] = queue_info
+                        label["limit_offset_atr"] = offset
+                        existing[key] = {
+                            "id": key, "family": family,
+                            "timestamp_ms": bar["ts_ms"], "side": side,
+                            "horizon_min": horizon, "features": feat, "label": label,
+                        }
+                        added += 1
 
     process_queue(scalp5, scalp_rows)
     archive["events"] = sorted(existing.values(), key=lambda x: (x.get("timestamp_ms", 0), x.get("id", "")))[-MAX_ARCHIVE:]
