@@ -19,7 +19,7 @@ SWING_HORIZONS = (60, 120, 240)        # minutes
 MAX_ARCHIVE = 12000
 MIN_ANALOGS = 30
 FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength")
-MICRO_FEATURES = FEATURES + ("cvd1m_log", "cvd5m_log", "cvd15m_log", "imbalance_top10", "book_delta_top10", "spread_bps", "oi_change_5m_pct")
+MICRO_FEATURES = FEATURES + ("cvd1m_log", "cvd5m_log", "cvd15m_log", "imbalance_top10", "book_delta_top10", "book_delta_valid", "spread_bps", "oi_change_5m_pct", "oi_change_valid")
 CONTEXT_ARCHIVE_PATH = Path("data/zec_context_archive.json")
 
 
@@ -266,7 +266,9 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
             "cvd1m_log": signed_log(cvd1), "cvd5m_log": signed_log(cvd5),
             "cvd15m_log": signed_log(cvd15), "imbalance_top10": imbalance,
             "book_delta_top10": _num(obs.get("book_delta_top10")) or 0.0,
+            "book_delta_valid": 1.0 if obs.get("book_delta_valid") else 0.0,
             "spread_bps": spread, "oi_change_5m_pct": oi_delta,
+            "oi_change_valid": 1.0 if (prior and prior.get("oi_valid") and obs.get("oi_valid")) else 0.0,
         }
 
     def process_micro(rows: list[dict[str, Any]], future_rows: list[dict[str, Any]],
@@ -475,7 +477,9 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
                     "cvd1m_log": signed_log(cvd1), "cvd5m_log": signed_log(cvd5),
                     "cvd15m_log": signed_log(cvd15), "imbalance_top10": imbalance,
                     "book_delta_top10": _num(obs.get("book_delta_top10")) or 0.0,
+                    "book_delta_valid": 1.0 if obs.get("book_delta_valid") else 0.0,
                     "spread_bps": spread, "oi_change_5m_pct": oi_delta,
+                    "oi_change_valid": 1.0 if (prior and prior.get("oi_valid") and obs.get("oi_valid")) else 0.0,
                 }
                 for side in ("LONG", "SHORT"):
                     target_result["by_direction"][side] = {
