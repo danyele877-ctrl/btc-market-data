@@ -268,10 +268,21 @@ def main():
         }
 
     health_payload = (feed.get("healthz") or {}).get("payload", {})
-    ws_micro = health_payload.get("microstructure", {}) if isinstance(health_payload, dict) else {}
-    if not ws_micro:
+    ws_micro_full = health_payload.get("microstructure", {}) if isinstance(health_payload, dict) else {}
+    if not ws_micro_full:
         candle_payload = (feed.get("candles") or {}).get("payload", {})
-        ws_micro = candle_payload.get("microstructure", {}) if isinstance(candle_payload, dict) else {}
+        ws_micro_full = candle_payload.get("microstructure", {}) if isinstance(candle_payload, dict) else {}
+    # Raw trade tape and full depth history are persisted separately in
+    # zec_microstructure_history.json; keep the compact radar snapshot small.
+    ws_micro = dict(ws_micro_full) if isinstance(ws_micro_full, dict) else {}
+    ws_micro.pop("trade_events", None)
+    ws_micro.pop("book_depth_history", None)
+    render_health = dict(health_payload) if isinstance(health_payload, dict) else {}
+    render_micro = dict(render_health.get("microstructure") or {})
+    render_micro.pop("trade_events", None)
+    render_micro.pop("book_depth_history", None)
+    if render_micro:
+        render_health["microstructure"] = render_micro
     micro_out = microstructure_summary(micro)
     micro_out["websocket"] = ws_micro
     micro_out["cvd"] = ws_micro.get("cvd")
@@ -297,7 +308,7 @@ def main():
         "source_status": feed.get("status"),
         "render_health_http": (feed.get("healthz") or {}).get("http_status"),
         "render_candles_http": (feed.get("candles") or {}).get("http_status"),
-        "render_health": (feed.get("healthz") or {}).get("payload"),
+        "render_health": render_health,
         "market": market_out,
         "candles_1m_5m": candles,
         "zec_xperp_history": xperp_history,
