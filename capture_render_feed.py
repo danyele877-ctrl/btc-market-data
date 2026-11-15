@@ -16,7 +16,7 @@ OUT = Path("data/render_feed.json")
 MICRO_OUT = Path("data/zec_microstructure_history.json")
 MICRO_MAX_MINUTES = 1440
 MICRO_MAX_TRADES = 30000
-MICRO_MAX_BOOK_SNAPSHOTS = 5000
+MICRO_MAX_BOOK_SNAPSHOTS = 15000
 MAX_FEED_AGE_SECONDS = 20 * 60
 HISTORY_MAX_AGE_SECONDS = {"1H": 3 * 3600, "4H": 12 * 3600}
 
@@ -299,12 +299,13 @@ def load_microstructure_history():
             return value
     except (OSError, json.JSONDecodeError):
         pass
-    return {"schema_version": 1, "instrument": "ZEC-USD_UM_XPERP-310530", "book_snapshots": [], "trades": [], "open_interest_history": []}
+    return {"schema_version": 1, "instrument": "ZEC-USD_UM_XPERP-310530", "book_snapshots": [], "trades": [], "open_interest_history": [], "capture_status": []}
 
-def update_microstructure_history(okx_market, websocket_micro=None):
+def update_microstructure_history(okx_market, websocket_micro=None, captured_at=None):
     websocket_micro = websocket_micro or {}
     history = load_microstructure_history()
     history.setdefault("open_interest_history", [])
+    history.setdefault("capture_status", [])
     book_result = okx_market.get("zec_xperp_book", {})
     book_payload = book_result.get("payload", {})
     book_rows = book_payload.get("data", []) if isinstance(book_payload, dict) else []
@@ -416,6 +417,17 @@ def update_microstructure_history(okx_market, websocket_micro=None):
     history["book_snapshots"] = [x for x in history["book_snapshots"] if x["ts_ms"] >= cutoff][-MICRO_MAX_BOOK_SNAPSHOTS:]
     history["trades"] = [x for x in history["trades"] if x["ts_ms"] >= cutoff][-MICRO_MAX_TRADES:]
     history["open_interest_history"] = [x for x in history["open_interest_history"] if x["ts_ms"] >= cutoff]
+    history["capture_status"].append({
+        "captured_at": captured_at or websocket_micro.get("last_message_at") or now(),
+        "trade_events_returned": int(websocket_micro.get("trade_events_returned") or 0),
+        "trade_events_truncated": bool(websocket_micro.get("trade_events_truncated")),
+        "trade_gap_count": int(websocket_micro.get("trade_gap_count") or 0),
+        "book_gap_count": int(websocket_micro.get("book_gap_count") or 0),
+        "book_valid": bool(websocket_micro.get("book_valid")),
+        "trade_age_seconds": websocket_micro.get("trade_age_seconds"),
+        "book_age_seconds": websocket_micro.get("book_age_seconds"),
+    })
+    history["capture_status"] = history["capture_status"][-MICRO_MAX_MINUTES:]
     MICRO_OUT.parent.mkdir(parents=True, exist_ok=True)
     MICRO_OUT.write_text(json.dumps(history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     return {
@@ -481,6 +493,7 @@ def main():
     microstructure_status = update_microstructure_history(
         okx_market,
         (health.get("payload") or {}).get("microstructure", {}),
+        health.get("retrieved_at"),
     )
     zec_xperp_history = get_okx_xperp_history("ZEC-USD_UM_XPERP-310530")
     Path("data/zec_xperp_history.json").write_text(json.dumps(zec_xperp_history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
