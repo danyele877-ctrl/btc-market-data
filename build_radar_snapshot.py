@@ -305,6 +305,7 @@ def main():
             "xperp_5m": hist_bars.get("5m", {}).get("candles", []),
             "xperp_1H": hist_bars.get("1H", {}).get("candles", []),
             "xperp_4H": hist_bars.get("4H", {}).get("candles", []),
+            "btc_5m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("5m", []),
         },
         "spot_history": spot_history,
         "microstructure": micro_out,
