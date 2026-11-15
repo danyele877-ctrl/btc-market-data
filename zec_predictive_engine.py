@@ -139,12 +139,14 @@ def _label(entry_bar: dict[str, Any], future: list[dict[str, Any]], side: str,
         # No touch in the defined limit window: a non-fill observation.
         if future[-1]["_close_ms"] < fill_deadline:
             return None
-        return {"filled_proxy": False, "tp_before_sl": None, "entry": round(entry, 8)}
+        return {"filled_proxy": False, "tp_before_sl": None, "entry": round(entry, 8),
+                "fill_window_completed_at_ms": future[-1]["_close_ms"]}
     if future[-1]["_close_ms"] < horizon_deadline:
         return None  # wait for the complete forward horizon before storing a label
     stop = entry - atr if side == "LONG" else entry + atr
     target = entry + 1.5 * atr if side == "LONG" else entry - 1.5 * atr
     outcome = None
+    outcome_at_ms = None
     for bar in future[fill_index:]:
         if bar["_close_ms"] > horizon_deadline:
             break
@@ -152,16 +154,21 @@ def _label(entry_bar: dict[str, Any], future: list[dict[str, Any]], side: str,
         target_hit = bar["high"] >= target if side == "LONG" else bar["low"] <= target
         if stop_hit and target_hit:
             outcome = False  # conservative: assume stop first within an ambiguous candle
+            outcome_at_ms = bar["_close_ms"]
             break
         if stop_hit:
             outcome = False
+            outcome_at_ms = bar["_close_ms"]
             break
         if target_hit:
             outcome = True
+            outcome_at_ms = bar["_close_ms"]
             break
     if outcome is None and future[-1]["_close_ms"] >= horizon_deadline:
         outcome = False  # barrier not reached inside horizon is not a TP win
-    return {"filled_proxy": True, "tp_before_sl": outcome, "entry": round(entry, 8)}
+        outcome_at_ms = future[-1]["_close_ms"]
+    return {"filled_proxy": True, "tp_before_sl": outcome, "entry": round(entry, 8),
+            "outcome_at_ms": outcome_at_ms}
 
 
 def _atr(rows: list[dict[str, Any]], i: int) -> float:
@@ -239,7 +246,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
                             matured_label = _label(bar, future, side, horizon, interval, fill_window, _num(old_label.get("entry")))
                             if matured_label and isinstance(matured_label.get("tp_before_sl"), bool):
                                 old_label["tp_before_sl"] = matured_label["tp_before_sl"]
-                                old_label["matured_at_ms"] = matured_label.get("matured_at_ms")
+                                old_label["matured_at_ms"] = matured_label.get("outcome_at_ms")
                         continue
                     label = _label(bar, future, side, horizon, interval, fill_window)
                     if label is None:
