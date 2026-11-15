@@ -192,6 +192,11 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
         [o for o in context_observations if isinstance(o, dict) and _num(o.get("minute_ms")) is not None],
         key=lambda o: o["minute_ms"]
     )
+    try:
+        queue_history = json.loads(QUEUE_HISTORY_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        queue_history = {}
+    tick_size = _num((((snapshot.get("market") or {}).get("zec_xperp_instrument") or {}).get("first") or {}).get("tickSz"))
     archive = {"schema_version": 1, "instrument": INSTRUMENT_ID, "updated_at": snapshot.get("source_captured_at"), "events": []}
     if archive_path.exists():
         try:
@@ -316,6 +321,53 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
 
     process_micro(scalp5, scalp_rows, SCALP_HORIZONS, "scalp_micro_5m", btc_by_ts, 5)
     process_micro(swing_rows, swing5, SWING_HORIZONS, "swing_micro_1H", btc1h_by_ts, 60)
+
+    def process_queue(rows: list[dict[str, Any]], future_rows: list[dict[str, Any]]) -> None:
+        nonlocal added
+        if len(rows) < 25 or len(future_rows) < 25 or tick_size is None or queue_history.get("instrument") != INSTRUMENT_ID:
+            return
+        for i in range(20, len(rows)):
+            base = _features(rows, i, btc_by_ts)
+            if not base:
+                continue
+            close_ms = rows[i]["_close_ms"]
+            obs = nearest_context(close_ms)
+            prior = nearest_context(close_ms - 5*60000)
+            feat = enrich(base, obs, prior)
+            if not feat:
+                continue
+            bar = dict(rows[i])
+            bar["_atr"] = _atr(rows, i)
+            if not bar["_atr"] or bar["_atr"] <= 0:
+                continue
+            for side in ("LONG", "SHORT"):
+                raw_limit = bar["close"] - 0.20*bar["_atr"] if side == "LONG" else bar["close"] + 0.20*bar["_atr"]
+                queue_info = estimate_queue_depletion(queue_history, close_ms, raw_limit, side, tick_size, 5)
+                if queue_info.get("status") != "STIMA QUEUE DISPONIBILE":
+                    continue
+                for horizon in SCALP_HORIZONS:
+                    key = f"scalp_queue_5m:{bar['ts_ms']}:{side}:{horizon}"
+                    if key in existing:
+                        continue
+                    future = [x for x in future_rows if close_ms < x["_close_ms"] <= close_ms + horizon*60000]
+                    label = _label(bar, future, side, horizon, 60, 5, queue_info["limit_price"])
+                    if label is None:
+                        continue
+                    if queue_info["queue_depleted_proxy"]:
+                        if not label.get("filled_proxy") or not isinstance(label.get("tp_before_sl"), bool):
+                            continue
+                    else:
+                        label["filled_proxy"] = False
+                        label["tp_before_sl"] = None
+                    label["queue_info"] = queue_info
+                    existing[key] = {
+                        "id": key, "family": "scalp_queue_5m",
+                        "timestamp_ms": bar["ts_ms"], "side": side,
+                        "horizon_min": horizon, "features": feat, "label": label,
+                    }
+                    added += 1
+
+    process_queue(scalp5, scalp_rows)
     archive["events"] = sorted(existing.values(), key=lambda x: (x.get("timestamp_ms", 0), x.get("id", "")))[-MAX_ARCHIVE:]
     archive["updated_at"] = snapshot.get("source_captured_at")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
