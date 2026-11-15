@@ -160,7 +160,7 @@ def get_url(url):
             "error": f"{type(exc).__name__}: {exc}"[:500],
         }
 
-def trim_arrays(value, limit=320):
+def trim_arrays(value, limit=500):
     if isinstance(value, dict):
         return {key: trim_arrays(item, limit) for key, item in value.items()}
     if isinstance(value, list):
