@@ -232,9 +232,15 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
             for side in ("LONG", "SHORT"):
                 for horizon in horizons:
                     key = f"{event_id}:{side}:{horizon}"
-                    if key in existing:
-                        continue
                     future = [x for x in future_rows if x["_close_ms"] > bar["_close_ms"] and x["_close_ms"] <= bar["_close_ms"] + horizon*60_000]
+                    if key in existing:
+                        old_label = existing[key].get("label", {})
+                        if old_label.get("filled_proxy") is True and old_label.get("tp_before_sl") is None:
+                            matured_label = _label(bar, future, side, horizon, interval, fill_window, _num(old_label.get("entry")))
+                            if matured_label and isinstance(matured_label.get("tp_before_sl"), bool):
+                                old_label["tp_before_sl"] = matured_label["tp_before_sl"]
+                                old_label["matured_at_ms"] = matured_label.get("matured_at_ms")
+                        continue
                     label = _label(bar, future, side, horizon, interval, fill_window)
                     if label is None:
                         continue
@@ -308,9 +314,15 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
             for side in ("LONG", "SHORT"):
                 for horizon in horizons:
                     key = f"{event_id}:{side}:{horizon}"
-                    if key in existing:
-                        continue
                     future = [x for x in future_rows if close_ms < x["_close_ms"] <= close_ms + horizon * 60000]
+                    if key in existing:
+                        old_label = existing[key].get("label", {})
+                        if old_label.get("filled_proxy") is True and old_label.get("tp_before_sl") is None:
+                            matured_label = _label(bar, future, side, horizon, interval, fill_window, _num(old_label.get("entry")))
+                            if matured_label and isinstance(matured_label.get("tp_before_sl"), bool):
+                                old_label["tp_before_sl"] = matured_label["tp_before_sl"]
+                                old_label["matured_at_ms"] = matured_label.get("matured_at_ms")
+                        continue
                     label = _label(bar, future, side, horizon, interval, fill_window)
                     if label is None:
                         continue
