@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from zec_context_archive import INSTRUMENT_ID, _closed_1m, _mature_setups, update_context_archive
+from zec_context_archive import INSTRUMENT_ID, _closed_1m, _mature_setups, backfill_context_archive, update_context_archive
 
 
 NOW = datetime(2026, 1, 1, 12, 10, tzinfo=timezone.utc)
@@ -67,6 +67,30 @@ class ZecContextArchiveTests(unittest.TestCase):
             second = update_context_archive(snapshot(), path, now=NOW)
             self.assertEqual(second["observations_total"], 1)
             self.assertEqual(second["observations_added"], 0)
+
+    def test_bulk_backfill_deduplicates_observations_by_minute(self):
+        first = snapshot()
+        second = snapshot()
+        second_time = NOW + timedelta(seconds=30)
+        second["source_captured_at"] = second_time.isoformat().replace("+00:00", "Z")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = backfill_context_archive(
+                [(NOW, first), (second_time, second)],
+                Path(tmp) / "context.json",
+            )
+        self.assertEqual(result["observations_total"], 1)
+
+    def test_truncated_forward_path_is_not_matured(self):
+        entry_time = int((NOW - timedelta(minutes=10)).timestamp() * 1000)
+        setup = {
+            "entry_close_ms": entry_time, "entry_reference": 100,
+            "atr_reference": 1, "direction": "LONG", "outcomes": {},
+        }
+        # The visible tail starts several minutes after entry; it cannot prove the full path.
+        future = [bar(NOW - timedelta(minutes=7-i), 100) for i in range(5)]
+        matured = _mature_setups([setup], _closed_1m(future, NOW))
+        self.assertEqual(matured, 0)
+        self.assertEqual(setup["outcomes"], {})
 
     def test_stale_or_wrong_contract_snapshot_is_blocked(self):
         value = snapshot()
