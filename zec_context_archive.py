@@ -181,7 +181,9 @@ def _mature_setups(setups: list[dict[str, Any]], bars: list[dict[str, Any]]) -> 
                 continue
             deadline = entry_time + horizon * 60000
             future = [bar for bar in bars if bar["_close_ms"] > entry_time and bar["_close_ms"] <= deadline]
-            if not future or future[-1]["_close_ms"] < deadline:
+            # Require the full forward path from the first minute after entry;
+            # a truncated 8-candle tail must never be mistaken for a complete horizon.
+            if not future or future[0]["_close_ms"] > entry_time + 60000 or future[-1]["_close_ms"] < deadline:
                 continue
             mfe = 0.0
             mae = 0.0
@@ -293,7 +295,10 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
             observations[existing] = observation
         observations.sort(key=lambda item: item.get("minute_ms", 0))
         archive["observations"] = observations[-MAX_OBSERVATIONS:]
-    bars = _closed_1m((snapshot.get("predictive_history") or {}).get("xperp_1m"), captured)
+    hist_rows = (snapshot.get("predictive_history") or {}).get("xperp_1m")
+    if not hist_rows:
+        hist_rows = (((snapshot.get("candles_1m_5m") or {}).get("ZEC-USD_UM_XPERP") or {}).get("1m") or {}).get("tail", [])
+    bars = _closed_1m(hist_rows, captured)
     setups = archive["setups"]
     added_setup = _record_confirmed_setup(snapshot, setups, captured, bars)
     matured = _mature_setups(setups, bars)
