@@ -173,6 +173,7 @@ def new_state() -> dict[str, Any]:
             "book_seq_id": None,
             "book_gap_count": 0,
             "book_history": [],
+            "book_depth_history": [],
             "book": {"bids": [], "asks": [], "imbalance_top5": None, "imbalance_top10": None, "imbalance_top20": None},
             "cvd": {
                 "unit": "contracts",
@@ -296,6 +297,12 @@ class CandleFeed:
         result["book_valid"] = bool(micro.get("book_valid") and self.micro_book.get("valid"))
         result["connected"] = bool(micro.get("connected"))
         result["cvd"] = dict(micro.get("cvd") or {})
+        events = list(self.micro_trade_events)
+        result["trade_events_count"] = len(events)
+        result["trade_events_returned"] = min(len(events), 5000)
+        result["trade_events_truncated"] = len(events) > 5000
+        result["trade_events"] = events[-5000:]
+        result["book_depth_history"] = list(micro.get("book_depth_history") or [])
         return result
 
     async def persist(self) -> None:
@@ -497,6 +504,11 @@ class CandleFeed:
                 delta = size if side == "buy" else -size
                 self.micro_trade_events.append({
                     "ts_ms": ts_ms,
+                    "trade_id": trade_id,
+                    "count": count,
+                    "side": side,
+                    "size_contracts": size,
+                    "price": str(row.get("px", "")),
                     "delta_contracts": delta,
                     "gap_before": gap_before,
                 })
@@ -555,6 +567,16 @@ class CandleFeed:
                     cutoff = now_ms - 5 * 60 * 1000
                     micro["book_history"] = [
                         item for item in micro["book_history"]
+                        if int(item.get("ts_ms", 0)) >= cutoff
+                    ][-300:]
+                    micro.setdefault("book_depth_history", []).append({
+                        "ts_ms": exchange_ts,
+                        "seq_id": seq_id,
+                        "bids": summary.get("bids", [])[:10],
+                        "asks": summary.get("asks", [])[:10],
+                    })
+                    micro["book_depth_history"] = [
+                        item for item in micro["book_depth_history"]
                         if int(item.get("ts_ms", 0)) >= cutoff
                     ][-300:]
 
