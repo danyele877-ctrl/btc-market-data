@@ -275,6 +275,23 @@ def _movement_candidates(snapshot: dict[str, Any], observations: list[dict[str, 
     return events
 
 
+def _dedupe_movement_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collapse consecutive bars from the same displacement into one event episode."""
+    kept = []
+    for event in sorted(events, key=lambda item: item.get("entry_close_ms", 0)):
+        if not kept:
+            kept.append(event)
+            continue
+        previous = kept[-1]
+        elapsed = (_num(event.get("entry_close_ms")) or 0) - (_num(previous.get("entry_close_ms")) or 0)
+        if event.get("direction") == previous.get("direction") and elapsed < 15 * 60000:
+            continue
+        if event.get("direction") != previous.get("direction") and elapsed < 5 * 60000:
+            continue
+        kept.append(event)
+    return kept
+
+
 def _mature_setups(setups: list[dict[str, Any]], bars: list[dict[str, Any]]) -> int:
     updated = 0
     if not bars:
@@ -394,7 +411,7 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
     by_minute = {int(item.get("minute_ms", 0)): index for index, item in enumerate(observations)}
     added_setups = 0
     matured = 0
-    movement_events = archive.setdefault("movement_events", [])
+    movement_events = _dedupe_movement_events(archive.setdefault("movement_events", []))
     movement_ids = {item.get("id") for item in movement_events if isinstance(item, dict)}
     movement_added = 0
     movement_matured = 0
@@ -420,7 +437,10 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
         added_setups += _record_confirmed_setup(snapshot, setups, captured, bars)
         matured += _mature_setups(setups, bars)
         for event in _movement_candidates(snapshot, observations, captured):
-            if event["id"] not in movement_ids:
+            last_event = movement_events[-1] if movement_events else None
+            elapsed = (event["entry_close_ms"] - last_event["entry_close_ms"]) if last_event else None
+            cooldown = 15*60000 if last_event and last_event.get("direction") == event.get("direction") else 5*60000
+            if event["id"] not in movement_ids and (elapsed is None or elapsed >= cooldown):
                 movement_ids.add(event["id"])
                 movement_events.append(event)
                 movement_added += 1
@@ -464,7 +484,7 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
     archive = _load(archive_path)
     before_obs = len(archive["observations"])
     before_setups = len(archive["setups"])
-    movement_events = archive.setdefault("movement_events", [])
+    movement_events = _dedupe_movement_events(archive.setdefault("movement_events", []))
     movement_ids = {item.get("id") for item in movement_events if isinstance(item, dict)}
     movement_added = 0
     movement_matured = 0
@@ -487,7 +507,10 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
     added_setup = _record_confirmed_setup(snapshot, setups, captured, bars)
     matured = _mature_setups(setups, bars)
     for event in _movement_candidates(snapshot, archive["observations"], captured):
-        if event["id"] not in movement_ids:
+        last_event = movement_events[-1] if movement_events else None
+        elapsed = (event["entry_close_ms"] - last_event["entry_close_ms"]) if last_event else None
+        cooldown = 15*60000 if last_event and last_event.get("direction") == event.get("direction") else 5*60000
+        if event["id"] not in movement_ids and (elapsed is None or elapsed >= cooldown):
             movement_ids.add(event["id"])
             movement_events.append(event)
             movement_added += 1
