@@ -404,11 +404,17 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
     pool = [e for e in archive.get("events", [])
             if e.get("family") == family and e.get("side") == side
             and e.get("horizon_min") == horizon and isinstance(e.get("label"), dict)]
-    filled = [e for e in pool if e["label"].get("filled_proxy") is True and isinstance(e["label"].get("tp_before_sl"), bool)]
-    if len(pool) < MIN_ANALOGS or len(filled) < MIN_ANALOGS:
-        return {"status": "IN APPRENDIMENTO", "samples": len(pool), "filled_samples": len(filled),
-                "p_limit_touch_proxy": None, "p_tp_before_sl_given_touch": None,
-                "reason": f"servono almeno {MIN_ANALOGS} campioni maturi e {MIN_ANALOGS} limit-touch proxy"}
+    filled_pool = [e for e in pool if e["label"].get("filled_proxy") is True
+                   and isinstance(e["label"].get("tp_before_sl"), bool)]
+    if len(pool) < MIN_ANALOGS:
+        return {
+            "status": "IN APPRENDIMENTO", "samples": len(pool),
+            "filled_samples": len(filled_pool), "neighbors": min(50, len(pool)),
+            "filled_neighbors": 0, "p_limit_touch_proxy": None,
+            "p_tp_before_sl_given_touch": None,
+            "tp_status": "IN APPRENDIMENTO",
+            "reason": f"servono almeno {MIN_ANALOGS} osservazioni mature per stimare il tocco",
+        }
     means, scales = {}, {}
     for key in feature_names:
         vals = [_num(e.get("features", {}).get(key)) for e in pool]
@@ -420,21 +426,30 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
         f = e.get("features", {})
         return math.sqrt(sum(((features[k]-means[k])/scales[k] - (_num(f.get(k)) - means[k])/scales[k])**2 for k in feature_names))
     nearest = sorted(pool, key=distance)[:min(50, len(pool))]
+    if len(nearest) < MIN_ANALOGS:
+        return {
+            "status": "IN APPRENDIMENTO", "samples": len(pool),
+            "filled_samples": len(filled_pool), "neighbors": len(nearest),
+            "filled_neighbors": 0, "p_limit_touch_proxy": None,
+            "p_tp_before_sl_given_touch": None, "tp_status": "IN APPRENDIMENTO",
+            "reason": "non ci sono abbastanza analoghi vicini",
+        }
     nearest_filled = [e for e in nearest if e["label"].get("filled_proxy") is True]
-    if len(nearest) < MIN_ANALOGS or len(nearest_filled) < MIN_ANALOGS:
-        return {"status": "IN APPRENDIMENTO", "samples": len(pool), "filled_samples": len(filled),
-                "p_limit_touch_proxy": None, "p_tp_before_sl_given_touch": None,
-                "reason": "non ci sono abbastanza analoghi vicini con esito osservato"}
     p_touch = sum(1 for e in nearest if e["label"].get("filled_proxy") is True) / len(nearest)
-    p_tp = sum(1 for e in nearest_filled if e["label"].get("tp_before_sl") is True) / len(nearest_filled)
+    p_tp = None
+    tp_status = "IN APPRENDIMENTO"
+    if len(nearest_filled) >= MIN_ANALOGS:
+        p_tp = sum(1 for e in nearest_filled if e["label"].get("tp_before_sl") is True) / len(nearest_filled)
+        tp_status = "STIMA SPERIMENTALE"
     return {
         "status": "STIMA SPERIMENTALE", "samples": len(pool), "neighbors": len(nearest),
-        "filled_neighbors": len(nearest_filled),
+        "filled_samples": len(filled_pool), "filled_neighbors": len(nearest_filled),
         "p_limit_touch_proxy": round(p_touch, 4),
-        "p_tp_before_sl_given_touch": round(p_tp, 4),
+        "p_tp_before_sl_given_touch": round(p_tp, 4) if p_tp is not None else None,
+        "tp_status": tp_status,
         "method": "nearest-neighbor empirical frequency; not calibrated",
-        "fill_proxy_caveat": "touch OHLC only: does not model queue position, spread, latency or actual execution",
-        "barrier_definition": "hypothetical LIMIT offset 0.20 ATR; SL 1.0 ATR; TP1 1.5 ATR; ambiguous same-bar TP/SL counts as SL",
+        "fill_proxy_caveat": "OHLC touch or queue depletion proxy depending on sample family; neither proves actual execution",
+        "barrier_definition": "hypothetical LIMIT offset; SL 1.0 ATR; TP1 1.5 ATR; ambiguous same-bar TP/SL counts as SL",
     }
 
 
