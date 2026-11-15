@@ -263,13 +263,13 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
     """Append one quality-gated microstructure observation and mature confirmed-trigger outcomes."""
     captured = _time(snapshot.get("source_captured_at"))
     if captured is None:
-        return {"status": "BLOCCATO", "reason": "source_captured_at non valido", "observations": 0, "setups": 0}
+        return {"status": "BLOCCATO", "reason": "source_captured_at non valido", "observations_total": 0, "observations_added": 0, "setups_total": 0, "setups_added": 0, "outcomes_matured": 0, "trigger_validation": {}}
     current = now or datetime.now(timezone.utc)
     age = (current - captured).total_seconds()
     ticker = ((snapshot.get("market") or {}).get("zec_xperp_ticker") or {}).get("first") or {}
     if (snapshot.get("schema_version") != 3 or snapshot.get("source_status") != "ok"
             or ticker.get("instId") != INSTRUMENT_ID or age < -60 or age > 180):
-        return {"status": "BLOCCATO", "reason": "snapshot non valido/stale o strumento errato", "observations": 0, "setups": 0}
+        return {"status": "BLOCCATO", "reason": "snapshot non valido/stale o strumento errato", "observations_total": 0, "observations_added": 0, "setups_total": 0, "setups_added": 0, "outcomes_matured": 0, "trigger_validation": {}}
     archive = _load(archive_path)
     before_obs = len(archive["observations"])
     before_setups = len(archive["setups"])
