@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from zec_context_archive import INSTRUMENT_ID, _closed_1m, _mature_setups, backfill_context_archive, update_context_archive
+from zec_context_archive import INSTRUMENT_ID, _closed_1m, _mature_setups, _movement_candidates, backfill_context_archive, update_context_archive
 
 
 NOW = datetime(2026, 1, 1, 12, 10, tzinfo=timezone.utc)
@@ -79,6 +79,35 @@ class ZecContextArchiveTests(unittest.TestCase):
                 Path(tmp) / "context.json",
             )
         self.assertEqual(result["observations_total"], 1)
+
+    def test_large_move_records_preceding_cvd_book_and_btc_context(self):
+        rows = []
+        btc_rows = []
+        start = NOW - timedelta(minutes=25)
+        for i in range(25):
+            candle_start = start + timedelta(minutes=i)
+            zec_close = 102.0 if i == 24 else 100.0
+            rows.append(bar(candle_start, zec_close,
+                            high=zec_close + 0.1, low=zec_close - 0.1))
+            btc_rows.append(bar(candle_start, 1000.0,
+                                high=1000.1, low=999.9))
+        captured_at = NOW - timedelta(seconds=30)
+        observation = {
+            "minute_ms": int(captured_at.timestamp() // 60 * 60000),
+            "captured_at": captured_at.isoformat().replace("+00:00", "Z"),
+            "cvd_1m_contracts": 10, "cvd_5m_contracts": 40, "cvd_15m_contracts": 70,
+            "imbalance_top10": 0.4, "book_delta_top10": 0.2,
+            "spread_bps": 1.5, "oi_contracts": 1000, "oi_valid": True,
+            "funding_rate": -0.0001,
+        }
+        value = snapshot()
+        value["predictive_history"] = {"xperp_1m": rows, "btc_1m": btc_rows}
+        events = _movement_candidates(value, [observation], NOW)
+        self.assertTrue(events)
+        self.assertEqual(events[-1]["direction"], "LONG")
+        self.assertEqual(events[-1]["features"]["cvd_alignment"], "concorde")
+        self.assertEqual(events[-1]["features"]["book_alignment"], "concorde")
+        self.assertIn("non dimostrano causalità", events[-1]["causality_note"])
 
     def test_truncated_forward_path_is_not_matured(self):
         entry_time = int((NOW - timedelta(minutes=10)).timestamp() * 1000)
