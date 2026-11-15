@@ -19,7 +19,7 @@ SWING_HORIZONS = (60, 120, 240)        # minutes
 MAX_ARCHIVE = 12000
 MIN_ANALOGS = 30
 FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength")
-MICRO_FEATURES = FEATURES + ("cvd1m_log", "cvd5m_log", "cvd15m_log", "imbalance_top10", "book_delta_top10", "book_delta_valid", "spread_bps", "oi_change_5m_pct", "oi_change_valid")
+MICRO_FEATURES = FEATURES + ("cvd1m_log", "cvd5m_log", "cvd15m_log", "imbalance_top10", "book_delta_top10", "book_delta_valid", "spread_bps", "oi_change_pct", "oi_change_valid")
 CONTEXT_ARCHIVE_PATH = Path("data/zec_context_archive.json")
 
 
@@ -267,7 +267,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
             "cvd15m_log": signed_log(cvd15), "imbalance_top10": imbalance,
             "book_delta_top10": _num(obs.get("book_delta_top10")) or 0.0,
             "book_delta_valid": 1.0 if obs.get("book_delta_valid") else 0.0,
-            "spread_bps": spread, "oi_change_5m_pct": oi_delta,
+            "spread_bps": spread, "oi_change_pct": oi_delta,
             "oi_change_valid": 1.0 if (prior and prior.get("oi_valid") and obs.get("oi_valid")) else 0.0,
         }
 
@@ -457,8 +457,11 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
                         and 0 <= close_ms - int(_dt(o["captured_at"]).timestamp() * 1000) <= 90000]
             obs = eligible[-1] if eligible else None
             if obs:
+                obs_ms = int(_dt(obs["captured_at"]).timestamp() * 1000)
+                target_ms = obs_ms - prior_minutes * 60000
                 earlier = [o for o in observations
-                           if 4*60000 <= int(obs["minute_ms"]) - int(o.get("minute_ms", 0)) <= (prior_minutes+60000)]
+                           if _dt(o.get("captured_at")) is not None
+                           and 0 <= target_ms - int(_dt(o["captured_at"]).timestamp() * 1000) <= 90000]
                 prior = earlier[-1] if earlier else None
         if base and obs:
             raw = [_num(obs.get(k)) for k in (
@@ -478,7 +481,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
                     "cvd15m_log": signed_log(cvd15), "imbalance_top10": imbalance,
                     "book_delta_top10": _num(obs.get("book_delta_top10")) or 0.0,
                     "book_delta_valid": 1.0 if obs.get("book_delta_valid") else 0.0,
-                    "spread_bps": spread, "oi_change_5m_pct": oi_delta,
+                    "spread_bps": spread, "oi_change_pct": oi_delta,
                     "oi_change_valid": 1.0 if (prior and prior.get("oi_valid") and obs.get("oi_valid")) else 0.0,
                 }
                 for side in ("LONG", "SHORT"):
