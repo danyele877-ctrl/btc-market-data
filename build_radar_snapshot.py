@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zec_early_signal import evaluate_signal
 from zec_predictive_engine import evaluate_predictive_engine
+from zec_context_archive import update_context_archive
 
 ROOT = Path("data")
 FEED = ROOT / "render_feed.json"
@@ -306,6 +307,7 @@ def main():
             "xperp_1H": hist_bars.get("1H", {}).get("candles", []),
             "xperp_4H": hist_bars.get("4H", {}).get("candles", []),
             "btc_5m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("5m", []),
+            "btc_1H": okx_history.get("BTC-USDC", {}).get("1H", {}).get("candles", []),
         },
         "spot_history": spot_history,
         "microstructure": micro_out,
@@ -316,7 +318,9 @@ def main():
         },
     }
     output["zec_early_signal"] = evaluate_signal(output, now=now)
+    output["zec_context_archive"] = update_context_archive(output, now=now)
     output["zec_predictive_engine"] = evaluate_predictive_engine(output)
+    output["zec_predictive_engine"]["context_archive"] = output["zec_context_archive"]
     OUT.write_text(json.dumps(output, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(json.dumps({
         "output": str(OUT),
@@ -340,6 +344,9 @@ def main():
         "zec_predictive_engine_archive": output["zec_predictive_engine"]["archive"],
         "zec_predictive_engine_scalping_status": output["zec_predictive_engine"]["scalping"]["status"],
         "zec_predictive_engine_reversals_status": output["zec_predictive_engine"]["reversals"]["status"],
+        "zec_context_observations": output["zec_context_archive"]["observations_total"],
+        "zec_confirmed_setups": output["zec_context_archive"]["setups_total"],
+        "zec_setup_outcomes_matured": output["zec_context_archive"]["outcomes_matured"],
     }))
 
 
