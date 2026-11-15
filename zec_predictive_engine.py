@@ -184,6 +184,11 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
         except Exception:
             pass
     existing = {e.get("id"): e for e in archive["events"] if isinstance(e, dict) and e.get("id")}
+    # Schema correction: swing samples have no paired BTC 1H series yet.
+    # Never reuse ZEC momentum as if it were relative strength.
+    for event in existing.values():
+        if event.get("family") == "swing_1H" and isinstance(event.get("features"), dict):
+            event["features"]["rel_strength"] = 0.0
     added = 0
 
     def process(rows: list[dict[str, Any]], future_rows: list[dict[str, Any]], interval: int,
@@ -323,7 +328,8 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         "archive": counts, "orders_enabled": False,
         "scalping": {"status": "DATI INSUFFICIENTI"},
         "reversals": {"status": "DATI INSUFFICIENTI"},
-        "probability_note": "Nessuna probabilità viene pubblicata prima della soglia minima; le frequenze analogiche successive sono sperimentali, non calibrate.",
+        "probability_note": "Frequenze analogiche sperimentali, non calibrate; eventi contigui e sovrapposti non equivalgono a trade indipendenti o setup attivati.",
+        "sample_warning": "Il conteggio rappresenta barre/eventi storici analoghi, non operazioni reali indipendenti. Non è un win-rate né prova di edge.",
     }
     for rows, family, horizons, target in (
         (scalp, "scalp_5m", SCALP_HORIZONS, "scalping"),
