@@ -559,19 +559,44 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
             target_result["reason"] = "osservazione microstrutturale non allineata alla candela completata"
         micro_results[target] = target_result
     result["microstructure_models"] = micro_results
-    queue_results = {"status": "IN APPRENDIMENTO", "by_direction": {}}
+    queue_results = {"status": "IN APPRENDIMENTO", "by_direction": {}, "preferred_offsets": {}}
     current_scalp_features = micro_results.get("scalping", {}).get("current_features")
     if current_scalp_features:
         for side in ("LONG", "SHORT"):
             queue_results["by_direction"][side] = {}
+            queue_results["preferred_offsets"][side] = {}
             for horizon in SCALP_HORIZONS:
-                estimate = _analogs(archive, "scalp_queue_5m", side, horizon,
-                                    current_scalp_features, MICRO_FEATURES)
-                if "p_limit_touch_proxy" in estimate:
-                    estimate["p_queue_depletion_proxy"] = estimate.pop("p_limit_touch_proxy")
-                estimate["execution_note"] = "Deplezione della coda visibile stimata da book sequenziato e trades aggressivi; non equivale a fill reale."
-                queue_results["by_direction"][side][str(horizon)] = estimate
-        queue_statuses = [item["status"] for side in queue_results["by_direction"].values() for item in side.values()]
+                queue_results["by_direction"][side][str(horizon)] = {}
+                candidates = []
+                for offset in LIMIT_OFFSETS_ATR:
+                    family = f"scalp_queue_{int(offset*100):02d}"
+                    estimate = _analogs(archive, family, side, horizon,
+                                        current_scalp_features, MICRO_FEATURES)
+                    if "p_limit_touch_proxy" in estimate:
+                        estimate["p_queue_depletion_proxy"] = estimate.pop("p_limit_touch_proxy")
+                    estimate["limit_offset_atr"] = offset
+                    if (estimate.get("p_queue_depletion_proxy") is not None
+                            and estimate.get("p_tp_before_sl_given_touch") is not None):
+                        estimate["p_joint_tp1_proxy"] = round(
+                            estimate["p_queue_depletion_proxy"] * estimate["p_tp_before_sl_given_touch"], 4
+                        )
+                    estimate["execution_note"] = "Deplezione della coda visibile stimata da book sequenziato e trades aggressivi; non equivale a fill reale."
+                    queue_results["by_direction"][side][str(horizon)][str(offset)] = estimate
+                    if estimate.get("status") == "STIMA SPERIMENTALE" and estimate.get("p_joint_tp1_proxy") is not None:
+                        candidates.append((estimate["p_joint_tp1_proxy"], offset))
+                if candidates:
+                    best_joint, best_offset = max(candidates)
+                    queue_results["preferred_offsets"][side][str(horizon)] = {
+                        "offset_atr": best_offset,
+                        "joint_tp1_proxy": best_joint,
+                        "basis": "confronto sperimentale fra offset; non calibrato",
+                    }
+        queue_statuses = [
+            item["status"]
+            for side in queue_results["by_direction"].values()
+            for horizon in side.values()
+            for item in horizon.values()
+        ]
         queue_results["status"] = "STIME SPERIMENTALI" if any(x == "STIMA SPERIMENTALE" for x in queue_statuses) else "IN APPRENDIMENTO"
     try:
         queue_data = json.loads(QUEUE_HISTORY_PATH.read_text(encoding="utf-8"))
