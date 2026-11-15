@@ -257,6 +257,8 @@ class FeedStateTests(unittest.TestCase):
                 self.assertEqual(tape["trade_events_count"], 2)
                 self.assertEqual(tape["trade_events"][0]["trade_id"], 100)
                 self.assertEqual(tape["trade_events"][0]["price"], "100.5")
+                self.assertEqual(tape["trade_events_schema_version"], 1)
+                self.assertEqual(tape["book_depth_history_window_seconds"], 300)
                 self.assertFalse(tape["trade_events_truncated"])
 
                 gap = {
