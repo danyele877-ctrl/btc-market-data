@@ -22,7 +22,7 @@ class PredictiveEngineTests(unittest.TestCase):
     def test_analog_model_withholds_probabilities_below_minimum(self):
         result = _analogs({"events": []}, "scalp_5m", "LONG", 5,
                           {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
-                           "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5, "trend": 0.0})
+                           "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5, "trend": 0.0, "rel_strength": 0.0})
         self.assertEqual(result["status"], "IN APPRENDIMENTO")
         self.assertIsNone(result["p_limit_touch_proxy"])
         self.assertIsNone(result["p_tp_before_sl_given_touch"])
