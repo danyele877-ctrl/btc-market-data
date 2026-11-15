@@ -89,6 +89,13 @@ def estimate_queue_depletion(
         return {"status": "LIMIT MARKETABILE", "limit_price": limit_price}
 
     levels = bids if side == "LONG" else asks
+    edge_price = _num(levels[-1][0]) if levels and len(levels[-1]) >= 2 else None
+    if edge_price is None:
+        return {"status": "BOOK DEPTH INSUFFICIENT", "limit_price": limit_price}
+    if side == "LONG" and limit_price < edge_price - tick_size*0.5:
+        return {"status": "LIMIT FUORI PROFONDITA VISIBILE", "limit_price": limit_price}
+    if side == "SHORT" and limit_price > edge_price + tick_size*0.5:
+        return {"status": "LIMIT FUORI PROFONDITA VISIBILE", "limit_price": limit_price}
     queue_ahead = 0.0
     level_present = False
     for level in levels:
