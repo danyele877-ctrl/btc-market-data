@@ -110,6 +110,9 @@ class ZecContextArchiveTests(unittest.TestCase):
         self.assertEqual(events[-1]["direction"], "LONG")
         self.assertEqual(events[-1]["features"]["cvd_alignment"], "concorde")
         self.assertEqual(events[-1]["features"]["book_alignment"], "concorde")
+        self.assertEqual(events[-1]["features"]["btc_return_5m_pct"], 0.0)
+        self.assertEqual(events[-1]["event_candle_completed_at"], NOW.isoformat().replace("+00:00", "Z"))
+        self.assertEqual(events[-1]["context_observation_at"], captured_at.isoformat().replace("+00:00", "Z"))
         self.assertIn("non dimostrano causalità", events[-1]["causality_note"])
 
     def test_truncated_forward_path_is_not_matured(self):
