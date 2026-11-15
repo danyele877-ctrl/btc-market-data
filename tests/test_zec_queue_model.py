@@ -62,6 +62,10 @@ class QueueDepletionTests(unittest.TestCase):
         self.assertEqual(result["queue_ahead_contracts"], 4.0)
         self.assertTrue(result["queue_depleted_proxy"])
 
+    def test_limit_outside_visible_top_ten_depth_is_not_estimated(self):
+        result = estimate_queue_depletion(history(), ENTRY, 99.50, "LONG", 0.01)
+        self.assertEqual(result["status"], "LIMIT FUORI PROFONDITA VISIBILE")
+
     def test_trade_gap_blocks_queue_estimate(self):
         value = history()
         value["trades"][0]["gap_before"] = True
