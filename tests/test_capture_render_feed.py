@@ -1,0 +1,65 @@
+import json
+import tempfile
+import unittest
+from datetime import datetime, timezone
+from pathlib import Path
+from unittest.mock import patch
+
+import capture_render_feed as capture
+
+
+class MicrostructureHistoryTests(unittest.TestCase):
+    def test_websocket_trade_and_depth_sequences_are_persisted(self):
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        micro = {
+            "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "trade_events": [{
+                "trade_id": 123, "ts_ms": now_ms-1000, "side": "sell",
+                "size_contracts": 4.5, "price": "900.1", "count": 1,
+                "gap_before": False,
+            }],
+            "trade_events_returned": 1,
+            "trade_events_truncated": False,
+            "book_depth_history": [{
+                "ts_ms": now_ms-500, "seq_id": 456,
+                "bids": [["900.0", "10"]], "asks": [["900.2", "12"]],
+            }],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "micro.json"
+            with patch.object(capture, "MICRO_OUT", path):
+                status = capture.update_microstructure_history({}, micro)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(status["websocket_trades"], 1)
+        self.assertEqual(status["websocket_book_snapshots"], 1)
+        self.assertEqual(saved["trades"][0]["source"], "websocket")
+        self.assertEqual(saved["trades"][0]["gap_before"], False)
+        self.assertEqual(saved["book_snapshots"][0]["seq_id"], 456)
+        self.assertEqual(saved["book_snapshots"][0]["source"], "websocket")
+
+    def test_rest_duplicate_is_upgraded_to_websocket_record(self):
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "micro.json"
+            path.write_text(json.dumps({
+                "schema_version": 1, "instrument": "ZEC-USD_UM_XPERP-310530",
+                "book_snapshots": [], "trades": [{
+                    "tradeId": "123", "ts_ms": now_ms-1000, "side": "sell",
+                    "sz": "4.5", "px": "900.1", "source": "rest",
+                }], "open_interest_history": [],
+            }), encoding="utf-8")
+            micro = {"trade_events": [{
+                "trade_id": 123, "ts_ms": now_ms-1000, "side": "sell",
+                "size_contracts": 4.5, "price": "900.1", "count": 1,
+                "gap_before": True,
+            }]}
+            with patch.object(capture, "MICRO_OUT", path):
+                status = capture.update_microstructure_history({}, micro)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(status["unique_trades"], 1)
+        self.assertEqual(saved["trades"][0]["source"], "websocket")
+        self.assertTrue(saved["trades"][0]["gap_before"])
+
+
+if __name__ == "__main__":
+    unittest.main()
