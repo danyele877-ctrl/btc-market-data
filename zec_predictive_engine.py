@@ -432,6 +432,88 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
             "status": "IN APPRENDIMENTO" if all(v["status"] == "IN APPRENDIMENTO" for d in side_results.values() for v in d.values()) else "STIME SPERIMENTALI",
             "features": feat, "by_direction": side_results,
         }
+    # Separate microstructure-enhanced analogs; no mixing with OHLC-only samples.
+    try:
+        context_data = json.loads(CONTEXT_ARCHIVE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        context_data = {}
+    observations = sorted(context_data.get("observations", []), key=lambda o: o.get("minute_ms", 0))
+    micro_results = {}
+    for target, family, horizons, rows, benchmark, prior_minutes in (
+        ("scalping", "scalp_micro_5m", SCALP_HORIZONS, scalp, btc_by_ts, 5),
+        ("reversals", "swing_micro_1H", SWING_HORIZONS, swing, btc1h_by_ts, 60),
+    ):
+        base = _features(rows, len(rows)-1, benchmark) if rows else None
+        target_result = {"status": "IN APPRENDIMENTO", "by_direction": {}}
+        obs = None
+        prior = None
+        if base and observations:
+            close_ms = rows[-1]["_close_ms"]
+            eligible = [o for o in observations if 0 <= close_ms - int(o.get("minute_ms", 0)) <= 90000]
+            obs = eligible[-1] if eligible else None
+            if obs:
+                earlier = [o for o in observations
+                           if 4*60000 <= int(obs["minute_ms"]) - int(o.get("minute_ms", 0)) <= (prior_minutes+60000)]
+                prior = earlier[-1] if earlier else None
+        if base and obs:
+            raw = [_num(obs.get(k)) for k in (
+                "cvd_1m_contracts", "cvd_5m_contracts", "cvd_15m_contracts",
+                "imbalance_top10", "spread_bps")]
+            if all(v is not None for v in raw):
+                cvd1, cvd5, cvd15, imbalance, spread = raw
+                signed_log = lambda value: math.copysign(math.log1p(abs(value)), value)
+                oi_delta = 0.0
+                if prior:
+                    old_oi, new_oi = _num(prior.get("oi_contracts")), _num(obs.get("oi_contracts"))
+                    if old_oi and new_oi is not None:
+                        oi_delta = new_oi / old_oi - 1.0
+                current_features = {
+                    **base,
+                    "cvd1m_log": signed_log(cvd1), "cvd5m_log": signed_log(cvd5),
+                    "cvd15m_log": signed_log(cvd15), "imbalance_top10": imbalance,
+                    "book_delta_top10": _num(obs.get("book_delta_top10")) or 0.0,
+                    "spread_bps": spread, "oi_change_5m_pct": oi_delta,
+                }
+                for side in ("LONG", "SHORT"):
+                    target_result["by_direction"][side] = {
+                        str(h): _analogs(archive, family, side, h, current_features, MICRO_FEATURES)
+                        for h in horizons
+                    }
+                statuses = [item["status"] for side in target_result["by_direction"].values() for item in side.values()]
+                target_result["status"] = "STIME SPERIMENTALI" if any(x == "STIMA SPERIMENTALE" for x in statuses) else "IN APPRENDIMENTO"
+                target_result["current_features"] = current_features
+            else:
+                target_result["reason"] = "osservazione microstrutturale incompleta"
+        else:
+            target_result["reason"] = "osservazione microstrutturale non allineata alla candela completata"
+        micro_results[target] = target_result
+    result["microstructure_models"] = micro_results
+    setup_rows = context_data.get("setups", [])
+    setup_summary = {}
+    for side in ("LONG", "SHORT"):
+        setup_summary[side] = {}
+        for horizon in HORIZONS:
+            outcomes = [setup.get("outcomes", {}).get(str(horizon), {}).get("status")
+                        for setup in setup_rows if setup.get("direction") == side]
+            outcomes = [x for x in outcomes if x is not None]
+            setup_summary[side][str(horizon)] = {
+                "matured_setups": len(outcomes),
+                "tp1": outcomes.count("TP1"),
+                "sl": outcomes.count("SL") + outcomes.count("SL_AMBIGUO"),
+                "none": outcomes.count("NONE"),
+                "status": "IN APPRENDIMENTO" if len(outcomes) < MIN_ANALOGS else "CAMPIONE DA VALIDARE",
+            }
+    result["confirmed_trigger_validation"] = {
+        "setups_total": len(setup_rows),
+        "by_direction": setup_summary,
+        "interpretation": "Esiti su trigger confermati, entry di riferimento alla chiusura candela; non sono fill LIMIT reali né win-rate indipendenti.",
+    }
+    result["context_archive"] = {
+        "observations_total": len(observations),
+        "last_observation_at": observations[-1].get("captured_at") if observations else None,
+        "setups_total": len(setup_rows),
+        "observation_gaps": sum(1 for a, b in zip(observations, observations[1:]) if int(b.get("minute_ms", 0)) - int(a.get("minute_ms", 0)) > 60000),
+    }
     result["reversals"]["context_4h"] = four_hour_context
     result["reversals"]["context_4h_note"] = "Contesto descrittivo separato; non entra ancora nel calcolo delle frequenze analogiche."
     # Safety is explicit and deliberately duplicated at the engine boundary.
