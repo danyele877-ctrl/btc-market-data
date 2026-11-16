@@ -286,7 +286,7 @@ def funding_diagnostics(record, now):
     elif intervals_agree and abs(next_interval - 4.0) <= 0.05:
         status = "API_4H_COHERENTE_CON_SPECIFICA"
     elif intervals_agree:
-        status = "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA"
+        status = "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H"
     else:
         status = "TIMESTAMP_API_NON_ALLINEATI"
     return {
@@ -298,7 +298,7 @@ def funding_diagnostics(record, now):
         "exchange_age_seconds": exchange_age,
         "published_reference_interval_hours": 4,
         "published_reference_source": "OKX Europe X-Perps Contract Specifications",
-        "live_interval_source": "OKX API fundingTime -> nextFundingTime; API docs allow variable intervals",
+        "live_interval_source": "Timestamp API grezzi, non sostituiscono la periodicità ufficiale di 4h confermata da OKX support",
         "prevFundingTime": first.get("prevFundingTime"),
         "fundingTime": first.get("fundingTime"),
         "nextFundingTime": first.get("nextFundingTime"),
@@ -316,10 +316,10 @@ def funding_diagnostics(record, now):
         "api_response_ts": first.get("ts"),
         "interpretation": (
             "La prossima scadenza operativa è quella indicata da nextFundingTime. "
-            "L'intervallo API osservato è coerente tra i due periodi ma differisce dalla tabella pubblica 4h; "
-            "seguire il timestamp API per l'orario prossimo, mantenendo visibile la differenza documentale. "
+            "I timestamp API grezzi differiscono dalla periodicità di 4h confermata da OKX support; "
+            "conservare nextFundingTime come dato API non riconciliato, senza sostituire la periodicità confermata. "
             "Non annualizzare né proiettare il funding futuro."
-            if status == "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA" else
+            if status == "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H" else
             "I timestamp API non sono coerenti tra loro: usare solo nextFundingTime grezzo come dato non verificato, "
             "senza assumere una cadenza o stimare costi futuri."
             if status == "TIMESTAMP_API_NON_ALLINEATI" else
