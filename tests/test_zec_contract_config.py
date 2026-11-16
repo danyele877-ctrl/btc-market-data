@@ -11,11 +11,14 @@ class ContractConfigTests(unittest.TestCase):
         row.update(changes)
         return row
 
-    def test_matching_fresh_eea_metadata_allows_theoretical_sizing_only(self):
+    def test_matching_ui_and_api_metadata_still_blocks_sizing_until_official_reconciliation(self):
         result = build_contract_safety(self.instrument(), verified=True)
-        self.assertEqual(result["ctVal_status"], "RISOLTO_UI_API_CONCORDI")
-        self.assertTrue(result["sizing_allowed"])
-        self.assertTrue(result["theoretical_sizing_permitted"])
+        self.assertEqual(result["ctVal_status"], "NON RISOLTO_SPECIFICA_UFFICIALE")
+        self.assertTrue(result["ctVal_ui_api_match"])
+        self.assertEqual(result["ctVal_api_zec"], 0.01)
+        self.assertEqual(result["ctVal_official_spec_zec"], 0.1)
+        self.assertFalse(result["sizing_allowed"])
+        self.assertFalse(result["theoretical_sizing_permitted"])
         self.assertFalse(result["position_sizing_enabled"])
         self.assertFalse(result["orders_enabled"])
         self.assertEqual(result["max_risk_usdc"], 20)

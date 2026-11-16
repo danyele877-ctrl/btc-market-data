@@ -155,6 +155,53 @@ def _open_interest_signal(snapshot: dict[str, Any]) -> tuple[dict[str, Any] | No
     }, None
 
 
+def _funding_interval_diagnostic(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Compare raw OKX funding timestamps with the specific 4h reference."""
+    record = (snapshot.get("market") or {}).get("zec_xperp_funding") or {}
+    funding = record.get("first") or {}
+
+    def epoch_ms(value: Any) -> int | None:
+        try:
+            number = int(value)
+            return number if number > 0 else None
+        except (TypeError, ValueError):
+            return None
+
+    previous = epoch_ms(funding.get("prevFundingTime"))
+    current = epoch_ms(funding.get("fundingTime"))
+    following = epoch_ms(funding.get("nextFundingTime"))
+    observed = {}
+    if previous is not None and current is not None and current > previous:
+        observed["previous_to_current_hours"] = round((current - previous) / 3_600_000, 3)
+    if current is not None and following is not None and following > current:
+        observed["current_to_next_hours"] = round((following - current) / 3_600_000, 3)
+    if (
+        record.get("http_status") != 200
+        or str(record.get("api_code")) != "0"
+        or funding.get("instId") != INSTRUMENT_ID
+        or not observed
+    ):
+        status = "NON VERIFICABILE"
+    elif all(abs(hours - 4.0) < 0.01 for hours in observed.values()):
+        status = "COERENTE_CON_SPECIFICA_4H"
+    else:
+        status = "INTERVALLO_API_DIVERSO_DA_SPECIFICA_4H"
+    return {
+        "reference_interval_hours": 4,
+        "observed_intervals": observed,
+        "status": status,
+        "funding_time_ms": current,
+        "next_funding_time_ms": following,
+        "source_http_status": record.get("http_status"),
+        "raw_funding_rate": funding.get("fundingRate"),
+        "raw_next_funding_rate": funding.get("nextFundingRate"),
+        "interpretation": (
+            "Specifiche OKX EEA: 4h; API: timestamp diversi. Riportare il prossimo orario API senza presumere una cadenza effettiva fissa."
+            if status == "INTERVALLO_API_DIVERSO_DA_SPECIFICA_4H" else None
+        ),
+    }
+
+
 def _market_record(snapshot: dict[str, Any], name: str, expected_id: str | None = None) -> tuple[dict[str, Any] | None, str | None]:
     record = (snapshot.get("market") or {}).get(name)
     if not isinstance(record, dict):
@@ -214,6 +261,10 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     instrument, instrument_error = _market_record(snapshot, "zec_xperp_instrument", INSTRUMENT_ID)
     if instrument_error:
         blockers.append(instrument_error)
+
+    funding_interval = _funding_interval_diagnostic(snapshot)
+    if funding_interval["status"] == "INTERVALLO_API_DIVERSO_DA_SPECIFICA_4H":
+        limitations.append("Funding: timestamp API diverso dalla specifica 4h; riportare il nextFundingTime e non dichiarare una cadenza effettiva fissa")
 
     x1m, x1m_error = _series(snapshot, FEED_KEY, "1m")
     x5m, x5m_error = _series(snapshot, FEED_KEY, "5m")
@@ -341,6 +392,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     )
     net = _clamp(net)
     direction = "LONG" if net >= 0.18 else "SHORT" if net <= -0.18 else "NEUTRA"
+    exploratory_direction = "LONG" if net > 0 else "SHORT" if net < 0 else None
     direction_sign = 1 if direction == "LONG" else -1 if direction == "SHORT" else 0
     aligned_groups = sum(1 for group in groups.values() if direction_sign and _sign(group["score"]) == direction_sign)
     agreement = aligned_groups / len(groups) if groups else 0.0
@@ -394,6 +446,9 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             if level is not None:
                 invalidation = {"direction": "SHORT", "price": level, "condition": "chiusura 1m sopra il massimo strutturale delle ultime barre completate"}
 
+    contract_safety = build_contract_safety(instrument, verified=not bool(instrument_error))
+    contract_safety["funding_interval"] = funding_interval
+
     return {
         "schema_version": 1,
         "engine": "ZEC Early Signal Engine",
@@ -403,6 +458,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         "status": stage,
         "decision": decision,
         "candidate_direction": direction,
+        "exploratory_direction": exploratory_direction,
         "scores": {
             "net": round(net * 100, 1),
             "long": round(max(0.0, net) * 100, 1),
@@ -423,7 +479,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             "limitations": list(dict.fromkeys(limitations)),
             "liquidations": "non disponibili nel feed corrente; nessun contributo al punteggio",
         },
-        "contract_safety": build_contract_safety(instrument, verified=not bool(instrument_error)),
+        "contract_safety": contract_safety,
         "execution": {
             "orders_enabled": False,
             "position_quantity": None,

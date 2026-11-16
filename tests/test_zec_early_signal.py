@@ -43,6 +43,7 @@ def valid_snapshot():
             "1m": {"tail": candles("1m", price, 1)},
             "5m": {"tail": candles("5m", price, 5)},
         }
+    funding_time_ms = int(NOW.timestamp() * 1000)
     return {
         "schema_version": 3,
         "source_captured_at": CAPTURED,
@@ -54,6 +55,13 @@ def valid_snapshot():
         "market": {
             "zec_xperp_ticker": market_record(INSTRUMENT_ID),
             "zec_xperp_instrument": market_record(INSTRUMENT_ID, {"ctVal": "0.01", "ctMult": "1", "lotSz": "1", "minSz": "1", "tickSz": "0.01", "settleCcy": "USD", "state": "live"}),
+            "zec_xperp_funding": market_record(INSTRUMENT_ID, {
+                "prevFundingTime": str(funding_time_ms - 4 * 60 * 60 * 1000),
+                "fundingTime": str(funding_time_ms),
+                "nextFundingTime": str(funding_time_ms + 4 * 60 * 60 * 1000),
+                "fundingRate": "0.0001",
+                "nextFundingRate": "",
+            }),
             "zec_spot_ticker": market_record("ZEC-USDC"),
             "btc_spot_ticker": market_record("BTC-USDC"),
         },
@@ -103,12 +111,14 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(result["status"], "TRIGGER CONFERMATO")
         self.assertEqual(result["decision"], "LONG")
         self.assertEqual(result["instrument"]["inst_id"], INSTRUMENT_ID)
-        self.assertEqual(result["contract_safety"]["ctVal_status"], "RISOLTO_UI_API_CONCORDI")
-        self.assertTrue(result["contract_safety"]["sizing_allowed"])
-        self.assertTrue(result["contract_safety"]["theoretical_sizing_permitted"])
+        self.assertEqual(result["contract_safety"]["ctVal_status"], "NON RISOLTO_SPECIFICA_UFFICIALE")
+        self.assertTrue(result["contract_safety"]["ctVal_ui_api_match"])
+        self.assertFalse(result["contract_safety"]["sizing_allowed"])
+        self.assertFalse(result["contract_safety"]["theoretical_sizing_permitted"])
         self.assertEqual(result["contract_safety"]["max_risk_usdc"], 20)
         self.assertFalse(result["contract_safety"]["position_sizing_enabled"])
         self.assertFalse(result["execution"]["orders_enabled"])
+        self.assertEqual(result["exploratory_direction"], "LONG")
         self.assertIsNone(result["execution"]["position_quantity"])
         self.assertIsNone(result["execution"]["margin"])
         self.assertIsNone(result["execution"]["pnl"])
@@ -120,6 +130,18 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(result["contract_safety"]["ctVal_status"], "NON VERIFICATO")
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
         self.assertEqual(result["contract_safety"]["max_risk_usdc"], 20)
+
+    def test_funding_interval_mismatch_is_reported_without_affecting_safety(self):
+        snapshot = valid_snapshot()
+        funding = snapshot["market"]["zec_xperp_funding"]["first"]
+        funding["prevFundingTime"] = str(int(funding["fundingTime"]) - 8 * 60 * 60 * 1000)
+        result = evaluate_signal(snapshot, now=NOW)
+        diagnostic = result["contract_safety"]["funding_interval"]
+        self.assertEqual(diagnostic["status"], "INTERVALLO_API_DIVERSO_DA_SPECIFICA_4H")
+        self.assertEqual(diagnostic["observed_intervals"]["previous_to_current_hours"], 8.0)
+        self.assertFalse(result["contract_safety"]["sizing_allowed"])
+        self.assertFalse(result["execution"]["orders_enabled"])
+        self.assertTrue(any("Funding:" in item for item in result["data_quality"]["limitations"]))
 
     def test_stale_snapshot_waits(self):
         snapshot = valid_snapshot()
