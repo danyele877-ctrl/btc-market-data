@@ -25,6 +25,19 @@ class ContractConfigTests(unittest.TestCase):
         self.assertFalse(result["orders_enabled"])
         self.assertEqual(result["max_risk_usdc"], 20)
 
+    def test_api_face_value_is_diagnostic_only_and_global_comparison_never_unlocks_sizing(self):
+        global_row = self.instrument(ctVal="0.1")
+        result = build_contract_safety(
+            self.instrument(), verified=True, comparison_instrument=global_row
+        )
+        self.assertEqual(result["api_face_value_zec_diagnostic_only"], 0.01)
+        self.assertEqual(result["global_api_face_value_zec_diagnostic_only"], 0.1)
+        self.assertFalse(result["regional_api_values_match"])
+        self.assertEqual(result["ctVal_status"], "NON RISOLTO_SPECIFICA_UFFICIALE")
+        self.assertFalse(result["sizing_allowed"])
+        self.assertFalse(result["theoretical_sizing_permitted"])
+        self.assertFalse(result["orders_enabled"])
+
     def test_missing_or_changed_contract_metadata_blocks_sizing(self):
         result = build_contract_safety(self.instrument(ctVal="0.1"), verified=True)
         self.assertEqual(result["ctVal_status"], "NON VERIFICATO")
