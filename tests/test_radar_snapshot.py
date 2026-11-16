@@ -152,7 +152,7 @@ class RadarHistoryValidationTests(unittest.TestCase):
         self.assertEqual(result["published_reference_interval_hours"], 4)
         self.assertEqual(result["prev_to_funding_hours_observed"], 8)
         self.assertEqual(result["funding_to_next_hours_observed"], 8)
-        self.assertEqual(result["status"], "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA")
+        self.assertEqual(result["status"], "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H")
         self.assertEqual(result["live_next_interval_hours"], 8.0)
         self.assertIn("nextFundingTime", result["interpretation"])
 
