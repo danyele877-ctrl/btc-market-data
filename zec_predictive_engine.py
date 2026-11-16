@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -96,7 +98,8 @@ def _features(rows: list[dict[str, Any]], i: int, benchmark: dict[int, float] | 
     for j in range(1, len(w)):
         tr.append(max(highs[j]-lows[j], abs(highs[j]-closes[j-1]), abs(lows[j]-closes[j-1])))
     atr = sum(tr[-14:]) / min(14, len(tr))
-    avgvol = sum(volumes[-20:-1]) / 20
+    volume_window = volumes[-20:-1]
+    avgvol = sum(volume_window) / len(volume_window) if volume_window else 0.0
     avg_gain = sum(max(0.0, closes[j]-closes[j-1]) for j in range(len(closes)-14, len(closes)))
     avg_loss = sum(max(0.0, closes[j-1]-closes[j]) for j in range(len(closes)-14, len(closes)))
     rsi = 50.0 if avg_gain + avg_loss == 0 else 100.0 * avg_gain / (avg_gain + avg_loss)
@@ -180,6 +183,25 @@ def _atr(rows: list[dict[str, Any]], i: int) -> float:
         prev = rows[j-1]["close"]
         vals.append(max(rows[j]["high"]-rows[j]["low"], abs(rows[j]["high"]-prev), abs(rows[j]["low"]-prev)))
     return sum(vals) / len(vals) if vals else 0.0
+
+
+def _write_json_atomically(path: Path, payload: dict[str, Any]) -> None:
+    """Preserve the last valid archive if a write is interrupted."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
+            handle.write(json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
 
 
 def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[str, Any], dict[str, int]]:
@@ -462,7 +484,7 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
     archive["events"] = sorted(existing.values(), key=lambda x: (x.get("timestamp_ms", 0), x.get("id", "")))[-MAX_ARCHIVE:]
     archive["updated_at"] = snapshot.get("source_captured_at")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
-    archive_path.write_text(json.dumps(archive, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
+    _write_json_atomically(archive_path, archive)
     counts = {
         "events_total": len(archive["events"]), "events_added": added,
         "scalp_1m_bars": len(scalp_rows), "scalp_5m_bars": len(scalp5),
