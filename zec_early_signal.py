@@ -156,7 +156,7 @@ def _open_interest_signal(snapshot: dict[str, Any]) -> tuple[dict[str, Any] | No
 
 
 def _funding_interval_diagnostic(snapshot: dict[str, Any]) -> dict[str, Any]:
-    """Compare raw OKX funding timestamps with the specific 4h reference."""
+    """Read the live OKX interval from fundingTime -> nextFundingTime."""
     record = (snapshot.get("market") or {}).get("zec_xperp_funding") or {}
     funding = record.get("first") or {}
 
@@ -175,29 +175,46 @@ def _funding_interval_diagnostic(snapshot: dict[str, Any]) -> dict[str, Any]:
         observed["previous_to_current_hours"] = round((current - previous) / 3_600_000, 3)
     if current is not None and following is not None and following > current:
         observed["current_to_next_hours"] = round((following - current) / 3_600_000, 3)
-    if (
-        record.get("http_status") != 200
-        or str(record.get("api_code")) != "0"
-        or funding.get("instId") != INSTRUMENT_ID
-        or not observed
-    ):
+    live_next_interval = observed.get("current_to_next_hours")
+    intervals_agree = (
+        len(observed) == 2
+        and abs(observed["previous_to_current_hours"] - observed["current_to_next_hours"]) <= 0.05
+    )
+    valid = (
+        record.get("http_status") == 200
+        and str(record.get("api_code")) == "0"
+        and funding.get("instId") == INSTRUMENT_ID
+        and following is not None
+        and live_next_interval is not None
+    )
+    if not valid:
         status = "NON VERIFICABILE"
-    elif all(abs(hours - 4.0) < 0.01 for hours in observed.values()):
-        status = "COERENTE_CON_SPECIFICA_4H"
+    elif not intervals_agree:
+        status = "TIMESTAMP_API_NON_ALLINEATI"
+    elif abs(live_next_interval - 4.0) <= 0.05:
+        status = "API_4H_COHERENTE_CON_SPECIFICA"
     else:
-        status = "INTERVALLO_API_DIVERSO_DA_SPECIFICA_4H"
+        status = "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA"
     return {
-        "reference_interval_hours": 4,
+        "published_reference_interval_hours": 4,
+        "live_next_interval_hours": live_next_interval,
         "observed_intervals": observed,
         "status": status,
         "funding_time_ms": current,
         "next_funding_time_ms": following,
-        "source_http_status": record.get("http_status"),
         "raw_funding_rate": funding.get("fundingRate"),
         "raw_next_funding_rate": funding.get("nextFundingRate"),
+        "method": funding.get("method"),
         "interpretation": (
-            "Specifiche OKX EEA: 4h; API: timestamp diversi. Riportare il prossimo orario API senza presumere una cadenza effettiva fissa."
-            if status == "INTERVALLO_API_DIVERSO_DA_SPECIFICA_4H" else None
+            "Per la prossima scadenza seguire nextFundingTime e l'intervallo fundingTime -> nextFundingTime "
+            "restituito dall'API. La cadenza osservata differisce dalla tabella pubblica 4h; discrepanza "
+            "documentale mantenuta visibile. Nessuna proiezione del funding futuro."
+            if status == "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA" else
+            "Timestamp API non allineati: nextFundingTime resta un dato grezzo non verificato."
+            if status == "TIMESTAMP_API_NON_ALLINEATI" else
+            "Intervallo API coerente con la specifica pubblicata."
+            if status == "API_4H_COHERENTE_CON_SPECIFICA" else
+            "Dati funding insufficienti o non freschi."
         ),
     }
 
@@ -263,8 +280,8 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         blockers.append(instrument_error)
 
     funding_interval = _funding_interval_diagnostic(snapshot)
-    if funding_interval["status"] == "INTERVALLO_API_DIVERSO_DA_SPECIFICA_4H":
-        limitations.append("Funding: timestamp API diverso dalla specifica 4h; riportare il nextFundingTime e non dichiarare una cadenza effettiva fissa")
+    if funding_interval["status"] in ("API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA", "TIMESTAMP_API_NON_ALLINEATI"):
+        limitations.append("Funding: per il prossimo evento usare nextFundingTime e l'intervallo live API; differenza rispetto alla tabella pubblica mantenuta visibile")
 
     x1m, x1m_error = _series(snapshot, FEED_KEY, "1m")
     x5m, x5m_error = _series(snapshot, FEED_KEY, "5m")
