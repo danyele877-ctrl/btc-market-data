@@ -194,7 +194,7 @@ def _funding_interval_diagnostic(snapshot: dict[str, Any]) -> dict[str, Any]:
     elif abs(live_next_interval - 4.0) <= 0.05:
         status = "API_4H_COHERENTE_CON_SPECIFICA"
     else:
-        status = "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA"
+        status = "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H"
     return {
         "published_reference_interval_hours": 4,
         "live_next_interval_hours": live_next_interval,
@@ -206,10 +206,10 @@ def _funding_interval_diagnostic(snapshot: dict[str, Any]) -> dict[str, Any]:
         "raw_next_funding_rate": funding.get("nextFundingRate"),
         "method": funding.get("method"),
         "interpretation": (
-            "Per la prossima scadenza seguire nextFundingTime e l'intervallo fundingTime -> nextFundingTime "
-            "restituito dall'API. La cadenza osservata differisce dalla tabella pubblica 4h; discrepanza "
+            "OKX support conferma settlement ogni 4 ore per questo X-Perp. I timestamp API grezzi mostrano un intervallo diverso e non sostituiscono la periodicità confermata. Riportare nextFundingTime come dato API non riconciliato. "
+            "restituito dall'API. La cadenza osservata differisce dalla specifica confermata 4h; discrepanza "
             "documentale mantenuta visibile. Nessuna proiezione del funding futuro."
-            if status == "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA" else
+            if status == "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H" else
             "Timestamp API non allineati: nextFundingTime resta un dato grezzo non verificato."
             if status == "TIMESTAMP_API_NON_ALLINEATI" else
             "Intervallo API coerente con la specifica pubblicata."
@@ -280,8 +280,8 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         blockers.append(instrument_error)
 
     funding_interval = _funding_interval_diagnostic(snapshot)
-    if funding_interval["status"] in ("API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA", "TIMESTAMP_API_NON_ALLINEATI"):
-        limitations.append("Funding: per il prossimo evento usare nextFundingTime e l'intervallo live API; differenza rispetto alla tabella pubblica mantenuta visibile")
+    if funding_interval["status"] in ("API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H", "TIMESTAMP_API_NON_ALLINEATI"):
+        limitations.append("Funding: OKX support conferma settlement ogni 4h; timestamp API discordanti (riportati grezzi, non usati per sostituire la specifica 4h)")
 
     x1m, x1m_error = _series(snapshot, FEED_KEY, "1m")
     x5m, x5m_error = _series(snapshot, FEED_KEY, "5m")
