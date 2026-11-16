@@ -54,7 +54,10 @@ jobs:
       - name: Run service regression tests
         run: python -m unittest discover -s tests -v
 
+      # Full historical backfill is a maintenance action; ordinary candle refreshes
+      # append incrementally through build_radar_snapshot.py and must stay fast.
       - name: Replay recent ZEC signal snapshots
+        if: github.event_name == 'workflow_dispatch'
         run: python replay_zec_signals.py --limit 600
 
       - name: Capture Render health and completed candles
