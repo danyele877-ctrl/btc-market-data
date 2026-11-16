@@ -135,6 +135,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         snapshot = valid_snapshot()
         funding = snapshot["market"]["zec_xperp_funding"]["first"]
         funding["prevFundingTime"] = str(int(funding["fundingTime"]) - 8 * 60 * 60 * 1000)
+        funding["nextFundingTime"] = str(int(funding["fundingTime"]) + 8 * 60 * 60 * 1000)
         result = evaluate_signal(snapshot, now=NOW)
         diagnostic = result["contract_safety"]["funding_interval"]
         self.assertEqual(diagnostic["status"], "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA")
