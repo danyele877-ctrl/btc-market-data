@@ -140,7 +140,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         diagnostic = result["contract_safety"]["funding_interval"]
         self.assertEqual(diagnostic["status"], "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA")
         self.assertEqual(diagnostic["observed_intervals"]["previous_to_current_hours"], 8.0)
-        self.assertEqual(diagnostic["live_next_interval_hours"], 4.0)
+        self.assertEqual(diagnostic["live_next_interval_hours"], 8.0)
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
         self.assertFalse(result["execution"]["orders_enabled"])
         self.assertTrue(any("Funding:" in item for item in result["data_quality"]["limitations"]))
