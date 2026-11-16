@@ -127,7 +127,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         snapshot = valid_snapshot()
         snapshot["market"]["zec_xperp_instrument"]["first"]["ctVal"] = "0.1"
         result = evaluate_signal(snapshot, now=NOW)
-        self.assertEqual(result["contract_safety"]["ctVal_status"], "NON VERIFICATO")
+        self.assertEqual(result["contract_safety"]["ctVal_status"], "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_NON_VERIFICATA")
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
         self.assertEqual(result["contract_safety"]["max_risk_usdc"], 20)
 
