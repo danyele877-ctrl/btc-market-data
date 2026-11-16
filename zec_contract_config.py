@@ -41,7 +41,7 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
     ui_api_match = (
         verified and row.get("instId") == INSTRUMENT_ID and row.get("state") == "live"
         and api_ctval == CTVAL_ZEC_PER_CONTRACT and api_ctmult == CT_MULT
-        and api_ctval_ccy == "ZEC"
+        and api_ctval_ccy == "ZEC" and bool(api_ct_type)
         and api_lot == LOT_SIZE and api_min == MIN_SIZE
         and api_tick == TICK_SIZE_USD and api_settle == SETTLE_CCY
     )
