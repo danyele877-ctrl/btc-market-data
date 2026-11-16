@@ -104,7 +104,7 @@ class PredictiveEngineTests(unittest.TestCase):
             result = evaluate_predictive_engine(snapshot, Path(tmp) / "archive.json")
         self.assertFalse(result["orders_enabled"])
         self.assertFalse(result["safety"]["position_sizing_enabled"])
-        self.assertEqual(result["safety"]["ctVal_status"], "NON RISOLTO")
+        self.assertEqual(result["safety"]["ctVal_status"], "NON VERIFICATO")
 
 
 if __name__ == "__main__":

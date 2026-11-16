@@ -71,9 +71,9 @@ def validate_feed(feed, current_time=None):
     streams = health_payload.get("streams", {}) if isinstance(health_payload.get("streams"), dict) else {}
     active = health_payload.get("active_instruments", [])
     expected = (
-        ("BTC-USDC", "BTC-USDC", "SPOT"),
-        ("ZEC-USDC", "ZEC-USDC", "SPOT"),
-        ("ZEC-USD_UM_XPERP", "ZEC-USD_UM_XPERP", "FUTURES"),
+        ("BTC-USDC", "BTC-USDC", "BTC-USDC", "SPOT"),
+        ("ZEC-USDC", "ZEC-USDC", "ZEC-USDC", "SPOT"),
+        ("ZEC-USD_UM_XPERP", "ZEC-USD_UM_XPERP", "ZEC-USD_UM_XPERP-310530", "FUTURES"),
     )
 
     def validate_series(series, market, bar, stream_key):
@@ -128,7 +128,7 @@ def validate_feed(feed, current_time=None):
                 problems.append(f"Render health/candles timestamp mismatch for {stream_key}:{bar}")
 
     if isinstance(active, list):
-        for inst_id, stream_key, inst_type in expected:
+        for _feed_key, stream_key, inst_id, inst_type in expected:
             if not any(
                 isinstance(item, dict)
                 and item.get("instId") == inst_id
@@ -140,10 +140,10 @@ def validate_feed(feed, current_time=None):
     else:
         problems.append("Render active_instruments is missing or malformed")
 
-    for market, stream_key, _inst_type in expected:
-        market_series = instruments.get(market, {}) if isinstance(instruments, dict) else {}
+    for feed_key, stream_key, _inst_id, _inst_type in expected:
+        market_series = instruments.get(feed_key, {}) if isinstance(instruments, dict) else {}
         for bar in ("1m", "5m"):
-            validate_series(market_series.get(bar, []), market, bar, stream_key)
+            validate_series(market_series.get(bar, []), feed_key, bar, stream_key)
 
     okx_history = feed.get("okx_history", {})
     for market in ("BTC-USDC", "ZEC-USDC"):
