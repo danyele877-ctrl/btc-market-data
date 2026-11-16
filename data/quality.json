@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-16T02:06:45.028022+00:00",
-  "snapshot_generated_at": "2026-11-16T02:06:44.933201+00:00",
+  "generated_at": "2026-11-16T03:02:29.122808+00:00",
+  "snapshot_generated_at": "2026-11-16T03:02:29.050340+00:00",
   "snapshot_age_seconds": 0,
-  "overall_status": "ok",
-  "successful_sources": 28,
+  "overall_status": "degraded",
+  "successful_sources": 27,
   "total_sources": 28,
   "required_sources": [
     "okx_spot",
@@ -29,7 +29,9 @@
     "okx_eea_zec_xperp_oi",
     "okx_eea_zec_xperp_spec"
   ],
-  "required_failed": [],
+  "required_failed": [
+    "coinboss_funding_btc"
+  ],
   "checks": {
     "binance_spot": {
       "status": "ok",
@@ -70,7 +72,7 @@
     "edge_funding_all_exchanges": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "swole_funding_btc_1d": {
@@ -98,10 +100,10 @@
       "reason": null
     },
     "coinboss_funding_btc": {
-      "status": "ok",
+      "status": "warning",
       "required": true,
       "age_seconds": 0,
-      "reason": null
+      "reason": "source_error"
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
@@ -196,7 +198,7 @@
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     }
   }
