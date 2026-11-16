@@ -25,7 +25,7 @@ def _number(value: Any) -> float | None:
         return None
 
 
-def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool = False) -> dict[str, Any]:
+def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool = False, comparison_instrument: dict[str, Any] | None = None) -> dict[str, Any]:
     """Validate fresh EEA metadata against the user's exact-instrument UI confirmation."""
     row = instrument if isinstance(instrument, dict) else {}
     # ctVal is a raw API value; its unit is defined by ctValCcy and must not
@@ -38,6 +38,32 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
     api_min = _number(row.get("minSz"))
     api_tick = _number(row.get("tickSz"))
     api_settle = row.get("settleCcy")
+    comparison = comparison_instrument if isinstance(comparison_instrument, dict) else {}
+    comparison_valid = (
+        comparison.get("instId") == INSTRUMENT_ID
+        and comparison.get("state") == "live"
+        and _number(comparison.get("ctVal")) is not None
+        and comparison.get("ctValCcy") not in (None, "")
+        and comparison.get("ctType") not in (None, "")
+    )
+    comparison_summary = {
+        "instId": comparison.get("instId"),
+        "ctVal": _number(comparison.get("ctVal")),
+        "ctValCcy": comparison.get("ctValCcy"),
+        "ctType": comparison.get("ctType"),
+        "ctMult": _number(comparison.get("ctMult")),
+        "state": comparison.get("state"),
+    } if comparison else None
+    api_face_value = (
+        api_ctval * api_ctmult
+        if api_ctval is not None and api_ctmult is not None and api_ctval_ccy == "ZEC"
+        and api_ct_type == "linear" else None
+    )
+    global_face_value = (
+        _number(comparison.get("ctVal")) * (_number(comparison.get("ctMult")) or 1.0)
+        if comparison_valid and comparison.get("ctValCcy") == "ZEC"
+        and comparison.get("ctType") == "linear" else None
+    )
     ui_api_match = (
         verified and row.get("instId") == INSTRUMENT_ID and row.get("state") == "live"
         and api_ctval == CTVAL_ZEC_PER_CONTRACT and api_ctmult == CT_MULT
@@ -52,6 +78,16 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
         "ctValCcy_api": api_ctval_ccy,
         "ctType_api": api_ct_type,
         "ctVal_unit_interpretation": ("ZEC" if api_ctval_ccy == "ZEC" else "NON DETERMINATA: verificare ctValCcy" if not api_ctval_ccy else f"ctVal espresso in {api_ctval_ccy}, non convertito in ZEC"),
+        "api_face_value_zec_diagnostic_only": api_face_value,
+        "global_metadata_comparison": comparison_summary,
+        "global_metadata_comparison_valid": bool(comparison_valid),
+        "global_api_face_value_zec_diagnostic_only": global_face_value,
+        "regional_api_values_match": bool(
+            comparison_valid and api_ctval == _number(comparison.get("ctVal"))
+            and api_ctval_ccy == comparison.get("ctValCcy")
+            and api_ct_type == comparison.get("ctType")
+            and api_ctmult == _number(comparison.get("ctMult"))
+        ),
         "ctMult_api": api_ctmult,
         "lotSz_api": api_lot,
         "minSz_api": api_min,
