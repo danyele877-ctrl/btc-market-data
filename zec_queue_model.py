@@ -153,9 +153,15 @@ def estimate_queue_depletion(
         return {"status": "GAP TRADE NELLA FINESTRA", "limit_price": limit_price}
 
     if side == "LONG":
-        aggressive = [size for _, _, price, size in trades if _["side"] == "sell" and price <= limit_price + tick_size*0.5]
+        aggressive = [
+            size for _ts, trade, price, size in trades
+            if trade.get("side") == "sell" and price <= limit_price + tick_size * 0.5
+        ]
     else:
-        aggressive = [size for _, _, price, size in trades if _["side"] == "buy" and price >= limit_price - tick_size*0.5]
+        aggressive = [
+            size for _ts, trade, price, size in trades
+            if trade.get("side") == "buy" and price >= limit_price - tick_size * 0.5
+        ]
     aggressive_volume = sum(aggressive)
     depleted = aggressive_volume > queue_ahead and aggressive_volume > 0
     return {
