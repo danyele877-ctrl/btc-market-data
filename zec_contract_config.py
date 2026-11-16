@@ -4,8 +4,9 @@ from __future__ import annotations
 from typing import Any
 
 INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
-CTVAL_ZEC_PER_CONTRACT = 0.01
+CTVAL_ZEC_PER_CONTRACT = 0.1  # Official contract size confirmed by OKX support
 OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT = 0.1
+ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT = 0.01  # Raw account-scoped API/UI observation; not the confirmed contract size
 CTVAL_RECONCILED = False
 OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED = True
 OFFICIAL_SUPPORT_CONFIRMATION_DATE = "2026-11-16"
@@ -68,7 +69,7 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
     )
     ui_api_match = (
         verified and row.get("instId") == INSTRUMENT_ID and row.get("state") == "live"
-        and api_ctval == CTVAL_ZEC_PER_CONTRACT and api_ctmult == CT_MULT
+        and api_ctval == ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT and api_ctmult == CT_MULT
         and api_ctval_ccy == "ZEC" and bool(api_ct_type)
         and api_lot == LOT_SIZE and api_min == MIN_SIZE
         and api_tick == TICK_SIZE_USD and api_settle == SETTLE_CCY
@@ -77,6 +78,7 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
     return {
         "instrument_id": INSTRUMENT_ID,
         "ctVal_api_raw": api_ctval,
+        "account_api_ctVal_observed_zec": ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT,
         "ctValCcy_api": api_ctval_ccy,
         "ctType_api": api_ct_type,
         "ctVal_unit_interpretation": ("ZEC" if api_ctval_ccy == "ZEC" else "NON DETERMINATA: verificare ctValCcy" if not api_ctval_ccy else f"ctVal espresso in {api_ctval_ccy}, non convertito in ZEC"),
