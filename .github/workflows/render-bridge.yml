@@ -27,9 +27,11 @@ permissions:
 
 concurrency:
   # Deploy and refresh runs never cancel one another because they use separate groups.
-  # Within the refresh group, keep the newest event and discard obsolete queued work.
+  # Never cancel an active refresh: a new 5-minute cron tick must not interrupt
+  # API capture, archive updates, tests, or atomic publication already in progress.
+  # GitHub may replace an obsolete pending run while the active run completes.
   group: render-candle-feed-bridge-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'deploy' || 'refresh' }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publish-render-feed:
