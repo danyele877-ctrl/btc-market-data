@@ -29,12 +29,11 @@ permissions:
   contents: write
 
 concurrency:
-  # Do not let a stalled runner hold the bridge lock indefinitely.
-  # Publication remains protected by render_bridge_publication.py, which rejects
-  # any candidate older than the latest already-published feed or snapshot.
-  # Concurrent pushes retry against the newest main branch before publishing.
-  group: render-candle-feed-bridge-${{ github.run_id }}
-  cancel-in-progress: false
+  # Keep only the newest refresh active: a hung checkout must not block the feed.
+  # The publication guard rejects stale candidates after every branch refresh,
+  # so cancelling an older capture cannot overwrite a newer published snapshot.
+  group: render-candle-feed-bridge
+  cancel-in-progress: true
 
 jobs:
   publish-render-feed:
