@@ -15,22 +15,22 @@ class ContractConfigTests(unittest.TestCase):
         row.update(changes)
         return row
 
-    def test_public_spec_and_account_api_values_remain_separate_and_unresolved(self):
+    def test_okx_support_confirmed_value_is_reconciled_for_exact_instrument(self):
         result = build_contract_safety(self.instrument(), verified=True)
-        self.assertEqual(result["ctVal_status"], "DISCREPANZA_CTVAL_NON_RISOLTA")
+        self.assertEqual(result["ctVal_status"], "VALORI_OKX_CONFERMATI")
         self.assertTrue(result["ctVal_ui_api_match"])
         self.assertEqual(result["ctVal_api_raw"], 0.01)
         self.assertEqual(result["ctValCcy_api"], "ZEC")
         self.assertEqual(result["ctType_api"], "linear")
         self.assertEqual(result["ctMult_api"], 1)
-        self.assertIsNone(result["ctVal_zec_per_contract"])
+        self.assertEqual(result["ctVal_zec_per_contract"], 0.01)
         self.assertEqual(result["ctVal_account_api_observed_zec"], 0.01)
-        self.assertEqual(result["ctVal_okx_confirmed_zec"], 0.1)
-        self.assertEqual(result["ctVal_official_spec_zec"], 0.1)
+        self.assertEqual(result["ctVal_okx_confirmed_zec"], 0.01)
+        self.assertEqual(result["ctVal_official_spec_zec"], 0.01)
         self.assertEqual(result["ctMult_account_api_observed"], 1)
         self.assertTrue(result["official_support_confirmation_received"])
-        self.assertEqual(result["official_support_confirmed_contract_size_zec"], 0.1)
-        self.assertFalse(result["ctVal_reconciled"])
+        self.assertEqual(result["official_support_confirmed_contract_size_zec"], 0.01)
+        self.assertTrue(result["ctVal_reconciled"])
         self.assertFalse(result["sizing_allowed"])
         self.assertFalse(result["theoretical_sizing_permitted"])
         self.assertFalse(result["position_sizing_enabled"])
@@ -45,7 +45,7 @@ class ContractConfigTests(unittest.TestCase):
         self.assertEqual(result["api_face_value_zec_diagnostic_only"], 0.01)
         self.assertEqual(result["global_api_face_value_zec_diagnostic_only"], 0.1)
         self.assertFalse(result["regional_api_values_match"])
-        self.assertEqual(result["ctVal_status"], "DISCREPANZA_CTVAL_NON_RISOLTA")
+        self.assertEqual(result["ctVal_status"], "VALORI_OKX_CONFERMATI")
         self.assertFalse(result["sizing_allowed"])
         self.assertFalse(result["theoretical_sizing_permitted"])
         self.assertFalse(result["orders_enabled"])
@@ -88,11 +88,11 @@ class ContractConfigTests(unittest.TestCase):
             self.assertIsNone(usd_notional_for_contracts(1, -1, row, verified=True))
             self.assertIsNone(usd_pnl_for_contracts(1, 100, 110, "BUY", row, verified=True))
 
-    def test_unresolved_ctval_blocks_all_operational_conversions(self):
+    def test_unverified_ctval_blocks_all_contract_conversions(self):
         row = self.instrument()
-        self.assertIsNone(zec_for_contracts(1, row, verified=True))
-        self.assertIsNone(usd_notional_for_contracts(1, 100, row, verified=True))
-        self.assertIsNone(usd_pnl_for_contracts(1, 100, 110, "LONG", row, verified=True))
+        self.assertIsNone(zec_for_contracts(1, row, verified=False))
+        self.assertIsNone(usd_notional_for_contracts(1, 100, row, verified=False))
+        self.assertIsNone(usd_pnl_for_contracts(1, 100, 110, "LONG", row, verified=False))
 
 
 if __name__ == "__main__":

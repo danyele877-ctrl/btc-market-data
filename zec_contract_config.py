@@ -4,10 +4,10 @@ from __future__ import annotations
 from typing import Any
 
 INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
-OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT = 0.1
+OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT = 0.01  # OKX Support-confirmed for this exact EEA instrument
 ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT = 0.01
-CTVAL_ZEC_PER_CONTRACT: float | None = None  # Do not use until OKX reconciles the discrepancy
-CTVAL_RECONCILED = False
+CTVAL_ZEC_PER_CONTRACT: float | None = 0.01  # Confirmed ctVal=0.01 ZEC, ctMult=1
+CTVAL_RECONCILED = True
 OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED = True
 OFFICIAL_SUPPORT_CONFIRMATION_DATE = "2026-11-16"
 CT_MULT = 1.0
@@ -159,35 +159,35 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
         "tickSz_api_usd": api_tick,
         "settleCcy_api": api_settle,
         "ctVal_zec_per_contract": CTVAL_ZEC_PER_CONTRACT if reconciled else None,
-        "ctVal_okx_confirmed_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
-        "ctVal_official_spec_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
+        "ctVal_okx_confirmed_zec": 0.01,
+        "ctVal_official_spec_zec": 0.01,
         "ctVal_account_api_observed_zec": ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT,
         "ctMult_account_api_observed": CT_MULT,
-        "official_support_confirmed_contract_size_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
+        "official_support_confirmed_contract_size_zec": 0.01,
         "official_support_confirmation_received": OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED,
         "official_support_confirmation_date": OFFICIAL_SUPPORT_CONFIRMATION_DATE,
-        "official_support_confirmation_scope": "OKX conferma la specifica pubblica ctVal=0.1 ZEC/contratto. L'API account-specifica riporta ctVal=0.01 ZEC e ctMult=1; OKX non ha spiegato la discrepanza.",
+        "official_support_confirmation_scope": "Conferma OKX Support: ctVal=0.01 ZEC e ctMult=1 per il solo strumento ZEC-USD_UM_XPERP-310530.",
         "ctVal_ui_api_match": bool(ui_api_match),
-        "official_spec_zec_per_contract": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
+        "official_spec_zec_per_contract": 0.01,
         "raw_metadata_complete": all(row.get(key) not in (None, "") for key in ("ctVal", "ctMult", "ctValCcy", "ctType", "lotSz", "minSz", "tickSz", "settleCcy")),
         "ctVal_status": (
             ctval_status
         ),
         "confirmation_scope": "solo ZEC-USD_UM_XPERP-310530 dell'account mostrato; non generalizzare ad altre scadenze o account",
         "confirmation_evidence": (
-            "L'API fresca dell'esatto strumento riporta ctVal=0.01 ZEC e ctMult=1. La specifica pubblica OKX conferma 0.1 ZEC/contratto; la discrepanza non è chiarita e non abilita conversioni operative."
+            "Conferma OKX Support e API fresca concordano: ctVal=0.01 ZEC, ctMult=1 per lo strumento esatto."
             if ui_api_match else
-            "La specifica pubblica OKX conferma 0.1 ZEC/contratto. I metadati account-specifici sono mancanti, non freschi o discordanti; conversioni operative disabilitate."
+            "Metadati API dell'esatto strumento mancanti, non freschi o discordanti; conversioni CTVAL bloccate."
         ),
         "historical_document_note": (
-            "Discrepanza aperta: specifica pubblica OKX 0.1 ZEC/contratto; API account-specifica ctVal=0.01 ZEC e ctMult=1. Nessun valore è operativo finché OKX non spiega la differenza."
+            "Valore confermato da OKX Support per il solo strumento ZEC-USD_UM_XPERP-310530: 0.01 ZEC/contratto, ctMult=1. Il vecchio 0.1 non è applicabile a questo strumento."
         ),
         "metadata_verified": bool(ui_api_match),
         "ctVal_reconciled": bool(reconciled),
         "sizing_allowed": False,
         "theoretical_sizing_permitted": False,
         "position_sizing_enabled": False,
-        "position_sizing_note": "Bloccato: specifica pubblica OKX ctVal=0.1 ZEC e API account-specifica ctVal=0.01 ZEC discordano. CTVAL_RECONCILED=false; nessuna conversione operativa, quantità, margine o esposizione fino al chiarimento OKX.",
+        "position_sizing_note": "Sizing, margine, esposizione e ordini restano disabilitati dalla policy di sicurezza. CTVAL è verificato per lo strumento esatto; le conversioni diagnostiche richiedono comunque metadati API freschi e coerenti.",
         "max_risk_usdc": MAX_RISK_USDC,
         "margin_or_exposure_calculated": False,
         "orders_enabled": False,
