@@ -106,7 +106,7 @@ class PredictiveEngineTests(unittest.TestCase):
             result = evaluate_predictive_engine(snapshot, Path(tmp) / "archive.json")
         self.assertFalse(result["orders_enabled"])
         self.assertFalse(result["safety"]["position_sizing_enabled"])
-        self.assertEqual(result["safety"]["ctVal_status"], "NON VERIFICATO")
+        self.assertEqual(result["safety"]["ctVal_status"], "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_NON_VERIFICATA")
 
     def test_volume_relative_uses_actual_nineteen_bar_baseline(self):
         rows = []
