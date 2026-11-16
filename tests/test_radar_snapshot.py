@@ -149,10 +149,12 @@ class RadarHistoryValidationTests(unittest.TestCase):
                 "nextFundingTime": str(base + 16 * 3_600_000),
                 "fundingRate": "0.0001", "settState": "settled"}}
         result = funding_diagnostics(record, NOW)
-        self.assertEqual(result["contract_interval_hours"], 4)
+        self.assertEqual(result["published_reference_interval_hours"], 4)
         self.assertEqual(result["prev_to_funding_hours_observed"], 8)
         self.assertEqual(result["funding_to_next_hours_observed"], 8)
-        self.assertEqual(result["status"], "INCOERENZA_API")
+        self.assertEqual(result["status"], "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA")
+        self.assertEqual(result["live_next_interval_hours"], 8.0)
+        self.assertIn("nextFundingTime", result["interpretation"])
 
 
 if __name__ == "__main__":
