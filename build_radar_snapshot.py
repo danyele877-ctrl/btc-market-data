@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Build a compact, machine-readable radar snapshot from verified bridge files."""
 import json
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from zec_early_signal import evaluate_signal
@@ -13,6 +15,26 @@ MICRO = ROOT / "zec_microstructure_history.json"
 HISTORY = ROOT / "zec_xperp_history.json"
 OUT = ROOT / "radar_snapshot.json"
 BAR_SECONDS = {"1m": 60, "5m": 300, "1H": 3600, "4H": 14400}
+
+
+def write_json_atomically(path, payload):
+    """Write a complete JSON snapshot before replacing the last known-good file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
+            handle.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
 
 
 def read(path):
@@ -405,7 +427,7 @@ def main():
     output["zec_context_archive"] = update_context_archive(output, now=now)
     output["zec_predictive_engine"] = evaluate_predictive_engine(output)
     output["zec_predictive_engine"]["context_archive"] = output["zec_context_archive"]
-    OUT.write_text(json.dumps(output, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    write_json_atomically(OUT, output)
     print(json.dumps({
         "output": str(OUT),
         "bytes": OUT.stat().st_size,
