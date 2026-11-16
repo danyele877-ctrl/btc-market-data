@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -66,6 +68,25 @@ def _closed_1m(rows: Any, captured: datetime) -> list[dict[str, Any]]:
             segment = []
         segment.append(row)
     return segment
+
+
+def _write_json_atomically(path: Path, payload: dict[str, Any]) -> None:
+    """Preserve the last valid context archive if a write is interrupted."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
+            handle.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -473,7 +494,7 @@ def backfill_context_archive(rows: list[tuple[datetime, dict[str, Any]]],
     if rows:
         archive["updated_at"] = max(item[0] for item in rows).isoformat().replace("+00:00", "Z")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
-    archive_path.write_text(json.dumps(archive, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    _write_json_atomically(archive_path, archive)
     gaps = sum(1 for a, b in zip(archive["observations"], archive["observations"][1:])
                if b["minute_ms"] - a["minute_ms"] > 60000)
     return {
@@ -558,7 +579,7 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
     archive["movement_events"] = sorted(movement_events, key=lambda item: item.get("entry_close_ms", 0))[-3000:]
     archive["updated_at"] = captured.isoformat().replace("+00:00", "Z")
     archive_path.parent.mkdir(parents=True, exist_ok=True)
-    archive_path.write_text(json.dumps(archive, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    _write_json_atomically(archive_path, archive)
     obs = archive["observations"]
     gaps = sum(1 for a, b in zip(obs, obs[1:]) if b["minute_ms"] - a["minute_ms"] > 60000)
     matured_counts = {}
