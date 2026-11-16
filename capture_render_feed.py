@@ -2,6 +2,7 @@
 # Recovery probe: this file change triggers the Render bridge capture workflow.
 """Capture the public Render candle feed into a GitHub-readable snapshot."""
 import json
+import math
 import os
 import sys
 import tempfile
@@ -51,6 +52,12 @@ def validate_feed(feed, current_time=None):
         problems.append("Render feed status is not ok")
     health = feed.get("healthz", {})
     candles = feed.get("candles", {})
+    if not isinstance(health, dict):
+        problems.append("Render health response record is malformed")
+        health = {}
+    if not isinstance(candles, dict):
+        problems.append("Render candles response record is malformed")
+        candles = {}
     if health.get("http_status") != 200 or not isinstance(health.get("payload"), dict):
         problems.append("Render health response is missing or not HTTP 200")
     if candles.get("http_status") != 200 or not isinstance(candles.get("payload"), dict):
@@ -89,6 +96,13 @@ def validate_feed(feed, current_time=None):
         try:
             for item in series:
                 ts_ms = int(item["ts_ms"])
+                values = {name: float(item[name]) for name in ("open", "high", "low", "close")}
+                if not all(math.isfinite(value) for value in values.values()):
+                    raise ValueError("non-finite OHLC")
+                if values["low"] <= 0 or values["high"] < max(values["open"], values["close"], values["low"]) or values["low"] > min(values["open"], values["close"], values["high"]):
+                    raise ValueError("inconsistent OHLC range")
+                if ts_ms % interval_ms:
+                    raise ValueError("timestamp is not aligned to timeframe")
                 completed = parse_time(item.get("completed_at"))
                 if completed is None:
                     raise ValueError("completed_at missing")
@@ -147,12 +161,22 @@ def validate_feed(feed, current_time=None):
             validate_series(market_series.get(bar, []), feed_key, bar, stream_key)
 
     okx_history = feed.get("okx_history", {})
+    if not isinstance(okx_history, dict):
+        problems.append("OKX spot history is missing or malformed")
+        okx_history = {}
     for market in ("BTC-USDC", "ZEC-USDC"):
         for bar in ("1H", "4H"):
-            record = okx_history.get(market, {}).get(bar, {})
+            market_history = okx_history.get(market, {})
+            if not isinstance(market_history, dict):
+                problems.append(f"{market} spot history is missing or malformed")
+                continue
+            record = market_history.get(bar, {})
+            if not isinstance(record, dict):
+                problems.append(f"{market} {bar} history record is malformed")
+                continue
             series = record.get("candles", [])
             label = f"{market} {bar}"
-            if record.get("http_status") != 200 or len(series) < 200:
+            if record.get("http_status") != 200 or not isinstance(series, list) or len(series) < 200:
                 problems.append(f"{label} history has fewer than 200 candles or HTTP status is not 200")
                 continue
             interval_ms = {"1H": 3_600_000, "4H": 14_400_000}[bar]
@@ -160,6 +184,13 @@ def validate_feed(feed, current_time=None):
             try:
                 for item in series:
                     ts_ms = int(item["ts_ms"])
+                    values = {name: float(item[name]) for name in ("open", "high", "low", "close")}
+                    if not all(math.isfinite(value) for value in values.values()):
+                        raise ValueError("non-finite OHLC")
+                    if values["low"] <= 0 or values["high"] < max(values["open"], values["close"], values["low"]) or values["low"] > min(values["open"], values["close"], values["high"]):
+                        raise ValueError("inconsistent OHLC range")
+                    if ts_ms % interval_ms:
+                        raise ValueError("timestamp is not aligned to timeframe")
                     completed = parse_time(item.get("completed_at"))
                     if completed is None or abs(int(completed.timestamp() * 1000) - (ts_ms + interval_ms)) > 1000:
                         raise ValueError("completed_at inconsistent")
@@ -178,10 +209,20 @@ def validate_feed(feed, current_time=None):
                 problems.append(f"{label} history is missing or stale")
 
     xperp_history = feed.get("zec_xperp_history", {})
+    if not isinstance(xperp_history, dict):
+        problems.append("ZEC X-Perp history is missing or malformed")
+        xperp_history = {}
     if xperp_history.get("instrument") != "ZEC-USD_UM_XPERP-310530":
         problems.append("ZEC X-Perp history instrument is not the exact OKX Europe contract")
+    xperp_bars = xperp_history.get("bars", {})
+    if not isinstance(xperp_bars, dict):
+        problems.append("ZEC X-Perp history bars are missing or malformed")
+        xperp_bars = {}
     for bar in ("1m", "5m", "1H", "4H"):
-        record = xperp_history.get("bars", {}).get(bar, {})
+        record = xperp_bars.get(bar, {})
+        if not isinstance(record, dict):
+            problems.append(f"ZEC-USD_UM_XPERP-310530 {bar} history record is malformed")
+            continue
         label = f"ZEC-USD_UM_XPERP-310530 {bar} history"
         try:
             count = int(record.get("count") or 0)

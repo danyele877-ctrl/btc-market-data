@@ -6,7 +6,7 @@ from collections import deque
 import os
 import signal
 import tempfile
-# Persistence uses per-write temporary files to avoid concurrent rename races.
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -194,6 +194,7 @@ class CandleFeed:
         self.state = new_state()
         self.started = time.monotonic()
         self.lock = asyncio.Lock()
+        self.persist_lock = threading.Lock()
         self.stop_event = asyncio.Event()
         self.last_bridge_dispatch_minute: int | None = None
         # Keep strong references to fire-and-forget tasks until they finish.
@@ -313,6 +314,13 @@ class CandleFeed:
         await asyncio.to_thread(self._atomic_write, payload)
 
     def _atomic_write(self, payload: str) -> None:
+        # Serialize destination replacement. Unique temporary files prevent
+        # name collisions, but Windows may still reject concurrent replaces
+        # of the same destination with a transient sharing violation.
+        with self.persist_lock:
+            self._atomic_write_locked(payload)
+
+    def _atomic_write_locked(self, payload: str) -> None:
         self.data_file.parent.mkdir(parents=True, exist_ok=True)
         # Each concurrent persist must own a unique temporary file. A shared
         # "<name>.tmp" races when candle, book and bridge tasks persist at once:

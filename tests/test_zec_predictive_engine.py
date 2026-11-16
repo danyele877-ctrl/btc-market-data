@@ -21,6 +21,15 @@ class PredictiveEngineTests(unittest.TestCase):
         }
         self.assertEqual(_clean([row], 60, captured), [])
 
+    def test_clean_rejects_malformed_or_misaligned_candles(self):
+        start = int(datetime(2026, 1, 1, 11, 0, tzinfo=timezone.utc).timestamp() * 1000)
+        valid = {"ts_ms": start, "completed_at": "2026-01-01T11:01:00Z",
+                 "open": "100", "high": "101", "low": "99", "close": "100"}
+        bad_range = dict(valid, high="98")
+        misaligned = dict(valid, ts_ms=start + 1)
+        self.assertEqual(_clean([bad_range], 60), [])
+        self.assertEqual(_clean([misaligned], 60), [])
+
     def test_analog_model_withholds_probabilities_below_minimum(self):
         result = _analogs({"events": []}, "scalp_5m", "LONG", 5,
                           {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,

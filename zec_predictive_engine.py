@@ -65,7 +65,11 @@ def _clean(rows: Any, seconds: int, captured: datetime | None = None) -> list[di
             continue
         if captured and close_at > captured:
             continue
+        if int(ts) % (seconds * 1000):
+            continue
         if vals["high"] < max(vals["open"], vals["close"], vals["low"]) or vals["low"] > min(vals["open"], vals["close"], vals["high"]):
+            continue
+        if vals["low"] <= 0:
             continue
         out.append({**r, **vals, "ts_ms": int(ts), "_close_ms": int(close_at.timestamp() * 1000)})
     out.sort(key=lambda x: x["ts_ms"])

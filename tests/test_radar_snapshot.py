@@ -113,6 +113,11 @@ class RadarHistoryValidationTests(unittest.TestCase):
         feed["okx_history"]["ZEC-USDC"]["4H"]["candles"][20]["ts_ms"] += 1
         self.assertTrue(any("ZEC-USDC 4H" in problem for problem in validate_feed(feed)))
 
+    def test_feed_validation_rejects_impossible_spot_ohlc(self):
+        feed = self.valid_feed()
+        feed["okx_history"]["BTC-USDC"]["1H"]["candles"][10]["high"] = "98"
+        self.assertTrue(any("BTC-USDC 1H" in problem for problem in validate_feed(feed)))
+
     def test_xperp_history_records_only_successful_http_responses(self):
         now_ms = int(time.time() * 1000)
         rows = [

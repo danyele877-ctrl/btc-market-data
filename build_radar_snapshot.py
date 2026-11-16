@@ -9,6 +9,7 @@ from zec_early_signal import evaluate_signal
 from zec_predictive_engine import evaluate_predictive_engine
 from zec_context_archive import update_context_archive
 from zec_contract_config import build_contract_safety
+from capture_render_feed import validate_feed
 
 ROOT = Path("data")
 FEED = ROOT / "render_feed.json"
@@ -332,9 +333,38 @@ def funding_diagnostics(record, now):
 
 def main():
     feed, micro, hist = read(FEED), read(MICRO), read(HISTORY)
+    now = datetime.now(timezone.utc)
+    feed_problems = validate_feed(feed, current_time=now)
+    if feed_problems:
+        raise SystemExit("Refusing to build radar snapshot from invalid/stale feed: " + "; ".join(feed_problems))
     market = feed.get("okx_market", {}) if isinstance(feed, dict) else {}
     hist_bars = hist.get("bars", {}) if isinstance(hist, dict) else {}
-    now = datetime.now(timezone.utc)
+    history_retrieved = parse_time(hist.get("retrieved_at")) if isinstance(hist, dict) else None
+    if (
+        not isinstance(hist, dict)
+        or hist.get("instrument") != "ZEC-USD_UM_XPERP-310530"
+        or history_retrieved is None
+        or (now - history_retrieved).total_seconds() < 0
+        or (now - history_retrieved).total_seconds() > 20 * 60
+    ):
+        raise SystemExit("Refusing to build radar snapshot from missing, stale or wrong-instrument X-Perp history")
+    feed_history_bars = (feed.get("zec_xperp_history") or {}).get("bars", {})
+    for bar in ("1m", "5m", "1H", "4H"):
+        record = hist_bars.get(bar, {})
+        summary = feed_history_bars.get(bar, {})
+        candles = record.get("candles", []) if isinstance(record, dict) else []
+        newest = candles[-1].get("completed_at") if candles and isinstance(candles[-1], dict) else None
+        if (
+            not isinstance(record, dict)
+            or record.get("http_status") != 200
+            or len(candles) < 200
+            or record.get("instrument") not in (None, "ZEC-USD_UM_XPERP-310530")
+            or summary.get("ready_200") is not True
+            or int(record.get("count") or 0) != int(summary.get("count") or -1)
+            or int(record.get("gap_count", -1)) != int(summary.get("gap_count", -1))
+            or newest != summary.get("newest_completed_at")
+        ):
+            raise SystemExit(f"Refusing to build radar snapshot: X-Perp {bar} history file and feed summary disagree or are incomplete")
 
     candles = {}
     for key in ("BTC-USDC", "ZEC-USDC", "ZEC-USD_UM_XPERP"):
