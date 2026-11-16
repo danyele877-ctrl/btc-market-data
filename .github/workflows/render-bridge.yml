@@ -29,11 +29,11 @@ permissions:
   contents: write
 
 concurrency:
-  # Keep only the newest refresh active: a hung checkout must not block the feed.
-  # The publication guard rejects stale candidates after every branch refresh,
-  # so cancelling an older capture cannot overwrite a newer published snapshot.
+  # Let an active capture finish: the service dispatches refreshes frequently,
+  # and cancelling in-progress jobs prevents the feed from ever being published.
+  # GitHub retains only the newest pending run for this concurrency group.
   group: render-candle-feed-bridge
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publish-render-feed:
