@@ -42,7 +42,7 @@ class ContractConfigTests(unittest.TestCase):
 
     def test_missing_or_changed_contract_metadata_blocks_sizing(self):
         result = build_contract_safety(self.instrument(ctVal="0.1"), verified=True)
-        self.assertEqual(result["ctVal_status"], "NON VERIFICATO")
+        self.assertEqual(result["ctVal_status"], "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_NON_VERIFICATA")
         self.assertFalse(result["sizing_allowed"])
         self.assertEqual(result["max_risk_usdc"], MAX_RISK_USDC)
 
@@ -55,7 +55,7 @@ class ContractConfigTests(unittest.TestCase):
 
     def test_stale_metadata_never_allows_sizing(self):
         result = build_contract_safety(self.instrument(), verified=False)
-        self.assertEqual(result["ctVal_status"], "NON VERIFICATO")
+        self.assertEqual(result["ctVal_status"], "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_NON_VERIFICATA")
         self.assertFalse(result["sizing_allowed"])
 
 
