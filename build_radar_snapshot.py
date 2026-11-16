@@ -8,6 +8,7 @@ from pathlib import Path
 from zec_early_signal import evaluate_signal
 from zec_predictive_engine import evaluate_predictive_engine
 from zec_context_archive import update_context_archive
+from zec_contract_config import build_contract_safety
 
 ROOT = Path("data")
 FEED = ROOT / "render_feed.json"
@@ -402,6 +403,15 @@ def main():
         "render_health": render_health,
         "market": market_out,
         "funding_diagnostics": funding_diagnostics(market_out.get("zec_xperp_funding"), now),
+        "zec_contract_safety": build_contract_safety(
+            market_out.get("zec_xperp_instrument", {}).get("first"),
+            verified=(
+                market_out.get("zec_xperp_instrument", {}).get("http_status") == 200
+                and str(market_out.get("zec_xperp_instrument", {}).get("api_code")) == "0"
+                and market_out.get("zec_xperp_instrument", {}).get("age_seconds") is not None
+                and -1 <= market_out.get("zec_xperp_instrument", {}).get("age_seconds") <= 180
+            ),
+        ),
         "candles_1m_5m": candles,
         "zec_xperp_history": xperp_history,
         "predictive_history": {
