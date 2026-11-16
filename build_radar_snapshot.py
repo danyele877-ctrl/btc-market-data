@@ -236,23 +236,32 @@ def microstructure_summary(micro):
 
 
 def funding_diagnostics(record, now):
-    """Compare raw OKX funding timestamps with the documented X-Perp interval."""
+    """Use OKX's own fundingTime/nextFundingTime interval for the next event.
+
+    The published X-Perps table is retained as a reference, but OKX API
+    documentation says the live interval can vary and should be read from
+    fundingTime and nextFundingTime.
+    """
     first = record.get("first") if isinstance(record, dict) else None
     first = first if isinstance(first, dict) else {}
+
     def timestamp_ms(field):
         try:
             value = int(first.get(field))
             return value if value > 0 else None
         except (TypeError, ValueError):
             return None
+
     def interval_hours(earlier, later):
         if earlier is None or later is None or later <= earlier:
             return None
         return round((later - earlier) / 3_600_000, 2)
+
     def iso_from_ms(value):
         if value is None:
             return None
         return datetime.fromtimestamp(value / 1000, timezone.utc).isoformat().replace("+00:00", "Z")
+
     previous_ms = timestamp_ms("prevFundingTime")
     funding_ms = timestamp_ms("fundingTime")
     next_ms = timestamp_ms("nextFundingTime")
@@ -266,14 +275,20 @@ def funding_diagnostics(record, now):
         isinstance(record, dict) and record.get("http_status") == 200
         and str(record.get("api_code")) == "0"
         and exchange_age is not None and -1 <= exchange_age <= 180 and bool(first)
+        and first.get("instId") == "ZEC-USD_UM_XPERP-310530"
     )
     observed = [value for value in (previous_interval, next_interval) if value is not None]
-    if not http_ok or not observed:
-        status = "N/D"
-    elif any(abs(value - 4.0) > 0.05 for value in observed):
-        status = "INCOERENZA_API"
+    intervals_agree = (
+        len(observed) == 2 and abs(observed[0] - observed[1]) <= 0.05
+    )
+    if not http_ok or next_ms is None or next_interval is None:
+        status = "N_D_NON_VERIFICABILE"
+    elif intervals_agree and abs(next_interval - 4.0) <= 0.05:
+        status = "API_4H_COHERENTE_CON_SPECIFICA"
+    elif intervals_agree:
+        status = "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA"
     else:
-        status = "COERENTE"
+        status = "TIMESTAMP_API_NON_ALLINEATI"
     return {
         "status": status,
         "instrument_id": first.get("instId"),
@@ -281,25 +296,36 @@ def funding_diagnostics(record, now):
         "http_status": record.get("http_status") if isinstance(record, dict) else None,
         "api_code": record.get("api_code") if isinstance(record, dict) else None,
         "exchange_age_seconds": exchange_age,
-        "contract_interval_hours": 4,
-        "contract_interval_source": "OKX Europe X-Perps Contract Specifications",
+        "published_reference_interval_hours": 4,
+        "published_reference_source": "OKX Europe X-Perps Contract Specifications",
+        "live_interval_source": "OKX API fundingTime -> nextFundingTime; API docs allow variable intervals",
         "prevFundingTime": first.get("prevFundingTime"),
         "fundingTime": first.get("fundingTime"),
         "nextFundingTime": first.get("nextFundingTime"),
         "prev_to_funding_hours_observed": previous_interval,
         "funding_to_next_hours_observed": next_interval,
+        "live_next_interval_hours": next_interval,
         "prev_funding_at": iso_from_ms(previous_ms),
         "funding_at": iso_from_ms(funding_ms),
         "next_funding_at": iso_from_ms(next_ms),
         "funding_rate": first.get("fundingRate"),
+        "next_funding_rate": first.get("nextFundingRate"),
         "settled_funding_rate": first.get("settFundingRate"),
         "settlement_state": first.get("settState"),
         "method": first.get("method"),
         "api_response_ts": first.get("ts"),
         "interpretation": (
-            "La specifica contrattuale resta 4h. I timestamp API sono conservati come osservazione separata; "
-            "se mostrano 8h non sostituiscono la periodicità documentata. Non annualizzare né stimare costi futuri "
-            "da intervalli API discordanti."
+            "La prossima scadenza operativa è quella indicata da nextFundingTime. "
+            "L'intervallo API osservato è coerente tra i due periodi ma differisce dalla tabella pubblica 4h; "
+            "seguire il timestamp API per l'orario prossimo, mantenendo visibile la differenza documentale. "
+            "Non annualizzare né proiettare il funding futuro."
+            if status == "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA" else
+            "I timestamp API non sono coerenti tra loro: usare solo nextFundingTime grezzo come dato non verificato, "
+            "senza assumere una cadenza o stimare costi futuri."
+            if status == "TIMESTAMP_API_NON_ALLINEATI" else
+            "Intervallo API coerente con la specifica pubblicata."
+            if status == "API_4H_COHERENTE_CON_SPECIFICA" else
+            "Dati funding insufficienti o non freschi: nessuna proiezione."
         ),
     }
 
