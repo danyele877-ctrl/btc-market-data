@@ -111,7 +111,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(result["status"], "TRIGGER CONFERMATO")
         self.assertEqual(result["decision"], "LONG")
         self.assertEqual(result["instrument"]["inst_id"], INSTRUMENT_ID)
-        self.assertEqual(result["contract_safety"]["ctVal_status"], "NON RISOLTO_SPECIFICA_UFFICIALE")
+        self.assertEqual(result["contract_safety"]["ctVal_status"], "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_ACCOUNT_DISCORDANTE")
         self.assertTrue(result["contract_safety"]["ctVal_ui_api_match"])
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
         self.assertFalse(result["contract_safety"]["theoretical_sizing_permitted"])
@@ -138,7 +138,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         funding["nextFundingTime"] = str(int(funding["fundingTime"]) + 8 * 60 * 60 * 1000)
         result = evaluate_signal(snapshot, now=NOW)
         diagnostic = result["contract_safety"]["funding_interval"]
-        self.assertEqual(diagnostic["status"], "API_INTERVALLO_DINAMICO_DIVERSO_DA_TABELLA")
+        self.assertEqual(diagnostic["status"], "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H")
         self.assertEqual(diagnostic["observed_intervals"]["previous_to_current_hours"], 8.0)
         self.assertEqual(diagnostic["live_next_interval_hours"], 8.0)
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
