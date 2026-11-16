@@ -7,6 +7,8 @@ INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
 CTVAL_ZEC_PER_CONTRACT = 0.01
 OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT = 0.1
 CTVAL_RECONCILED = False
+OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED = True
+OFFICIAL_SUPPORT_CONFIRMATION_DATE = "2026-11-16"
 CT_MULT = 1.0
 LOT_SIZE = 1.0
 MIN_SIZE = 1.0
@@ -95,27 +97,33 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
         "settleCcy_api": api_settle,
         "ctVal_zec_per_contract": CTVAL_ZEC_PER_CONTRACT if reconciled else None,
         "ctVal_official_spec_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
+        "official_support_confirmed_contract_size_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
+        "official_support_confirmation_received": OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED,
+        "official_support_confirmation_date": OFFICIAL_SUPPORT_CONFIRMATION_DATE,
+        "official_support_confirmation_scope": "OKX conferma la specifica pubblica per ZEC-USD_UM_XPERP: 0.1 ZEC/contratto; non conferma i campi API effettivi dell'account né la causa del valore 0.01",
         "ctVal_ui_api_match": bool(ui_api_match),
         "official_spec_zec_per_contract": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
         "raw_metadata_complete": all(row.get(key) not in (None, "") for key in ("ctVal", "ctMult", "ctValCcy", "ctType", "lotSz", "minSz", "tickSz", "settleCcy")),
         "ctVal_status": (
-            "RISOLTO" if reconciled else "NON RISOLTO_SPECIFICA_UFFICIALE" if ui_api_match else "NON VERIFICATO"
+            "RISOLTO" if reconciled else
+            "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_ACCOUNT_DISCORDANTE" if ui_api_match
+            else "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_NON_VERIFICATA"
         ),
         "confirmation_scope": "solo ZEC-USD_UM_XPERP-310530 dell'account mostrato; non generalizzare ad altre scadenze o account",
         "confirmation_evidence": (
-            f"UI nativa OKX ({UI_CONFIRMATION_DATE}) e API EEA concordano su 0.01 ZEC, ma la specifica pubblica OKX EEA riporta 0.1 ZEC; sizing bloccato finché la differenza non è riconciliata"
-            if ui_api_match else "metadati API EEA assenti, non freschi o non concordi con la conferma UI"
+            "Assistenza OKX: per ZEC-USD_UM_XPERP-310530 la specifica pubblica indica 0.1 ZEC/contratto e raccomanda di usare tale entità nei calcoli. La stessa risposta dichiara di non poter confermare ctVal/ctMult/ctValCcy/ctType effettivi dell'account né spiegare lo 0.01. UI/API account-scoped riportano 0.01 ZEC: discordanza non riconciliata."
+            if ui_api_match else
+            "Assistenza OKX conferma 0.1 ZEC/contratto nella specifica pubblica; metadati API account-scoped assenti, non freschi o non verificabili."
         ),
         "historical_document_note": (
-            "La specifica pubblica OKX EEA riporta 0.1 ZEC, mentre UI/API account-scoped riportano 0.01 ZEC; "
-            "non usare il dato account-scoped per dimensionare finché OKX non chiarisce formalmente la differenza."
+            "OKX support ha confermato che l'entità contrattuale ufficiale da usare come riferimento è 0.1 ZEC/contratto. L'API account-scoped riporta ctVal=0.01 ZEC; l'assistenza non ha confermato i campi effettivi del conto né spiegato la discrepanza. Il riferimento ufficiale 0.1 è registrato, ma il sizing resta bloccato finché non è verificata la semantica operativa dell'API/account."
         ),
         "metadata_verified": bool(ui_api_match),
         "ctVal_reconciled": bool(reconciled),
         "sizing_allowed": bool(reconciled),
         "theoretical_sizing_permitted": bool(reconciled),
         "position_sizing_enabled": False,
-        "position_sizing_note": "Bloccato fino alla riconciliazione formale tra 0.01 UI/API e 0.1 ZEC della specifica pubblica e alla verifica dell’unita ctValCcy.",
+        "position_sizing_note": "Bloccato: OKX support conferma 0.1 ZEC come entità contrattuale ufficiale, ma non conferma i campi API effettivi dell'account né spiega ctVal=0.01. Non tradurre manualmente ctVal API in quantità/contratti finché la semantica operativa non è verificata.",
         "max_risk_usdc": MAX_RISK_USDC,
         "margin_or_exposure_calculated": False,
         "orders_enabled": False,
