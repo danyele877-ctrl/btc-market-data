@@ -4,10 +4,10 @@ from __future__ import annotations
 from typing import Any
 
 INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
-CTVAL_ZEC_PER_CONTRACT = 0.1  # Official contract size confirmed by OKX support
-OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT = 0.1
-ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT = 0.01  # Raw account-scoped API/UI observation; not the confirmed contract size
-CTVAL_RECONCILED = False
+CTVAL_ZEC_PER_CONTRACT = 0.01  # OKX-confirmed ctVal for the pinned X-Perp
+OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT = 0.01
+ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT = 0.01
+CTVAL_RECONCILED = True
 OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED = True
 OFFICIAL_SUPPORT_CONFIRMATION_DATE = "2026-11-16"
 CT_MULT = 1.0
@@ -26,6 +26,59 @@ def _number(value: Any) -> float | None:
         return number if number == number and abs(number) != float("inf") else None
     except (TypeError, ValueError):
         return None
+
+
+def _linear_zec_contract_value(instrument: dict[str, Any] | None, *, verified: bool) -> float | None:
+    """Return ZEC units per contract only for the exact linear ZEC instrument."""
+    row = instrument if isinstance(instrument, dict) else {}
+    if not verified:
+        return None
+    ctval = _number(row.get("ctVal"))
+    multiplier = _number(row.get("ctMult"))
+    lot_size = _number(row.get("lotSz"))
+    min_size = _number(row.get("minSz"))
+    if (row.get("instId") != INSTRUMENT_ID or row.get("state") != "live"
+            or row.get("ctType") != "linear"
+            or row.get("ctValCcy") != "ZEC" or row.get("settleCcy") != SETTLE_CCY
+            or ctval != CTVAL_ZEC_PER_CONTRACT or multiplier != CT_MULT
+            or ctval <= 0 or multiplier <= 0 or lot_size is None or lot_size <= 0
+            or min_size is None or min_size <= 0
+            or lot_size != LOT_SIZE or min_size != MIN_SIZE):
+        return None
+    return ctval * multiplier
+
+
+def zec_for_contracts(contracts: float, instrument: dict[str, Any], *, verified: bool = False) -> float | None:
+    """Convert contract count to ZEC using the exact instrument API fields."""
+    count = _number(contracts)
+    value = _linear_zec_contract_value(instrument, verified=verified)
+    row = instrument if isinstance(instrument, dict) else {}
+    lot_size, min_size = _number(row.get("lotSz")), _number(row.get("minSz"))
+    if (count is None or value is None or lot_size is None or min_size is None
+            or count < min_size or abs(count / lot_size - round(count / lot_size)) > 1e-9):
+        return None
+    return count * value
+
+
+def usd_notional_for_contracts(contracts: float, price_usd: float,
+                               instrument: dict[str, Any], *, verified: bool = False) -> float | None:
+    """Linear USD-quoted notional; this helper does not enable position sizing."""
+    price = _number(price_usd)
+    zec = zec_for_contracts(contracts, instrument, verified=verified)
+    return zec * price if zec is not None and price is not None and price > 0 else None
+
+
+def usd_pnl_for_contracts(contracts: float, entry_price: float, exit_price: float,
+                          side: str, instrument: dict[str, Any], *, verified: bool = False) -> float | None:
+    """Gross linear PnL before fees/funding; this helper never submits orders."""
+    entry, exit_price = _number(entry_price), _number(exit_price)
+    zec = zec_for_contracts(contracts, instrument, verified=verified)
+    if zec is None or entry is None or exit_price is None or entry <= 0 or exit_price <= 0:
+        return None
+    if side not in ("LONG", "SHORT"):
+        return None
+    direction = 1.0 if side == "LONG" else -1.0
+    return direction * (exit_price - entry) * zec
 
 
 def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool = False, comparison_instrument: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -59,7 +112,7 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
     } if comparison else None
     api_face_value = (
         api_ctval * api_ctmult
-        if api_ctval is not None and api_ctmult is not None and api_ctval_ccy == "ZEC"
+        if verified and api_ctval is not None and api_ctmult is not None and api_ctval_ccy == "ZEC"
         and api_ct_type == "linear" else None
     )
     global_face_value = (
@@ -98,34 +151,34 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
         "tickSz_api_usd": api_tick,
         "settleCcy_api": api_settle,
         "ctVal_zec_per_contract": CTVAL_ZEC_PER_CONTRACT if reconciled else None,
+        "ctVal_okx_confirmed_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
         "ctVal_official_spec_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
+        "ctMult_okx_confirmed": CT_MULT,
         "official_support_confirmed_contract_size_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
         "official_support_confirmation_received": OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED,
         "official_support_confirmation_date": OFFICIAL_SUPPORT_CONFIRMATION_DATE,
-        "official_support_confirmation_scope": "OKX conferma la specifica pubblica per ZEC-USD_UM_XPERP: 0.1 ZEC/contratto; non conferma i campi API effettivi dell'account né la causa del valore 0.01",
+        "official_support_confirmation_scope": "Conferma ufficiale OKX comunicata dall'utente per ZEC-USD_UM_XPERP-310530: ctVal=0.01 ZEC e ctMult=1; ZEC per contratto = ctVal × ctMult",
         "ctVal_ui_api_match": bool(ui_api_match),
         "official_spec_zec_per_contract": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
         "raw_metadata_complete": all(row.get(key) not in (None, "") for key in ("ctVal", "ctMult", "ctValCcy", "ctType", "lotSz", "minSz", "tickSz", "settleCcy")),
         "ctVal_status": (
-            "RISOLTO" if reconciled else
-            "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_ACCOUNT_DISCORDANTE" if ui_api_match
-            else "SPECIFICA_UFFICIALE_0_1_CONFERMATA_API_NON_VERIFICATA"
+            "VALORI_OKX_CONFERMATI" if reconciled else "VALORI_OKX_NON_VERIFICATI"
         ),
         "confirmation_scope": "solo ZEC-USD_UM_XPERP-310530 dell'account mostrato; non generalizzare ad altre scadenze o account",
         "confirmation_evidence": (
-            "Assistenza OKX: per ZEC-USD_UM_XPERP-310530 la specifica pubblica indica 0.1 ZEC/contratto e raccomanda di usare tale entità nei calcoli. La stessa risposta dichiara di non poter confermare ctVal/ctMult/ctValCcy/ctType effettivi dell'account né spiegare lo 0.01. UI/API account-scoped riportano 0.01 ZEC: discordanza non riconciliata."
+            "Conferma OKX comunicata dall'utente per ZEC-USD_UM_XPERP-310530: ctVal=0.01 ZEC, ctMult=1; la riga API fresca dell'esatto strumento deve continuare a corrispondere prima di usare la conversione."
             if ui_api_match else
-            "Assistenza OKX conferma 0.1 ZEC/contratto nella specifica pubblica; metadati API account-scoped assenti, non freschi o non verificabili."
+            "OKX ha confermato ctVal=0.01 ZEC e ctMult=1 per lo strumento esatto; metadati API mancanti, non freschi o non corrispondenti, quindi conversioni non abilitate."
         ),
         "historical_document_note": (
-            "OKX support ha confermato che l'entità contrattuale ufficiale da usare come riferimento è 0.1 ZEC/contratto. L'API account-scoped riporta ctVal=0.01 ZEC; l'assistenza non ha confermato i campi effettivi del conto né spiegato la discrepanza. Il riferimento ufficiale 0.1 è registrato, ma il sizing resta bloccato finché non è verificata la semantica operativa dell'API/account."
+            "Valori confermati da OKX: ctVal=0.01 ZEC e ctMult=1 per ZEC-USD_UM_XPERP-310530. Gli snapshot storici precedenti possono contenere l'interpretazione superata e non sono configurazione corrente."
         ),
         "metadata_verified": bool(ui_api_match),
         "ctVal_reconciled": bool(reconciled),
-        "sizing_allowed": bool(reconciled),
-        "theoretical_sizing_permitted": bool(reconciled),
+        "sizing_allowed": False,
+        "theoretical_sizing_permitted": False,
         "position_sizing_enabled": False,
-        "position_sizing_note": "Bloccato: OKX support conferma 0.1 ZEC come entità contrattuale ufficiale, ma non conferma i campi API effettivi dell'account né spiega ctVal=0.01. Non tradurre manualmente ctVal API in quantità/contratti finché la semantica operativa non è verificata.",
+        "position_sizing_note": "ctVal e ctMult sono confermati; dimensionamento, quantità, esposizione e invio ordini restano disabilitati secondo le regole di sicurezza esistenti.",
         "max_risk_usdc": MAX_RISK_USDC,
         "margin_or_exposure_calculated": False,
         "orders_enabled": False,

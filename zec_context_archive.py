@@ -182,7 +182,7 @@ def _micro_observation(snapshot: dict[str, Any], captured: datetime) -> dict[str
         "book_gap_count": int(ws.get("book_gap_count") or 0),
         "trade_age_seconds": _num(ws.get("trade_age_seconds")),
         "book_age_seconds": _num(ws.get("book_age_seconds")),
-        "unit": "contracts; ctVal unresolved; no conversion to ZEC",
+        "unit": "contracts; confirmed 1 contract = 0.01 ZEC; archive retains raw contract units",
     }
 
 
@@ -608,5 +608,5 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
         "movement_events_added": movement_added,
         "movement_outcomes_matured": movement_matured,
         "trigger_validation": matured_counts,
-        "note": "Trigger riferiti alla chiusura della candela confermata, non a un fill LIMIT reale; osservazioni microstrutturali in contratti, ctVal non risolto.",
+        "note": "Trigger riferiti alla chiusura della candela confermata, non a un fill LIMIT reale; CVD/OI restano in contratti grezzi, con conversione confermata 1 contratto = 0.01 ZEC.",
     }
