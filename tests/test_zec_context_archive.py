@@ -3,8 +3,9 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
-from zec_context_archive import INSTRUMENT_ID, _closed_1m, _dedupe_movement_events, _mature_setups, _movement_candidates, backfill_context_archive, update_context_archive
+from zec_context_archive import INSTRUMENT_ID, _closed_1m, _dedupe_movement_events, _mature_setups, _movement_candidates, backfill_context_archive, update_context_archive, _write_json_atomically
 
 
 NOW = datetime(2026, 1, 1, 12, 10, tzinfo=timezone.utc)
@@ -190,6 +191,16 @@ class ZecContextArchiveTests(unittest.TestCase):
         matured = _mature_setups([setup], _closed_1m(future, NOW + timedelta(minutes=6)))
         self.assertEqual(matured, 1)
         self.assertEqual(setup["outcomes"]["5"]["status"], "SL_AMBIGUO")
+
+    def test_context_archive_atomic_failure_preserves_previous_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "context.json"
+            path.write_text('{"previous":true}', encoding="utf-8")
+            with patch("zec_context_archive.os.replace", side_effect=OSError("simulated")):
+                with self.assertRaises(OSError):
+                    _write_json_atomically(path, {"new": True})
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"previous": True})
+            self.assertEqual(list(Path(tmp).glob(".context.json.*.tmp")), [])
 
 
 if __name__ == "__main__":
