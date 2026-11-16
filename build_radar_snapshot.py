@@ -411,6 +411,14 @@ def main():
                 and market_out.get("zec_xperp_instrument", {}).get("age_seconds") is not None
                 and -1 <= market_out.get("zec_xperp_instrument", {}).get("age_seconds") <= 180
             ),
+            comparison_instrument=(
+                market_out.get("zec_xperp_instrument_global", {}).get("first")
+                if market_out.get("zec_xperp_instrument_global", {}).get("http_status") == 200
+                and str(market_out.get("zec_xperp_instrument_global", {}).get("api_code")) == "0"
+                and market_out.get("zec_xperp_instrument_global", {}).get("age_seconds") is not None
+                and -1 <= market_out.get("zec_xperp_instrument_global", {}).get("age_seconds") <= 180
+                else None
+            ),
         ),
         "candles_1m_5m": candles,
         "zec_xperp_history": xperp_history,
