@@ -4,10 +4,10 @@ from __future__ import annotations
 from typing import Any
 
 INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
-CTVAL_ZEC_PER_CONTRACT = 0.01  # OKX-confirmed ctVal for the pinned X-Perp
-OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT = 0.01
+OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT = 0.1
 ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT = 0.01
-CTVAL_RECONCILED = True
+CTVAL_ZEC_PER_CONTRACT: float | None = None  # Do not use until OKX reconciles the discrepancy
+CTVAL_RECONCILED = False
 OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED = True
 OFFICIAL_SUPPORT_CONFIRMATION_DATE = "2026-11-16"
 CT_MULT = 1.0
@@ -31,7 +31,7 @@ def _number(value: Any) -> float | None:
 def _linear_zec_contract_value(instrument: dict[str, Any] | None, *, verified: bool) -> float | None:
     """Return ZEC units per contract only for the exact linear ZEC instrument."""
     row = instrument if isinstance(instrument, dict) else {}
-    if not verified:
+    if not verified or not CTVAL_RECONCILED or CTVAL_ZEC_PER_CONTRACT is None:
         return None
     ctval = _number(row.get("ctVal"))
     multiplier = _number(row.get("ctMult"))
@@ -127,7 +127,15 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
         and api_lot == LOT_SIZE and api_min == MIN_SIZE
         and api_tick == TICK_SIZE_USD and api_settle == SETTLE_CCY
     )
-    reconciled = ui_api_match and CTVAL_RECONCILED
+    reconciled = ui_api_match and CTVAL_RECONCILED and CTVAL_ZEC_PER_CONTRACT is not None
+    if not verified:
+        ctval_status = "METADATI_API_NON_VERIFICATI"
+    elif not ui_api_match:
+        ctval_status = "METADATI_API_DISCORDANTI"
+    elif not reconciled:
+        ctval_status = "DISCREPANZA_CTVAL_NON_RISOLTA"
+    else:
+        ctval_status = "VALORI_OKX_CONFERMATI"
     return {
         "instrument_id": INSTRUMENT_ID,
         "ctVal_api_raw": api_ctval,
@@ -153,32 +161,33 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
         "ctVal_zec_per_contract": CTVAL_ZEC_PER_CONTRACT if reconciled else None,
         "ctVal_okx_confirmed_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
         "ctVal_official_spec_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
-        "ctMult_okx_confirmed": CT_MULT,
+        "ctVal_account_api_observed_zec": ACCOUNT_API_CTVAL_ZEC_PER_CONTRACT,
+        "ctMult_account_api_observed": CT_MULT,
         "official_support_confirmed_contract_size_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
         "official_support_confirmation_received": OFFICIAL_SUPPORT_CONFIRMATION_RECEIVED,
         "official_support_confirmation_date": OFFICIAL_SUPPORT_CONFIRMATION_DATE,
-        "official_support_confirmation_scope": "Conferma ufficiale OKX comunicata dall'utente per ZEC-USD_UM_XPERP-310530: ctVal=0.01 ZEC e ctMult=1; ZEC per contratto = ctVal × ctMult",
+        "official_support_confirmation_scope": "OKX conferma la specifica pubblica ctVal=0.1 ZEC/contratto. L'API account-specifica riporta ctVal=0.01 ZEC e ctMult=1; OKX non ha spiegato la discrepanza.",
         "ctVal_ui_api_match": bool(ui_api_match),
         "official_spec_zec_per_contract": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
         "raw_metadata_complete": all(row.get(key) not in (None, "") for key in ("ctVal", "ctMult", "ctValCcy", "ctType", "lotSz", "minSz", "tickSz", "settleCcy")),
         "ctVal_status": (
-            "VALORI_OKX_CONFERMATI" if reconciled else "VALORI_OKX_NON_VERIFICATI"
+            ctval_status
         ),
         "confirmation_scope": "solo ZEC-USD_UM_XPERP-310530 dell'account mostrato; non generalizzare ad altre scadenze o account",
         "confirmation_evidence": (
-            "Conferma OKX comunicata dall'utente per ZEC-USD_UM_XPERP-310530: ctVal=0.01 ZEC, ctMult=1; la riga API fresca dell'esatto strumento deve continuare a corrispondere prima di usare la conversione."
+            "L'API fresca dell'esatto strumento riporta ctVal=0.01 ZEC e ctMult=1. La specifica pubblica OKX conferma 0.1 ZEC/contratto; la discrepanza non è chiarita e non abilita conversioni operative."
             if ui_api_match else
-            "OKX ha confermato ctVal=0.01 ZEC e ctMult=1 per lo strumento esatto; metadati API mancanti, non freschi o non corrispondenti, quindi conversioni non abilitate."
+            "La specifica pubblica OKX conferma 0.1 ZEC/contratto. I metadati account-specifici sono mancanti, non freschi o discordanti; conversioni operative disabilitate."
         ),
         "historical_document_note": (
-            "Valori confermati da OKX: ctVal=0.01 ZEC e ctMult=1 per ZEC-USD_UM_XPERP-310530. Gli snapshot storici precedenti possono contenere l'interpretazione superata e non sono configurazione corrente."
+            "Discrepanza aperta: specifica pubblica OKX 0.1 ZEC/contratto; API account-specifica ctVal=0.01 ZEC e ctMult=1. Nessun valore è operativo finché OKX non spiega la differenza."
         ),
         "metadata_verified": bool(ui_api_match),
         "ctVal_reconciled": bool(reconciled),
         "sizing_allowed": False,
         "theoretical_sizing_permitted": False,
         "position_sizing_enabled": False,
-        "position_sizing_note": "ctVal e ctMult sono confermati; dimensionamento, quantità, esposizione e invio ordini restano disabilitati secondo le regole di sicurezza esistenti.",
+        "position_sizing_note": "Bloccato: specifica pubblica OKX ctVal=0.1 ZEC e API account-specifica ctVal=0.01 ZEC discordano. CTVAL_RECONCILED=false; nessuna conversione operativa, quantità, margine o esposizione fino al chiarimento OKX.",
         "max_risk_usdc": MAX_RISK_USDC,
         "margin_or_exposure_calculated": False,
         "orders_enabled": False,

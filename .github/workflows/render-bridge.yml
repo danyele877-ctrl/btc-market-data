@@ -12,6 +12,8 @@ on:
       - "zec_predictive_engine.py"
       - "zec_queue_model.py"
       - "zec_context_archive.py"
+      - "zec_contract_config.py"
+      - "render_bridge_publication.py"
       - "replay_zec_signals.py"
       - "candle_service.py"
       - "tests/**"
@@ -27,11 +29,9 @@ permissions:
   contents: write
 
 concurrency:
-  # Deploy and refresh runs never cancel one another because they use separate groups.
-  # Never cancel an active refresh: a new 5-minute cron tick must not interrupt
-  # API capture, archive updates, tests, or atomic publication already in progress.
-  # GitHub may replace an obsolete pending run while the active run completes.
-  group: render-candle-feed-bridge-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'deploy' || 'refresh' }}
+  # Serialize every trigger so older capture runs cannot publish over a newer run.
+  # Never cancel an active run while it is capturing or publishing data.
+  group: render-candle-feed-bridge
   cancel-in-progress: false
 
 jobs:
@@ -84,6 +84,21 @@ jobs:
           for attempt in 1 2 3; do
             git fetch origin "${GITHUB_REF_NAME}"
             git reset --hard "origin/${GITHUB_REF_NAME}"
+            set +e
+            python render_bridge_publication.py \
+              --candidate-feed /tmp/render-feed.json \
+              --candidate-snapshot /tmp/radar-snapshot.json \
+              --published-feed data/render_feed.json \
+              --published-snapshot data/radar_snapshot.json
+            decision=$?
+            set -e
+            if [ "$decision" -eq 10 ]; then
+              echo "Skipping stale Render bridge candidate."
+              exit 0
+            fi
+            if [ "$decision" -ne 0 ]; then
+              exit "$decision"
+            fi
             cp /tmp/render-feed.json data/render_feed.json
             cp /tmp/zec-microstructure-history.json data/zec_microstructure_history.json
             cp /tmp/zec-xperp-history.json data/zec_xperp_history.json

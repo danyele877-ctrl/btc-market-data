@@ -111,9 +111,11 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(result["status"], "TRIGGER CONFERMATO")
         self.assertEqual(result["decision"], "LONG")
         self.assertEqual(result["instrument"]["inst_id"], INSTRUMENT_ID)
-        self.assertEqual(result["contract_safety"]["ctVal_status"], "VALORI_OKX_CONFERMATI")
+        self.assertEqual(result["contract_safety"]["ctVal_status"], "DISCREPANZA_CTVAL_NON_RISOLTA")
         self.assertTrue(result["contract_safety"]["ctVal_ui_api_match"])
-        self.assertEqual(result["contract_safety"]["ctVal_zec_per_contract"], 0.01)
+        self.assertIsNone(result["contract_safety"]["ctVal_zec_per_contract"])
+        self.assertEqual(result["contract_safety"]["ctVal_official_spec_zec"], 0.1)
+        self.assertEqual(result["contract_safety"]["account_api_ctVal_observed_zec"], 0.01)
         self.assertEqual(result["contract_safety"]["ctMult_api"], 1)
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
         self.assertFalse(result["contract_safety"]["theoretical_sizing_permitted"])
@@ -129,7 +131,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         snapshot = valid_snapshot()
         snapshot["market"]["zec_xperp_instrument"]["first"]["ctVal"] = "0.1"
         result = evaluate_signal(snapshot, now=NOW)
-        self.assertEqual(result["contract_safety"]["ctVal_status"], "VALORI_OKX_NON_VERIFICATI")
+        self.assertEqual(result["contract_safety"]["ctVal_status"], "METADATI_API_DISCORDANTI")
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
         self.assertEqual(result["contract_safety"]["max_risk_usdc"], 20)
 
