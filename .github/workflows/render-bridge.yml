@@ -1,5 +1,6 @@
 name: Render Candle Feed Bridge
-# Manual push probe also verifies Render health and publishes a compact snapshot.
+# Push-triggered refresh is the immediate recovery path when the scheduled 5-minute
+# bridge has not published a fresh snapshot. It runs the same validation/capture path.
 
 on:
   push:
