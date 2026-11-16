@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Recovery probe: this file change triggers the Render bridge capture workflow.
 """Capture the public Render candle feed into a GitHub-readable snapshot."""
 import json
 import os
