@@ -468,6 +468,15 @@ def main():
         },
     }
     output["zec_early_signal"] = evaluate_signal(output, now=now)
+    # Mirror the independent regional contract comparison into the signal payload;
+    # it remains diagnostic and cannot alter any execution/sizing safety flag.
+    output["zec_early_signal"]["contract_safety"].update({
+        key: value for key, value in output["zec_contract_safety"].items()
+        if key.startswith("global_") or key in (
+            "global_metadata_comparison", "global_metadata_comparison_valid",
+            "regional_api_values_match", "api_face_value_zec_diagnostic_only",
+        )
+    })
     output["zec_context_archive"] = update_context_archive(output, now=now)
     output["zec_predictive_engine"] = evaluate_predictive_engine(output)
     output["zec_predictive_engine"]["context_archive"] = output["zec_context_archive"]
