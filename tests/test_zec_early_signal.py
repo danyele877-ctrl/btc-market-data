@@ -53,7 +53,7 @@ def valid_snapshot():
         "read_errors": {},
         "market": {
             "zec_xperp_ticker": market_record(INSTRUMENT_ID),
-            "zec_xperp_instrument": market_record(INSTRUMENT_ID, {"ctVal": "0.01"}),
+            "zec_xperp_instrument": market_record(INSTRUMENT_ID, {"ctVal": "0.01", "ctMult": "1", "lotSz": "1", "minSz": "1", "tickSz": "0.01", "settleCcy": "USD", "state": "live"}),
             "zec_spot_ticker": market_record("ZEC-USDC"),
             "btc_spot_ticker": market_record("BTC-USDC"),
         },
@@ -103,11 +103,23 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(result["status"], "TRIGGER CONFERMATO")
         self.assertEqual(result["decision"], "LONG")
         self.assertEqual(result["instrument"]["inst_id"], INSTRUMENT_ID)
-        self.assertEqual(result["contract_safety"]["ctVal_status"], "NON RISOLTO")
-        self.assertFalse(result["contract_safety"]["sizing_allowed"])
+        self.assertEqual(result["contract_safety"]["ctVal_status"], "RISOLTO_UI_API_CONCORDI")
+        self.assertTrue(result["contract_safety"]["sizing_allowed"])
+        self.assertTrue(result["contract_safety"]["theoretical_sizing_permitted"])
+        self.assertEqual(result["contract_safety"]["max_risk_usdc"], 20)
+        self.assertFalse(result["contract_safety"]["position_sizing_enabled"])
+        self.assertFalse(result["execution"]["orders_enabled"])
         self.assertIsNone(result["execution"]["position_quantity"])
         self.assertIsNone(result["execution"]["margin"])
         self.assertIsNone(result["execution"]["pnl"])
+
+    def test_api_contract_mismatch_blocks_theoretical_sizing(self):
+        snapshot = valid_snapshot()
+        snapshot["market"]["zec_xperp_instrument"]["first"]["ctVal"] = "0.1"
+        result = evaluate_signal(snapshot, now=NOW)
+        self.assertEqual(result["contract_safety"]["ctVal_status"], "NON VERIFICATO")
+        self.assertFalse(result["contract_safety"]["sizing_allowed"])
+        self.assertEqual(result["contract_safety"]["max_risk_usdc"], 20)
 
     def test_stale_snapshot_waits(self):
         snapshot = valid_snapshot()

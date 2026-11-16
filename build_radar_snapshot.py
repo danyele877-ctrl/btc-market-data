@@ -212,6 +212,75 @@ def microstructure_summary(micro):
     }
 
 
+def funding_diagnostics(record, now):
+    """Compare raw OKX funding timestamps with the documented X-Perp interval."""
+    first = record.get("first") if isinstance(record, dict) else None
+    first = first if isinstance(first, dict) else {}
+    def timestamp_ms(field):
+        try:
+            value = int(first.get(field))
+            return value if value > 0 else None
+        except (TypeError, ValueError):
+            return None
+    def interval_hours(earlier, later):
+        if earlier is None or later is None or later <= earlier:
+            return None
+        return round((later - earlier) / 3_600_000, 2)
+    def iso_from_ms(value):
+        if value is None:
+            return None
+        return datetime.fromtimestamp(value / 1000, timezone.utc).isoformat().replace("+00:00", "Z")
+    previous_ms = timestamp_ms("prevFundingTime")
+    funding_ms = timestamp_ms("fundingTime")
+    next_ms = timestamp_ms("nextFundingTime")
+    previous_interval = interval_hours(previous_ms, funding_ms)
+    next_interval = interval_hours(funding_ms, next_ms)
+    try:
+        exchange_age = float(record.get("exchange_age_seconds")) if isinstance(record, dict) else None
+    except (TypeError, ValueError):
+        exchange_age = None
+    http_ok = (
+        isinstance(record, dict) and record.get("http_status") == 200
+        and str(record.get("api_code")) == "0"
+        and exchange_age is not None and -1 <= exchange_age <= 180 and bool(first)
+    )
+    observed = [value for value in (previous_interval, next_interval) if value is not None]
+    if not http_ok or not observed:
+        status = "N/D"
+    elif any(abs(value - 4.0) > 0.05 for value in observed):
+        status = "INCOERENZA_API"
+    else:
+        status = "COERENTE"
+    return {
+        "status": status,
+        "instrument_id": first.get("instId"),
+        "source": "OKX EEA GET /public/funding-rate",
+        "http_status": record.get("http_status") if isinstance(record, dict) else None,
+        "api_code": record.get("api_code") if isinstance(record, dict) else None,
+        "exchange_age_seconds": exchange_age,
+        "contract_interval_hours": 4,
+        "contract_interval_source": "OKX Europe X-Perps Contract Specifications",
+        "prevFundingTime": first.get("prevFundingTime"),
+        "fundingTime": first.get("fundingTime"),
+        "nextFundingTime": first.get("nextFundingTime"),
+        "prev_to_funding_hours_observed": previous_interval,
+        "funding_to_next_hours_observed": next_interval,
+        "prev_funding_at": iso_from_ms(previous_ms),
+        "funding_at": iso_from_ms(funding_ms),
+        "next_funding_at": iso_from_ms(next_ms),
+        "funding_rate": first.get("fundingRate"),
+        "settled_funding_rate": first.get("settFundingRate"),
+        "settlement_state": first.get("settState"),
+        "method": first.get("method"),
+        "api_response_ts": first.get("ts"),
+        "interpretation": (
+            "La specifica contrattuale resta 4h. I timestamp API sono conservati come osservazione separata; "
+            "se mostrano 8h non sostituiscono la periodicità documentata. Non annualizzare né stimare costi futuri "
+            "da intervalli API discordanti."
+        ),
+    }
+
+
 def main():
     feed, micro, hist = read(FEED), read(MICRO), read(HISTORY)
     market = feed.get("okx_market", {}) if isinstance(feed, dict) else {}
@@ -310,6 +379,7 @@ def main():
         "render_candles_http": (feed.get("candles") or {}).get("http_status"),
         "render_health": render_health,
         "market": market_out,
+        "funding_diagnostics": funding_diagnostics(market_out.get("zec_xperp_funding"), now),
         "candles_1m_5m": candles,
         "zec_xperp_history": xperp_history,
         "predictive_history": {
@@ -347,6 +417,7 @@ def main():
             for market, bars in spot_history.items()
         },
         "xperp_history_ready": {bar: item["ready_200"] for bar, item in xperp_history.items()},
+        "funding_diagnostics": output["funding_diagnostics"]["status"],
         "book_snapshots": output["microstructure"]["book_snapshot_count"],
         "trades": output["microstructure"]["trade_count"],
         "trade_id_gap_events": output["microstructure"]["trade_id_gap_events"],

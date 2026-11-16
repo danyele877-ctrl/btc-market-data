@@ -26,11 +26,10 @@ permissions:
   contents: write
 
 concurrency:
-  # Keep deployment/test runs separate from the high-frequency refresh bridge.
-  # Let a refresh finish instead of cancelling it when the next 5-minute tick
-  # arrives; cancellation can leave the published snapshot stale.
+  # Deploy and refresh runs never cancel one another because they use separate groups.
+  # Within the refresh group, keep the newest event and discard obsolete queued work.
   group: render-candle-feed-bridge-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'deploy' || 'refresh' }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   publish-render-feed:

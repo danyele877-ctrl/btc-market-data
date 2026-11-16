@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-from build_radar_snapshot import summarize_history
+from build_radar_snapshot import summarize_history, funding_diagnostics
 from capture_render_feed import get_okx_xperp_history, validate_feed
 
 
@@ -28,24 +28,52 @@ def ready_record(http_status):
 class RadarHistoryValidationTests(unittest.TestCase):
     def valid_feed(self):
         now = datetime.now(timezone.utc)
+        captured_at = now.isoformat().replace("+00:00", "Z")
+        instruments = {}
+        streams = {}
+        active = [
+            {"instType": "SPOT", "instId": "BTC-USDC", "stream_key": "BTC-USDC"},
+            {"instType": "SPOT", "instId": "ZEC-USDC", "stream_key": "ZEC-USDC"},
+            {"instType": "FUTURES", "instId": "ZEC-USD_UM_XPERP-310530", "stream_key": "ZEC-USD_UM_XPERP"},
+        ]
+        for market, stream_key in (
+            ("BTC-USDC", "BTC-USDC"), ("ZEC-USDC", "ZEC-USDC"),
+            ("ZEC-USD_UM_XPERP", "ZEC-USD_UM_XPERP"),
+        ):
+            instruments[market] = {}
+            for bar, seconds in (("1m", 60), ("5m", 300)):
+                interval_ms = seconds * 1000
+                end = int(now.timestamp()) // seconds * seconds
+                latest_start = (end - seconds) * 1000
+                rows = []
+                for index in range(200):
+                    ts_ms = latest_start - (199 - index) * interval_ms
+                    completed = datetime.fromtimestamp((ts_ms + interval_ms) / 1000, timezone.utc)
+                    rows.append({
+                        "ts_ms": ts_ms,
+                        "timestamp": datetime.fromtimestamp(ts_ms / 1000, timezone.utc).isoformat().replace("+00:00", "Z"),
+                        "completed_at": completed.isoformat().replace("+00:00", "Z"),
+                        "open": "100", "high": "101", "low": "99", "close": "100",
+                    })
+                instruments[market][bar] = rows
+                streams[f"{stream_key}:{bar}"] = {
+                    "candle_count": 200, "history_ready_200": True, "gap_count": 0,
+                    "stale": False, "last_completed_at": rows[-1]["completed_at"],
+                    "last_candle_at": rows[-1]["timestamp"], "age_seconds": 1,
+                }
         feed = {
-            "captured_at": now.isoformat().replace("+00:00", "Z"),
-            "status": "ok",
-            "healthz": {
-                "http_status": 200,
-                "payload": {
-                    "status": "ok", "websocket_connected": True,
-                    "streams": {
-                        f"{market}:{bar}": {"candle_count": 200, "stale": False}
-                        for market in ("BTC-USDC", "ZEC-USDC") for bar in ("1m", "5m")
-                    },
-                },
-            },
-            "candles": {
-                "http_status": 200,
-                "payload": {"instruments": {market: {bar: [{"ts_ms": 1}] for bar in ("1m", "5m")} for market in ("BTC-USDC", "ZEC-USDC")}},
-            },
+            "captured_at": captured_at, "status": "ok",
+            "healthz": {"http_status": 200, "payload": {
+                "status": "ok", "websocket_connected": True, "last_message_age_seconds": 1,
+                "active_instruments": active, "streams": streams,
+                "bridge_dispatch_enabled": True, "bridge_dispatch_last_status": 204,
+                "bridge_dispatch_last_error": None,
+                "microstructure": {"connected": True, "book_valid": True,
+                    "message_age_seconds": 1, "trade_age_seconds": 1, "book_age_seconds": 1},
+            }},
+            "candles": {"http_status": 200, "payload": {"instruments": instruments}},
             "okx_history": {},
+            "zec_xperp_history": {"instrument": "ZEC-USD_UM_XPERP-310530", "retrieved_at": captured_at, "bars": {}},
         }
         for market in ("BTC-USDC", "ZEC-USDC"):
             feed["okx_history"][market] = {}
@@ -55,10 +83,18 @@ class RadarHistoryValidationTests(unittest.TestCase):
                     {
                         "ts_ms": (end - (200 - index) * seconds) * 1000,
                         "completed_at": datetime.fromtimestamp(end - (199 - index) * seconds, timezone.utc).isoformat().replace("+00:00", "Z"),
+                        "open": "100", "high": "101", "low": "99", "close": "100",
                     }
                     for index in range(200)
                 ]
                 feed["okx_history"][market][bar] = {"http_status": 200, "count": 200, "candles": candles}
+        for bar, seconds in (("1m", 60), ("5m", 300), ("1H", 3600), ("4H", 14400)):
+            end = int(now.timestamp()) // seconds * seconds
+            newest = datetime.fromtimestamp(end, timezone.utc).isoformat().replace("+00:00", "Z")
+            feed["zec_xperp_history"]["bars"][bar] = {
+                "http_status": 200, "count": 200, "gap_count": 0, "ready_200": True,
+                "newest_completed_at": newest, "error": None,
+            }
         return feed
 
     def test_feed_validation_accepts_fresh_spot_history(self):
@@ -104,6 +140,19 @@ class RadarHistoryValidationTests(unittest.TestCase):
         summary = summarize_history(ready_record(200), "1H", NOW)
         self.assertTrue(summary["ready_200"])
         self.assertIsNotNone(summary["indicators"])
+
+    def test_funding_diagnostics_keep_four_hour_spec_separate_from_eight_hour_api_fields(self):
+        base = 1_800_000_000_000
+        record = {"http_status": 200, "api_code": "0", "exchange_age_seconds": 1,
+            "first": {"instId": "ZEC-USD_UM_XPERP-310530", "prevFundingTime": str(base),
+                "fundingTime": str(base + 8 * 3_600_000),
+                "nextFundingTime": str(base + 16 * 3_600_000),
+                "fundingRate": "0.0001", "settState": "settled"}}
+        result = funding_diagnostics(record, NOW)
+        self.assertEqual(result["contract_interval_hours"], 4)
+        self.assertEqual(result["prev_to_funding_hours_observed"], 8)
+        self.assertEqual(result["funding_to_next_hours_observed"], 8)
+        self.assertEqual(result["status"], "INCOERENZA_API")
 
 
 if __name__ == "__main__":

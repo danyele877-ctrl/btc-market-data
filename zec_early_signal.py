@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from zec_contract_config import build_contract_safety
+
 
 INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
 FEED_KEY = "ZEC-USD_UM_XPERP"
@@ -421,13 +423,12 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             "limitations": list(dict.fromkeys(limitations)),
             "liquidations": "non disponibili nel feed corrente; nessun contributo al punteggio",
         },
-        "contract_safety": {
-            "ctVal_api_zec": _number((instrument or {}).get("ctVal")),
-            "ctVal_official_zec": 0.1,
-            "ctVal_status": "NON RISOLTO",
-            "sizing_allowed": False,
-            "margin_or_exposure_calculated": False,
-            "max_risk_usdc": 15,
+        "contract_safety": build_contract_safety(instrument, verified=not bool(instrument_error)),
+        "execution": {
+            "orders_enabled": False,
+            "position_quantity": None,
+            "margin": None,
+            "pnl": None,
+            "sizing_calculated": False,
         },
-        "execution": {"orders_enabled": False, "position_quantity": None, "margin": None, "pnl": None},
     }

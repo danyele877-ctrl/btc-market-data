@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from zec_queue_model import estimate_queue_depletion
+from zec_contract_config import build_contract_safety
 
 INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
 ARCHIVE_PATH = Path("data/zec_predictive_archive.json")
@@ -562,10 +563,40 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
 
 def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = ARCHIVE_PATH) -> dict[str, Any]:
     """Update the persistent event archive and return horizon-specific analog estimates."""
-    ticker = snapshot.get("market", {}).get("zec_xperp_ticker", {})
+    market_records = snapshot.get("market", {}) if isinstance(snapshot.get("market"), dict) else {}
+    ticker = market_records.get("zec_xperp_ticker", {})
     first = ticker.get("first", {}) if isinstance(ticker, dict) else {}
+    instrument_record = market_records.get("zec_xperp_instrument", {})
+    if not isinstance(instrument_record, dict):
+        instrument_record = {}
+    instrument = instrument_record.get("first", {})
+    if not isinstance(instrument, dict):
+        instrument = {}
+    instrument_age = instrument_record.get("exchange_age_seconds")
+    if instrument_age is None:
+        instrument_age = instrument_record.get("age_seconds")
+    try:
+        instrument_fresh = instrument_age is not None and -1 <= float(instrument_age) <= 180
+    except (TypeError, ValueError):
+        instrument_fresh = False
+    instrument_verified = (
+        instrument_record.get("http_status") == 200
+        and str(instrument_record.get("api_code")) == "0"
+        and instrument_fresh
+        and instrument.get("instId") == INSTRUMENT_ID
+    )
+    contract_safety = build_contract_safety(instrument, verified=instrument_verified)
     if first.get("instId") != INSTRUMENT_ID:
-        return {"status": "BLOCCATO", "reason": "strumento X-Perp non esatto", "archive": {"events_total": 0, "events_added": 0}, "scalping": {"status": "BLOCCATO"}, "reversals": {"status": "BLOCCATO"}, "orders_enabled": False}
+        return {
+            "status": "BLOCCATO", "reason": "strumento X-Perp non esatto",
+            "archive": {"events_total": 0, "events_added": 0},
+            "scalping": {"status": "BLOCCATO"}, "reversals": {"status": "BLOCCATO"},
+            "orders_enabled": False,
+            "safety": {
+                **contract_safety, "orders_enabled": False,
+                "position_sizing_enabled": False, "instrument_id_pinned": INSTRUMENT_ID,
+            },
+        }
     captured = _dt(snapshot.get("source_captured_at"))
     age = (datetime.now(timezone.utc) - captured).total_seconds() if captured else None
     history_quality = snapshot.get("zec_xperp_history") or {}
@@ -601,9 +632,12 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
             "archive": {"events_total": 0, "events_added": 0},
             "scalping": {"status": "BLOCCATO"}, "reversals": {"status": "BLOCCATO"},
             "orders_enabled": False, "archive_updated": False,
-            "safety": {"orders_enabled": False, "position_sizing_enabled": False,
-                       "ctVal_status": "NON RISOLTO", "max_risk_usdc": 15,
-                       "instrument_id_pinned": INSTRUMENT_ID},
+            "safety": {
+                **contract_safety,
+                "orders_enabled": False,
+                "position_sizing_enabled": False,
+                "instrument_id_pinned": INSTRUMENT_ID,
+            },
         }
     archive, counts = _update_archive(snapshot, archive_path)
     hist = snapshot.get("predictive_history") or {}
@@ -876,8 +910,9 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     result["reversals"]["context_4h_note"] = "Contesto descrittivo separato; non entra ancora nel calcolo delle frequenze analogiche."
     # Safety is explicit and deliberately duplicated at the engine boundary.
     result["safety"] = {
-        "orders_enabled": False, "position_sizing_enabled": False,
-        "ctVal_status": "NON RISOLTO", "max_risk_usdc": 15,
+        **contract_safety,
+        "orders_enabled": False,
+        "position_sizing_enabled": False,
         "instrument_id_pinned": INSTRUMENT_ID,
     }
     return result

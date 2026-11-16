@@ -18,55 +18,134 @@ MICRO_MAX_MINUTES = 1440
 MICRO_MAX_TRADES = 30000
 MICRO_MAX_BOOK_SNAPSHOTS = 15000
 MAX_FEED_AGE_SECONDS = 20 * 60
-HISTORY_MAX_AGE_SECONDS = {"1H": 3 * 3600, "4H": 12 * 3600}
+HISTORY_MAX_AGE_SECONDS = {"1m": 180, "5m": 360, "1H": 3 * 3600, "4H": 12 * 3600}
 
 def now():
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def validate_feed(feed, current_time=None):
-    """Reject empty, incomplete, or stale snapshots before they can be published."""
+    """Reject stale, incomplete or internally inconsistent Render/OKX history."""
     current_time = current_time or datetime.now(timezone.utc)
+    if current_time.tzinfo is None:
+        current_time = current_time.replace(tzinfo=timezone.utc)
+    current_time = current_time.astimezone(timezone.utc)
     problems = []
 
     def parse_time(value):
         if not isinstance(value, str):
             return None
         try:
-            return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
         except ValueError:
             return None
 
-    captured = parse_time(feed.get("captured_at")) if isinstance(feed, dict) else None
+    if not isinstance(feed, dict):
+        return ["Render bridge payload is not a JSON object"]
+    captured = parse_time(feed.get("captured_at"))
     if captured is None or (current_time - captured).total_seconds() > MAX_FEED_AGE_SECONDS or captured > current_time:
         problems.append("captured_at missing, in the future, or older than 20 minutes")
-    if not isinstance(feed, dict) or feed.get("status") != "ok":
+    if feed.get("status") != "ok":
         problems.append("Render feed status is not ok")
-    health = feed.get("healthz", {}) if isinstance(feed, dict) else {}
-    candles = feed.get("candles", {}) if isinstance(feed, dict) else {}
+    health = feed.get("healthz", {})
+    candles = feed.get("candles", {})
     if health.get("http_status") != 200 or not isinstance(health.get("payload"), dict):
         problems.append("Render health response is missing or not HTTP 200")
     if candles.get("http_status") != 200 or not isinstance(candles.get("payload"), dict):
         problems.append("Render candles response is missing or not HTTP 200")
-    else:
-        instruments = candles["payload"].get("instruments", {})
-        for market in ("BTC-USDC", "ZEC-USDC"):
-            for bar in ("1m", "5m"):
-                series = instruments.get(market, {}).get(bar, [])
-                if not isinstance(series, list) or not series:
-                    problems.append(f"Render {market} {bar} candle data is empty")
-    if isinstance(health.get("payload"), dict):
-        health_payload = health["payload"]
-        if health_payload.get("status") != "ok" or health_payload.get("websocket_connected") is not True:
-            problems.append("Render service or WebSocket is not healthy")
-        streams = health_payload.get("streams", {})
-        for market in ("BTC-USDC", "ZEC-USDC"):
-            for bar in ("1m", "5m"):
-                stream = streams.get(f"{market}:{bar}", {})
-                if not stream or stream.get("stale") is True or not stream.get("candle_count"):
-                    problems.append(f"Render {market} {bar} stream is empty or stale")
+    if captured is None:
+        return problems + ["captured_at is required to validate completed candle freshness"]
 
-    okx_history = feed.get("okx_history", {}) if isinstance(feed, dict) else {}
+    health_payload = health.get("payload") if isinstance(health.get("payload"), dict) else {}
+    if health_payload.get("status") != "ok" or health_payload.get("websocket_connected") is not True:
+        problems.append("Render service or candle WebSocket is not healthy")
+    try:
+        message_age = float(health_payload.get("last_message_age_seconds"))
+    except (TypeError, ValueError):
+        message_age = None
+    if message_age is None or message_age < 0 or message_age > 120:
+        problems.append("Render candle WebSocket message is missing, future-dated or older than 120 seconds")
+
+    instruments = (candles.get("payload") or {}).get("instruments", {}) if isinstance(candles.get("payload"), dict) else {}
+    streams = health_payload.get("streams", {}) if isinstance(health_payload.get("streams"), dict) else {}
+    active = health_payload.get("active_instruments", [])
+    expected = (
+        ("BTC-USDC", "BTC-USDC", "SPOT"),
+        ("ZEC-USDC", "ZEC-USDC", "SPOT"),
+        ("ZEC-USD_UM_XPERP", "ZEC-USD_UM_XPERP", "FUTURES"),
+    )
+
+    def validate_series(series, market, bar, stream_key):
+        interval_seconds = {"1m": 60, "5m": 300}[bar]
+        interval_ms = interval_seconds * 1000
+        freshness_limit = {"1m": 180, "5m": 360}[bar]
+        label = f"{market} {bar}"
+        if not isinstance(series, list) or len(series) < 200:
+            problems.append(f"Render {label} has fewer than 200 completed candles")
+            return
+        timestamps, completions = [], []
+        try:
+            for item in series:
+                ts_ms = int(item["ts_ms"])
+                completed = parse_time(item.get("completed_at"))
+                if completed is None:
+                    raise ValueError("completed_at missing")
+                completed_ms = int(completed.timestamp() * 1000)
+                if abs(completed_ms - (ts_ms + interval_ms)) > 1000:
+                    raise ValueError("completed_at inconsistent with timeframe")
+                if completed > captured or completed > current_time:
+                    raise ValueError("future or incomplete candle")
+                timestamps.append(ts_ms)
+                completions.append(completed)
+        except (KeyError, TypeError, ValueError) as exc:
+            problems.append(f"Render {label} contains malformed/open candle: {exc}")
+            return
+        if timestamps != sorted(set(timestamps)):
+            problems.append(f"Render {label} is unordered or contains duplicate timestamps")
+            return
+        if any(right - left != interval_ms for left, right in zip(timestamps, timestamps[1:])):
+            problems.append(f"Render {label} contains one or more candle gaps")
+            return
+        age = (captured - completions[-1]).total_seconds()
+        if age < 0 or age > freshness_limit:
+            problems.append(f"Render {label} latest completed candle is stale ({age:.1f}s; limit {freshness_limit}s)")
+        stream = streams.get(f"{stream_key}:{bar}", {})
+        try:
+            stream_count = int(stream.get("candle_count") or 0)
+            stream_gaps = int(stream.get("gap_count") or 0)
+        except (TypeError, ValueError):
+            stream_count, stream_gaps = 0, -1
+        if (
+            not stream or stream.get("stale") is True
+            or stream.get("history_ready_200") is not True
+            or stream_count < 200 or stream_gaps != 0
+        ):
+            problems.append(f"Render health stream {stream_key}:{bar} is stale, gapped or below 200 bars")
+        else:
+            health_completed = parse_time(stream.get("last_completed_at"))
+            if health_completed is None or abs((health_completed - completions[-1]).total_seconds()) > 1:
+                problems.append(f"Render health/candles timestamp mismatch for {stream_key}:{bar}")
+
+    if isinstance(active, list):
+        for inst_id, stream_key, inst_type in expected:
+            if not any(
+                isinstance(item, dict)
+                and item.get("instId") == inst_id
+                and item.get("instType") == inst_type
+                and item.get("stream_key", item.get("instId")) == stream_key
+                for item in active
+            ):
+                problems.append(f"Render active instrument missing or wrong: {inst_id}")
+    else:
+        problems.append("Render active_instruments is missing or malformed")
+
+    for market, stream_key, _inst_type in expected:
+        market_series = instruments.get(market, {}) if isinstance(instruments, dict) else {}
+        for bar in ("1m", "5m"):
+            validate_series(market_series.get(bar, []), market, bar, stream_key)
+
+    okx_history = feed.get("okx_history", {})
     for market in ("BTC-USDC", "ZEC-USDC"):
         for bar in ("1H", "4H"):
             record = okx_history.get(market, {}).get(bar, {})
@@ -78,19 +157,50 @@ def validate_feed(feed, current_time=None):
             interval_ms = {"1H": 3_600_000, "4H": 14_400_000}[bar]
             timestamps = []
             try:
-                timestamps = [int(item["ts_ms"]) for item in series]
+                for item in series:
+                    ts_ms = int(item["ts_ms"])
+                    completed = parse_time(item.get("completed_at"))
+                    if completed is None or abs(int(completed.timestamp() * 1000) - (ts_ms + interval_ms)) > 1000:
+                        raise ValueError("completed_at inconsistent")
+                    if completed > captured or completed > current_time:
+                        raise ValueError("future/incomplete candle")
+                    timestamps.append(ts_ms)
             except (KeyError, TypeError, ValueError):
-                problems.append(f"{label} history contains malformed candles")
+                problems.append(f"{label} history contains malformed or incomplete candles")
                 continue
             if timestamps != sorted(set(timestamps)) or any(
                 right - left != interval_ms for left, right in zip(timestamps, timestamps[1:])
             ):
                 problems.append(f"{label} history is unordered, duplicated, or has gaps")
             newest = parse_time(series[-1].get("completed_at")) if series and isinstance(series[-1], dict) else None
-            if newest is None or (current_time - newest).total_seconds() > HISTORY_MAX_AGE_SECONDS[bar] or newest > current_time:
+            if newest is None or (captured - newest).total_seconds() > HISTORY_MAX_AGE_SECONDS[bar] or newest > captured:
                 problems.append(f"{label} history is missing or stale")
-    return problems
 
+    xperp_history = feed.get("zec_xperp_history", {})
+    if xperp_history.get("instrument") != "ZEC-USD_UM_XPERP-310530":
+        problems.append("ZEC X-Perp history instrument is not the exact OKX Europe contract")
+    for bar in ("1m", "5m", "1H", "4H"):
+        record = xperp_history.get("bars", {}).get(bar, {})
+        label = f"ZEC-USD_UM_XPERP-310530 {bar} history"
+        try:
+            count = int(record.get("count") or 0)
+            gaps = int(record.get("gap_count") or 0)
+        except (TypeError, ValueError):
+            count, gaps = 0, -1
+        if (
+            record.get("http_status") != 200 or record.get("ready_200") is not True
+            or count < 200 or gaps != 0 or record.get("error")
+        ):
+            problems.append(f"{label} is not ready (HTTP 200, 200 bars, zero gaps required)")
+            continue
+        newest = parse_time(record.get("newest_completed_at"))
+        if newest is None or newest > captured or newest > current_time:
+            problems.append(f"{label} has invalid/future newest completed timestamp")
+            continue
+        age = (captured - newest).total_seconds()
+        if age < 0 or age > HISTORY_MAX_AGE_SECONDS[bar]:
+            problems.append(f"{label} is stale ({age:.1f}s; limit {HISTORY_MAX_AGE_SECONDS[bar]}s)")
+    return problems
 
 def write_feed_atomically(feed):
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -506,7 +616,11 @@ def main():
     output = {
         "bridge_schema_version": 4,
         "microstructure_history": microstructure_status,
-        "zec_xperp_history": {bar: {key: value for key, value in item.items() if key != "candles"} for bar, item in zec_xperp_history["bars"].items()},
+        "zec_xperp_history": {
+            "instrument": zec_xperp_history.get("instrument"),
+            "retrieved_at": zec_xperp_history.get("retrieved_at"),
+            "bars": {bar: {key: value for key, value in item.items() if key != "candles"} for bar, item in zec_xperp_history["bars"].items()},
+        },
         "okx_market": okx_market,
         "okx_history": okx_history,
         "captured_at": now(),
