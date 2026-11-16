@@ -29,9 +29,11 @@ permissions:
   contents: write
 
 concurrency:
-  # Serialize every trigger so older capture runs cannot publish over a newer run.
-  # Never cancel an active run while it is capturing or publishing data.
-  group: render-candle-feed-bridge
+  # Do not let a stalled runner hold the bridge lock indefinitely.
+  # Publication remains protected by render_bridge_publication.py, which rejects
+  # any candidate older than the latest already-published feed or snapshot.
+  # Concurrent pushes retry against the newest main branch before publishing.
+  group: render-candle-feed-bridge-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
