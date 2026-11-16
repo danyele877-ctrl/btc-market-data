@@ -28,7 +28,11 @@ def _number(value: Any) -> float | None:
 def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool = False) -> dict[str, Any]:
     """Validate fresh EEA metadata against the user's exact-instrument UI confirmation."""
     row = instrument if isinstance(instrument, dict) else {}
+    # ctVal is a raw API value; its unit is defined by ctValCcy and must not
+    # be relabelled as ZEC unless OKX explicitly reports that currency.
     api_ctval = _number(row.get("ctVal"))
+    api_ctval_ccy = row.get("ctValCcy")
+    api_ct_type = row.get("ctType")
     api_ctmult = _number(row.get("ctMult"))
     api_lot = _number(row.get("lotSz"))
     api_min = _number(row.get("minSz"))
@@ -37,13 +41,17 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
     ui_api_match = (
         verified and row.get("instId") == INSTRUMENT_ID and row.get("state") == "live"
         and api_ctval == CTVAL_ZEC_PER_CONTRACT and api_ctmult == CT_MULT
+        and api_ctval_ccy == "ZEC"
         and api_lot == LOT_SIZE and api_min == MIN_SIZE
         and api_tick == TICK_SIZE_USD and api_settle == SETTLE_CCY
     )
     reconciled = ui_api_match and CTVAL_RECONCILED
     return {
         "instrument_id": INSTRUMENT_ID,
-        "ctVal_api_zec": api_ctval,
+        "ctVal_api_raw": api_ctval,
+        "ctValCcy_api": api_ctval_ccy,
+        "ctType_api": api_ct_type,
+        "ctVal_unit_interpretation": ("ZEC" if api_ctval_ccy == "ZEC" else "NON DETERMINATA: verificare ctValCcy" if not api_ctval_ccy else f"ctVal espresso in {api_ctval_ccy}, non convertito in ZEC"),
         "ctMult_api": api_ctmult,
         "lotSz_api": api_lot,
         "minSz_api": api_min,
@@ -52,6 +60,8 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
         "ctVal_zec_per_contract": CTVAL_ZEC_PER_CONTRACT if reconciled else None,
         "ctVal_official_spec_zec": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
         "ctVal_ui_api_match": bool(ui_api_match),
+        "official_spec_zec_per_contract": OFFICIAL_SPEC_CTVAL_ZEC_PER_CONTRACT,
+        "raw_metadata_complete": all(row.get(key) not in (None, "") for key in ("ctVal", "ctMult", "ctValCcy", "ctType", "lotSz", "minSz", "tickSz", "settleCcy")),
         "ctVal_status": (
             "RISOLTO" if reconciled else "NON RISOLTO_SPECIFICA_UFFICIALE" if ui_api_match else "NON VERIFICATO"
         ),
@@ -69,7 +79,7 @@ def build_contract_safety(instrument: dict[str, Any] | None, *, verified: bool =
         "sizing_allowed": bool(reconciled),
         "theoretical_sizing_permitted": bool(reconciled),
         "position_sizing_enabled": False,
-        "position_sizing_note": "Bloccato fino alla riconciliazione formale tra 0.01 ZEC UI/API e 0.1 ZEC della specifica pubblica.",
+        "position_sizing_note": "Bloccato fino alla riconciliazione formale tra 0.01 UI/API e 0.1 ZEC della specifica pubblica e alla verifica dell’unita ctValCcy.",
         "max_risk_usdc": MAX_RISK_USDC,
         "margin_or_exposure_calculated": False,
         "orders_enabled": False,
