@@ -1,11 +1,13 @@
+import json
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from zec_predictive_engine import (
     INSTRUMENT_ID, MIN_ANALOGS, _analogs, _clean, _features, _label,
-    evaluate_predictive_engine,
+    evaluate_predictive_engine, _write_json_atomically,
 )
 
 
@@ -105,6 +107,27 @@ class PredictiveEngineTests(unittest.TestCase):
         self.assertFalse(result["orders_enabled"])
         self.assertFalse(result["safety"]["position_sizing_enabled"])
         self.assertEqual(result["safety"]["ctVal_status"], "NON VERIFICATO")
+
+    def test_volume_relative_uses_actual_nineteen_bar_baseline(self):
+        rows = []
+        for i in range(21):
+            rows.append({
+                "ts_ms": i * 300000,
+                "open": 100.0, "high": 101.0, "low": 99.0,
+                "close": 100.0, "volume": 20.0 if i == 20 else 10.0,
+            })
+        features = _features(rows, 20)
+        self.assertAlmostEqual(features["volume_rel"], 2.0, places=8)
+
+    def test_predictive_archive_atomic_failure_preserves_previous_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "archive.json"
+            path.write_text('{"previous":true}', encoding="utf-8")
+            with patch("zec_predictive_engine.os.replace", side_effect=OSError("simulated")):
+                with self.assertRaises(OSError):
+                    _write_json_atomically(path, {"new": True})
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"previous": True})
+            self.assertEqual(list(Path(tmp).glob(".archive.json.*.tmp")), [])
 
 
 if __name__ == "__main__":
