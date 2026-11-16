@@ -54,7 +54,7 @@ def valid_snapshot():
         "read_errors": {},
         "market": {
             "zec_xperp_ticker": market_record(INSTRUMENT_ID),
-            "zec_xperp_instrument": market_record(INSTRUMENT_ID, {"ctVal": "0.01", "ctMult": "1", "lotSz": "1", "minSz": "1", "tickSz": "0.01", "settleCcy": "USD", "state": "live"}),
+            "zec_xperp_instrument": market_record(INSTRUMENT_ID, {"ctVal": "0.01", "ctValCcy": "ZEC", "ctType": "linear", "ctMult": "1", "lotSz": "1", "minSz": "1", "tickSz": "0.01", "settleCcy": "USD", "state": "live"}),
             "zec_xperp_funding": market_record(INSTRUMENT_ID, {
                 "prevFundingTime": str(funding_time_ms - 4 * 60 * 60 * 1000),
                 "fundingTime": str(funding_time_ms),
