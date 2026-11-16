@@ -594,6 +594,12 @@ def main():
         name: get_url(f"{OKX_EEA}{path}")
         for name, path in market_paths.items()
     }
+    # Independent cross-region check for the exact same dated instrument.
+    # This is diagnostic only: global metadata must never override EEA trading rules.
+    okx_market["zec_xperp_instrument_global"] = get_url(
+        "https://www.okx.com/api/v5/public/instruments?"
+        "instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530"
+    )
     # Keep only the ZEC USD index row; never mix unrelated index instruments.
     index_payload = okx_market.get("zec_index", {}).get("payload")
     if isinstance(index_payload, dict) and isinstance(index_payload.get("data"), list):
