@@ -92,7 +92,7 @@ class PredictiveEngineTests(unittest.TestCase):
             })
         # A recent immature observation and a neighbouring overlapping one.
         events.append({
-            "id": "immature", "timestamp_ms": 30 * 5 * 60_000,
+            "id": "immature", "timestamp_ms": 35 * 5 * 60_000,
             "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
             "features": features,
             "label": {"filled_proxy": True, "tp_before_sl": None},
@@ -105,7 +105,7 @@ class PredictiveEngineTests(unittest.TestCase):
         })
         result = _analogs(
             {"events": events}, "scalp_5m", "LONG", 5, features,
-            as_of_ms=31 * 5 * 60_000,
+            as_of_ms=36 * 5 * 60_000,
         )
         self.assertEqual(result["archive_samples"], 32)
         self.assertEqual(result["immature_excluded_samples"], 1)
@@ -129,7 +129,7 @@ class PredictiveEngineTests(unittest.TestCase):
             })
         result = _analogs(
             {"events": events}, "scalp_5m", "LONG", 5, features,
-            as_of_ms=31 * 5 * 60_000,
+            as_of_ms=36 * 5 * 60_000,
         )
         self.assertEqual(result["temporal_samples"], 30)
         self.assertEqual(result["filled_samples"], 0)
