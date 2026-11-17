@@ -99,6 +99,15 @@ class ZecShadowSignalTests(unittest.TestCase):
         self.assertEqual(shadow["decision"], "ATTENDERE")
         self.assertFalse(shadow["data_quality"]["ready"])
 
+    def test_shadow_nowcast_rejects_candles_that_age_after_snapshot_capture(self):
+        snapshot = directional_snapshot("SHORT")
+        baseline = evaluate_signal(snapshot, now=NOW)
+        later = NOW.replace() + __import__("datetime").timedelta(minutes=4)
+        shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=later)
+        self.assertEqual(shadow["decision"], "ATTENDERE")
+        self.assertFalse(shadow["data_quality"]["ready"])
+        self.assertTrue(any("SHADOW stantia" in item for item in shadow["data_quality"]["blockers"]))
+
     def test_higher_timeframe_regime_requires_200_closed_contiguous_bars(self):
         snapshot = valid_snapshot()
         snapshot["predictive_history"] = {
