@@ -339,18 +339,12 @@ def _breakout_early_warning(snapshot: dict[str, Any], x1m: list[dict[str, Any]],
         else:
             status = "ROTTURA RIBASSISTA NON CONFERMATA"
             reasons.append("prezzo sotto il supporto ma volume/forza relativa/flusso non confermano insieme")
-    elif near_resistance and relative_strength is not None and relative_strength < -0.05:
-        status = "LONG VETO — DEBOLEZZA RELATIVA VICINO ALLA RESISTENZA"
-        reasons.append("veto anti-long: ZEC/BTC è negativo vicino alla resistenza; attendere breakout e recupero confermati")
     elif near_resistance and (relative_long or (volume_building and compressed)):
         direction, status = "LONG", "PRE-ALLERTA LONG"
-        reasons.append("prezzo vicino alla resistenza con forza relativa o compressione/volume in aumento; non è un trigger")
-    elif near_support and relative_strength is not None and relative_strength > 0.05:
-        status = "SHORT VETO — FORZA RELATIVA POSITIVA VICINO AL SUPPORTO"
-        reasons.append("veto anti-short: ZEC/BTC è positivo vicino al supporto; rischio rimbalzo, attendere una chiusura 5m sotto il supporto e retest fallito")
+        reasons.append("prezzo vicino alla resistenza con forza relativa o compressione/volume in aumento")
     elif near_support and (relative_short or (volume_building and compressed)):
         direction, status = "SHORT", "PRE-ALLERTA SHORT"
-        reasons.append("prezzo vicino al supporto con debolezza relativa o compressione/volume in aumento; non è un trigger")
+        reasons.append("prezzo vicino al supporto con debolezza relativa o compressione/volume in aumento")
 
     if volume_ratio is None:
         reasons.append("volume 5m non disponibile: conferma volume non verificabile")
