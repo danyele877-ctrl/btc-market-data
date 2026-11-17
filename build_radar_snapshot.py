@@ -9,6 +9,7 @@ from zec_early_signal import evaluate_signal
 from zec_shadow_signal import evaluate_shadow_signal
 from zec_predictive_engine import evaluate_predictive_engine
 from zec_context_archive import update_context_archive
+from zec_prediction_tracking import update_prediction_tracking
 from zec_contract_config import build_contract_safety
 from capture_render_feed import validate_feed
 
@@ -533,6 +534,7 @@ def main():
     })
     output["zec_context_archive"] = update_context_archive(output, now=now)
     output["zec_predictive_engine"] = evaluate_predictive_engine(output)
+    output["zec_prediction_tracking"] = update_prediction_tracking(output, now=now)
     output["zec_predictive_engine"]["context_archive"] = output["zec_context_archive"]
     write_json_atomically(OUT, output)
     print(json.dumps({
