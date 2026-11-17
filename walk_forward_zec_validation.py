@@ -166,7 +166,10 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
             "by_zec_trend": {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith("ZEC_")},
         }
 
+    scored_total = sum(len(rows) for rows in overall.values())
     return {
+        "validation_status": "DESCRIPTIVE_ONLY" if scored_total else "INSUFFICIENT_SCORABLE_FORECASTS",
+        "scored_total": scored_total,
         "instrument": archive.get("instrument"),
         "archive_updated_at": archive.get("updated_at"),
         "archive_events_total": len(events),
@@ -180,6 +183,7 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
             "breakout-versus-reversal stratification is omitted because the predictive event archive does not persist a consistent setup label",
             "the score is conditional on filled_proxy and uses a candle-touch proxy, not confirmed exchange fills",
             "Brier scores on a small, regime-limited archive are descriptive and do not establish calibrated probabilities or predictive edge",
+            "zero scored forecasts means validation cannot assess predictive accuracy; do not treat a successful CI run as model validation",
             "fees, slippage, latency, funding, and execution are not modeled",
         ],
     }
