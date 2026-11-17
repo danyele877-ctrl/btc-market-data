@@ -52,6 +52,25 @@ class PredictionTrackingAnalysisTests(unittest.TestCase):
         self.assertEqual(shadow["shadow_setup_breakdown"]["BREAKOUT_LONG"]["5"]["all_observations"]["matured"], 1)
         self.assertEqual(shadow["shadow_btc_regime_breakdown"]["FILTRO BTC RIBASSISTA"]["5"]["all_observations"]["matured"], 1)
 
+
+    def test_reports_wilson_interval_and_withholds_validation_for_small_samples(self):
+        archive = {
+            "schema_version": 1,
+            "instrument": "ZEC-USD_UM_XPERP-310530",
+            "predictions": [
+                prediction(i * 5 * 60_000, "LONG", "LONG", "LONG", "LONG")
+                for i in range(20)
+            ],
+        }
+        report = analyze_archive(archive)
+        stats = report["engines"]["baseline"]["by_direction"]["LONG"]["5"]["non_overlapping"]
+        self.assertEqual(stats["tp1"], 1)
+        self.assertEqual(stats["sl"], 19)
+        self.assertIsNotNone(stats["tp1_before_sl_wilson_95"])
+        self.assertLess(stats["tp1_before_sl_wilson_95"]["lower"], stats["tp1_before_sl_rate_excluding_ambiguous"])
+        self.assertGreater(stats["tp1_before_sl_wilson_95"]["upper"], stats["tp1_before_sl_rate_excluding_ambiguous"])
+        self.assertEqual(stats["statistical_readiness"], "IN RACCOLTA — NESSUNA VALIDAZIONE")
+
     def test_rejects_wrong_archive_instrument(self):
         with self.assertRaises(ValueError):
             analyze_archive({"schema_version": 1, "instrument": "ZEC-USDT-SWAP", "predictions": []})
