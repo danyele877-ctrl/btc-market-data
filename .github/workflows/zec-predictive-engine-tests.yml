@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "zec_predictive_engine.py"
+      - "zec_early_signal.py"
+      - "zec_early_signal.py"
       - "zec_context_archive.py"
       - "zec_queue_model.py"
       - "candle_service.py"
