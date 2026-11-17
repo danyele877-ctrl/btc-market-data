@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from zec_early_signal import INSTRUMENT_ID, evaluate_signal
 
@@ -71,12 +71,18 @@ def valid_snapshot():
             "websocket": {
                 "connected": True, "book_valid": True,
                 "message_age_seconds": 1, "trade_age_seconds": 1, "book_age_seconds": 1,
+                "trade_events_truncated": False,
                 "book_history": [
                     {"ts_ms": int(NOW.timestamp() * 1000) - 5_000, "imbalance_top10": 0.2},
                     {"ts_ms": int(NOW.timestamp() * 1000), "imbalance_top10": 0.8},
                 ],
             },
-            "cvd": {"ready_1m": True, "ready_5m": True, "1m": 10, "5m": 20},
+            "cvd": {
+                "ready_1m": True, "ready_5m": True,
+                "gap_count_1m": 0, "gap_count_5m": 0,
+                "trade_count_1m": 2, "trade_count_5m": 2,
+                "1m": 10, "5m": 20,
+            },
             "book_imbalance": {"imbalance_top10": 0.8},
             "open_interest_history": [
                 {"ts_ms": int(NOW.timestamp() * 1000) - 120_000, "oi_contracts": "100", "price_usd": "100", "inst_id": INSTRUMENT_ID},
@@ -184,6 +190,25 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertNotIn("positioning", result["scores"]["groups"])
         self.assertTrue(result["data_quality"]["limitations"])
         self.assertLessEqual(result["confidence"]["score"], 65)
+
+    def test_cvd_gap_in_scalp_window_blocks_signal(self):
+        snapshot = valid_snapshot()
+        snapshot["microstructure"]["cvd"]["gap_count_1m"] = 1
+        result = evaluate_signal(snapshot, now=NOW)
+        self.assertEqual(result["decision"], "ATTENDERE")
+        self.assertFalse(result["data_quality"]["websocket_ready"])
+
+    def test_five_minute_candle_older_than_180_seconds_blocks_nowcast(self):
+        snapshot = valid_snapshot()
+        rows = snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"]
+        for row in rows:
+            row["ts_ms"] -= 240_000
+            completed = datetime.fromisoformat(row["completed_at"].replace("Z", "+00:00")) - timedelta(seconds=240)
+            row["completed_at"] = completed.isoformat().replace("+00:00", "Z")
+        result = evaluate_signal(snapshot, now=NOW)
+        self.assertEqual(result["decision"], "ATTENDERE")
+        self.assertFalse(result["data_quality"]["websocket_ready"])
+        self.assertTrue(any("180" in item or "stantia" in item for item in result["data_quality"]["blockers"]))
 
     def test_unclosed_candle_blocks_signal(self):
         snapshot = valid_snapshot()
