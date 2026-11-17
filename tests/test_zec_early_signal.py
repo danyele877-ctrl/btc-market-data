@@ -23,6 +23,7 @@ def candles(bar, base_price, interval_minutes, count=8, drift=1.0):
             "high": price + 0.3,
             "low": price - 0.5,
             "close": price,
+            "volume": 100,
         })
     return rows
 
@@ -86,6 +87,26 @@ def valid_snapshot():
 
 
 class ZecEarlySignalTests(unittest.TestCase):
+    def test_breakout_warning_is_separate_and_never_enables_orders(self):
+        snapshot = valid_snapshot()
+        rows = snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"]
+        rows[-1]["volume"] = 500
+        result = evaluate_signal(snapshot, now=NOW)
+        warning = result["breakout_early_warning"]
+        self.assertEqual(warning["candidate_direction"], "LONG")
+        self.assertIn("BREAKOUT", warning["status"])
+        self.assertFalse(warning["orders_enabled"])
+        self.assertFalse(result["execution"]["orders_enabled"])
+
+    def test_breakout_warning_never_confirms_without_volume(self):
+        snapshot = valid_snapshot()
+        rows = snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"]
+        rows[-1]["volume"] = 100
+        result = evaluate_signal(snapshot, now=NOW)
+        warning = result["breakout_early_warning"]
+        self.assertEqual(warning["status"], "ROTTURA RIALZISTA NON CONFERMATA")
+        self.assertFalse(warning["orders_enabled"])
+
     def test_missing_snapshot_waits_and_has_no_directional_decision(self):
         result = evaluate_signal({}, now=NOW)
         self.assertEqual(result["status"], "ATTENDERE")

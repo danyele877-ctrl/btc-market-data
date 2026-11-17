@@ -87,6 +87,12 @@ The engine is simulation-only and orders remain disabled. OKX's public contract 
 Run regression tests with `python -m unittest discover -s tests -v`. Replay committed bridge snapshots, without PnL or order simulation, using `python replay_zec_signals.py` (optionally `--limit N`). Replay candle outcomes are descriptive only: bridge observations are sparse, overlapping and drawn from a short single-market regime, so they do not establish statistical performance.
 
 
+## ZEC Breakout Early Warning (simulation only)
+
+The existing Early Signal Engine now emits a separate `breakout_early_warning` diagnostic. It distinguishes pre-breakout preparation near recent 5m support/resistance, a volume/relative-strength-confirmed breakout, an unconfirmed break, and a move already extended enough to wait for a retest. It reports the measured resistance/support, 5m volume ratio, recent range-compression ratio, ZEC/BTC relative strength, available CVD and paired OI change. Missing inputs remain explicitly unavailable; volume confirmation is never inferred from price alone.
+
+This diagnostic does not change the Early Signal Engine score, stage, entry decision, schedule, CTVAL reconciliation, risk ceiling, sizing flags or order permissions. It is a separate simulation-only warning and never places or sizes orders. A breakout warning is not an entry instruction; the existing freshness, exact-instrument and contract-safety gates remain authoritative.
+
 ## ZEC Predictive Engine (simulation only)
 
 The existing build_radar_snapshot.py now also runs zec_predictive_engine.py and writes zec_predictive_engine into the same data/radar_snapshot.json. It consumes the exact OKX EEA X-Perp ZEC-USD_UM_XPERP-310530, completed 1m/5m/1H/4H history, and only updates the archive when the snapshot, health endpoints, WebSocket and required 200-bar history pass freshness/continuity checks.
