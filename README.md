@@ -135,3 +135,12 @@ Queue depletion is still only a proxy for fill: cancellations, hidden liquidity,
 
 
 The Render candle service now warms up and retains up to 500 completed 1m/5m candles (the bridge preserves the same 500-bar limit). This provides about 8h20 of 1m paths for scalp labels and about 41h40 of 5m paths for 1H/2H/4H reversal labels, rather than limiting reversal training to roughly one day.
+
+
+## Radar architecture, history, and alert integration
+
+The durable architecture and operating rules are documented in [docs/RADAR_ARCHITECTURE.md](docs/RADAR_ARCHITECTURE.md), with decisions in [docs/RADAR_DECISIONS.md](docs/RADAR_DECISIONS.md) and changes in [CHANGELOG_RADAR.md](CHANGELOG_RADAR.md).
+
+The current alert payload is `data/radar_snapshot.json`. Historical prediction/context records remain in the JSON archives under `data/`; these are the current operational store, **not a separately provisioned database**. A managed time-series database is a future migration requiring configured hosting, secrets, backups, and replay/parity tests.
+
+CI runs `radar_alert_contract.py` against the published snapshot. This checks that BASELINE, SHADOW, CTVAL safety, prediction tracking, and predictive-engine sections are present and that orders/sizing remain disabled. A passing contract is required for alert integration; scores remain diagnostic unless independently calibrated.
