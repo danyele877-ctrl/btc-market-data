@@ -12,6 +12,12 @@ class TrackingWorkflowPersistenceTests(unittest.TestCase):
         self.assertIn("cp /tmp/zec-prediction-tracking.json data/zec_prediction_tracking.json", workflow)
         self.assertRegex(workflow, r"git add[^\n]*data/zec_prediction_tracking\.json")
 
+    def test_bridge_runs_tracking_analyzer_after_snapshot_build(self):
+        workflow = (ROOT / ".github/workflows/render-bridge.yml").read_text(encoding="utf-8")
+        self.assertIn("Analyze BASELINE and SHADOW prediction tracking", workflow)
+        self.assertIn("python analyze_zec_prediction_tracking.py --archive data/zec_prediction_tracking.json", workflow)
+        self.assertIn('"analyze_zec_prediction_tracking.py"', workflow)
+
     def test_tracking_code_changes_trigger_bridge_and_pull_request_tests(self):
         bridge = (ROOT / ".github/workflows/render-bridge.yml").read_text(encoding="utf-8")
         tests = (ROOT / ".github/workflows/zec-predictive-engine-tests.yml").read_text(encoding="utf-8")
