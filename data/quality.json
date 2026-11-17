@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-17T11:40:56.039770+00:00",
-  "snapshot_generated_at": "2026-11-17T11:40:55.971246+00:00",
+  "generated_at": "2026-11-17T12:35:44.788635+00:00",
+  "snapshot_generated_at": "2026-11-17T12:35:44.709480+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -40,37 +40,37 @@
     "okx_spot": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_futures_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_open_interest": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "deribit_btc_perpetual": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "edge_funding_all_exchanges": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "swole_funding_btc_1d": {
@@ -82,7 +82,7 @@
     "swole_open_interest_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "swole_liquidations_btc_1d": {
@@ -100,7 +100,7 @@
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_open_interest_btc": {
@@ -124,19 +124,19 @@
     "coinboss_market_tickers_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "fred_macro": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_btc_usdc_ticker": {
