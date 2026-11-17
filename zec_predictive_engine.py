@@ -498,10 +498,47 @@ def _update_archive(snapshot: dict[str, Any], archive_path: Path) -> tuple[dict[
 
 
 def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
-             features: dict[str, float], feature_names: tuple[str, ...] = FEATURES) -> dict[str, Any]:
+             features: dict[str, float], feature_names: tuple[str, ...] = FEATURES,
+             as_of_ms: int | None = None) -> dict[str, Any]:
     pool = [e for e in archive.get("events", [])
             if e.get("family") == family and e.get("side") == side
             and e.get("horizon_min") == horizon and isinstance(e.get("label"), dict)]
+    archive_count = len(pool)
+    overlap_excluded = 0
+    immature_excluded = 0
+    if as_of_ms is not None:
+        # Only use observations whose complete forward-label window ended
+        # before the current forecast. This is a strict temporal embargo.
+        mature_pool = []
+        for event in pool:
+            stamp = _num(event.get("timestamp_ms"))
+            label = event.get("label") or {}
+            if stamp is None or stamp + horizon * 60_000 > as_of_ms:
+                immature_excluded += 1
+                continue
+            if label.get("filled_proxy") is True:
+                mature = isinstance(label.get("tp_before_sl"), bool)
+            else:
+                fill_end = _num(label.get("fill_window_completed_at_ms"))
+                mature = fill_end is not None and fill_end <= as_of_ms
+            if not mature:
+                immature_excluded += 1
+                continue
+            mature_pool.append(event)
+
+        # Greedy newest-first sampling: retain the most recent independent
+        # forward windows and discard events whose label windows overlap.
+        selected = []
+        next_allowed_start = float("inf")
+        for event in sorted(mature_pool, key=lambda item: _num(item.get("timestamp_ms")) or 0, reverse=True):
+            stamp = int(_num(event.get("timestamp_ms")) or 0)
+            end = stamp + horizon * 60_000
+            if end <= next_allowed_start:
+                selected.append(event)
+                next_allowed_start = stamp
+            else:
+                overlap_excluded += 1
+        pool = list(reversed(selected))
 
     # Historical archives can contain older or partially populated feature
     # schemas. Keep those observations in the archive, but never pass None
@@ -521,7 +558,10 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
     filled_pool = [e for e in filled_proxy_pool if isinstance(e["label"].get("tp_before_sl"), bool)]
     base = {
         "samples": len(valid_pool),
-        "archive_samples": len(pool),
+        "archive_samples": archive_count,
+        "temporal_samples": len(pool),
+        "overlap_excluded_samples": overlap_excluded,
+        "immature_excluded_samples": immature_excluded,
         "incomplete_feature_samples": len(pool) - len(valid_pool),
         "filled_samples": len(filled_pool),
         "filled_proxy_samples": len(filled_proxy_pool),
@@ -696,7 +736,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
             continue
         side_results = {}
         for side in ("LONG", "SHORT"):
-            side_results[side] = {str(h): _analogs(archive, family, side, h, feat) for h in horizons}
+            side_results[side] = {str(h): _analogs(archive, family, side, h, feat, as_of_ms=rows[-1]["_close_ms"]) for h in horizons}
         result[target] = {
             "status": "IN APPRENDIMENTO" if all(v["status"] == "IN APPRENDIMENTO" for d in side_results.values() for v in d.values()) else "STIME SPERIMENTALI",
             "features": feat, "by_direction": side_results,
@@ -782,7 +822,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
                 }
                 for side in ("LONG", "SHORT"):
                     target_result["by_direction"][side] = {
-                        str(h): _analogs(archive, family, side, h, current_features, MICRO_FEATURES)
+                        str(h): _analogs(archive, family, side, h, current_features, MICRO_FEATURES, as_of_ms=rows[-1]["_close_ms"])
                         for h in horizons
                     }
                 statuses = [item["status"] for side in target_result["by_direction"].values() for item in side.values()]
@@ -828,7 +868,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
                 for offset in LIMIT_OFFSETS_ATR:
                     family = f"scalp_queue_{int(offset*100):02d}"
                     estimate = _analogs(archive, family, side, horizon,
-                                        current_scalp_features, QUEUE_FEATURES)
+                                        current_scalp_features, QUEUE_FEATURES, as_of_ms=scalp[-1]["_close_ms"])
                     if "p_limit_touch_proxy" in estimate:
                         estimate["p_queue_depletion_proxy"] = estimate.pop("p_limit_touch_proxy")
                     estimate["limit_offset_atr"] = offset
