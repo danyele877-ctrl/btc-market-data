@@ -204,6 +204,12 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
                 "direction": shadow_side, "decision": shadow.get("decision"),
                 "status": shadow.get("status"), "score": shadow.get("score"),
                 "regime": (shadow.get("higher_timeframe_regime") or {}).get("combined"),
+                "setup_type": (shadow.get("structure") or {}).get("setup_type", "N/D"),
+                "btc_filter": {
+                    "status": (shadow.get("btc_filter") or {}).get("status", "N/D"),
+                    "regime_1H": (shadow.get("btc_filter") or {}).get("regime_1H"),
+                },
+                "flow_divergence": shadow.get("flow_divergence") or {"status": "N/D"},
             },
             "features_available": list((shadow.get("components") or {}).keys()),
             "features_missing": list(quality.get("blockers") or []),
