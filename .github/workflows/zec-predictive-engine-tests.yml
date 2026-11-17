@@ -20,6 +20,11 @@ on:
     paths:
       - "zec_predictive_engine.py"
       - "zec_early_signal.py"
+      - "capture_render_feed.py"
+      - "zec_queue_model.py"
+      - "zec_context_archive.py"
+      - "zec_prediction_tracking.py"
+      - "zec_shadow_signal.py"
       - "analyze_zec_directional_bias.py"
       - "build_radar_snapshot.py"
       - "tests/**"
