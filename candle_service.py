@@ -422,11 +422,14 @@ class CandleFeed:
         for label, window_seconds in (("1m", 60), ("5m", 300), ("15m", 900)):
             start_ms = now_ms - window_seconds * 1000
             window = [item for item in self.micro_trade_events if item["ts_ms"] >= start_ms]
+            window_gap_count = sum(1 for item in window if item.get("gap_before"))
+            cvd[f"trade_count_{label}"] = len(window)
+            cvd[f"gap_count_{label}"] = window_gap_count
             ready = (
                 bool(micro.get("connected"))
                 and connected_since is not None
                 and int(connected_since) <= start_ms
-                and not any(item.get("gap_before") for item in window)
+                and window_gap_count == 0
             )
             cvd[f"ready_{label}"] = bool(ready)
             cvd[label] = round(sum(item["delta_contracts"] for item in window), 4) if ready else None

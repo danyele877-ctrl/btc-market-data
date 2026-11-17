@@ -244,20 +244,26 @@ def validate_feed(feed, current_time=None):
             problems.append(f"{label} is stale ({age:.1f}s; limit {HISTORY_MAX_AGE_SECONDS[bar]}s)")
     return problems
 
-def write_feed_atomically(feed):
-    OUT.parent.mkdir(parents=True, exist_ok=True)
+def write_json_atomically(path, payload):
+    """Write a complete JSON document before replacing the last valid file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = None
     try:
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=OUT.parent, delete=False) as handle:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as handle:
             temporary_path = Path(handle.name)
-            json.dump(feed, handle, ensure_ascii=False, separators=(",", ":"))
+            json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"))
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary_path, OUT)
+        os.replace(temporary_path, path)
     finally:
         if temporary_path is not None and temporary_path.exists():
             temporary_path.unlink()
+
+
+def write_feed_atomically(feed):
+    write_json_atomically(OUT, feed)
 
 def get(path):
     url = BASE + path
@@ -581,7 +587,7 @@ def update_microstructure_history(okx_market, websocket_micro=None, captured_at=
     })
     history["capture_status"] = history["capture_status"][-MICRO_MAX_MINUTES:]
     MICRO_OUT.parent.mkdir(parents=True, exist_ok=True)
-    MICRO_OUT.write_text(json.dumps(history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    write_json_atomically(MICRO_OUT, history)
     return {
         "book_snapshots": len(history["book_snapshots"]),
         "websocket_book_snapshots": sum(1 for x in history["book_snapshots"] if x.get("source") == "websocket"),
@@ -660,7 +666,7 @@ def main():
         health_payload["microstructure"].pop("trade_events", None)
         health_payload["microstructure"].pop("book_depth_history", None)
     zec_xperp_history = get_okx_xperp_history("ZEC-USD_UM_XPERP-310530")
-    Path("data/zec_xperp_history.json").write_text(json.dumps(zec_xperp_history, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    write_json_atomically(Path("data/zec_xperp_history.json"), zec_xperp_history)
     output = {
         "bridge_schema_version": 4,
         "microstructure_history": microstructure_status,

@@ -9,6 +9,14 @@ import capture_render_feed as capture
 
 
 class MicrostructureHistoryTests(unittest.TestCase):
+    def test_generic_json_writer_replaces_file_atomically(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "history.json"
+            target.write_text('{"old":true}', encoding="utf-8")
+            capture.write_json_atomically(target, {"new": True, "items": [1, 2, 3]})
+            self.assertEqual(json.loads(target.read_text(encoding="utf-8")), {"new": True, "items": [1, 2, 3]})
+            self.assertEqual(list(Path(directory).glob("*.tmp")), [])
+
     def test_websocket_trade_and_depth_sequences_are_persisted(self):
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         micro = {

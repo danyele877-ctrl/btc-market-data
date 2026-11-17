@@ -4,6 +4,11 @@ on:
   push:
     paths:
       - "zec_predictive_engine.py"
+      - "zec_early_signal.py"
+      - "zec_shadow_signal.py"
+      - "zec_prediction_tracking.py"
+      - "analyze_zec_prediction_tracking.py"
+      - "analyze_zec_directional_bias.py"
       - "zec_context_archive.py"
       - "zec_queue_model.py"
       - "candle_service.py"
@@ -15,6 +20,14 @@ on:
   pull_request:
     paths:
       - "zec_predictive_engine.py"
+      - "zec_early_signal.py"
+      - "capture_render_feed.py"
+      - "zec_queue_model.py"
+      - "zec_context_archive.py"
+      - "zec_prediction_tracking.py"
+      - "zec_shadow_signal.py"
+      - "analyze_zec_prediction_tracking.py"
+      - "analyze_zec_directional_bias.py"
       - "build_radar_snapshot.py"
       - "tests/**"
       - ".github/workflows/zec-predictive-engine-tests.yml"
@@ -36,3 +49,14 @@ jobs:
         run: python -m pip install -r requirements.txt
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+
+      - name: Print paired LONG SHORT archive diagnostics
+        run: python analyze_zec_directional_bias.py --archive data/zec_predictive_archive.json
+
+      - name: Run BASELINE SHADOW tracking diagnostics when archive exists
+        run: |
+          if [ -f data/zec_prediction_tracking.json ]; then
+            python analyze_zec_prediction_tracking.py --archive data/zec_prediction_tracking.json
+          else
+            echo "Prediction tracking archive not initialized yet; analyzer unit tests still run."
+          fi

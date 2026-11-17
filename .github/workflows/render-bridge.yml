@@ -12,6 +12,8 @@ on:
       - "zec_predictive_engine.py"
       - "zec_queue_model.py"
       - "zec_context_archive.py"
+      - "zec_prediction_tracking.py"
+      - "analyze_zec_prediction_tracking.py"
       - "zec_contract_config.py"
       - "render_bridge_publication.py"
       - "replay_zec_signals.py"
@@ -45,7 +47,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -54,9 +56,6 @@ jobs:
 
       - name: Install service dependencies
         run: python -m pip install -r requirements.txt
-
-      - name: Run service regression tests
-        run: python -m unittest discover -s tests -v
 
       # Full historical backfill is a maintenance action; ordinary candle refreshes
       # append incrementally through build_radar_snapshot.py and must stay fast.
@@ -73,6 +72,9 @@ jobs:
       - name: Build compact radar snapshot
         run: python build_radar_snapshot.py
 
+      - name: Analyze BASELINE and SHADOW prediction tracking
+        run: python analyze_zec_prediction_tracking.py --archive data/zec_prediction_tracking.json
+
       - name: Publish only the Render bridge snapshot
         run: |
           set -e
@@ -80,6 +82,7 @@ jobs:
           cp data/zec_microstructure_history.json /tmp/zec-microstructure-history.json
           cp data/zec_xperp_history.json /tmp/zec-xperp-history.json
           cp data/radar_snapshot.json /tmp/radar-snapshot.json
+          cp data/zec_prediction_tracking.json /tmp/zec-prediction-tracking.json
           cp data/zec_predictive_archive.json /tmp/zec-predictive-archive.json
           cp data/zec_context_archive.json /tmp/zec-context-archive.json
           for attempt in 1 2 3; do
@@ -104,11 +107,12 @@ jobs:
             cp /tmp/zec-microstructure-history.json data/zec_microstructure_history.json
             cp /tmp/zec-xperp-history.json data/zec_xperp_history.json
             cp /tmp/radar-snapshot.json data/radar_snapshot.json
+            cp /tmp/zec-prediction-tracking.json data/zec_prediction_tracking.json
             cp /tmp/zec-predictive-archive.json data/zec_predictive_archive.json
             cp /tmp/zec-context-archive.json data/zec_context_archive.json
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/render_feed.json data/zec_microstructure_history.json data/zec_xperp_history.json data/radar_snapshot.json data/zec_predictive_archive.json data/zec_context_archive.json
+            git add data/render_feed.json data/zec_microstructure_history.json data/zec_xperp_history.json data/radar_snapshot.json data/zec_prediction_tracking.json data/zec_predictive_archive.json data/zec_context_archive.json
             if git diff --cached --quiet; then
               echo "Render bridge snapshot unchanged."
               exit 0

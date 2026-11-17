@@ -251,6 +251,10 @@ class FeedStateTests(unittest.TestCase):
                 self.assertTrue(cvd["ready_1m"])
                 self.assertTrue(cvd["ready_5m"])
                 self.assertTrue(cvd["ready_15m"])
+                self.assertEqual(cvd["gap_count_1m"], 0)
+                self.assertEqual(cvd["gap_count_5m"], 0)
+                self.assertEqual(cvd["gap_count_15m"], 0)
+                self.assertEqual(cvd["trade_count_1m"], 2)
                 self.assertEqual(cvd["unit"], "contracts")
                 self.assertEqual(cvd["1m"], 2.0)
                 tape = feed.microstructure_health()
@@ -270,6 +274,8 @@ class FeedStateTests(unittest.TestCase):
                 await feed.handle_microstructure_message(json.dumps(gap))
                 cvd = feed.microstructure_health()["cvd"]
                 self.assertFalse(cvd["ready_1m"])
+                self.assertEqual(cvd["gap_count_1m"], 1)
+                self.assertEqual(cvd["trade_count_1m"], 3)
                 self.assertIsNone(cvd["1m"])
                 self.assertEqual(micro["trade_gap_count"], 1)
 

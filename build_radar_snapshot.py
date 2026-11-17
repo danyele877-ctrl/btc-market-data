@@ -6,8 +6,10 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from zec_early_signal import evaluate_signal
+from zec_shadow_signal import evaluate_shadow_signal
 from zec_predictive_engine import evaluate_predictive_engine
 from zec_context_archive import update_context_archive
+from zec_prediction_tracking import update_prediction_tracking
 from zec_contract_config import build_contract_safety
 from capture_render_feed import validate_feed
 
@@ -217,7 +219,7 @@ def microstructure_summary(micro):
     return {
         "schema_version": micro.get("schema_version"),
         "instrument": micro.get("instrument"),
-        "collection_method": "REST polling",
+        "rest_history_collection_method": "REST polling",
         "book_snapshot_count": len(books),
         "book_sample_median_seconds": round(median_interval, 1) if median_interval is not None else None,
         "last_book": last_book,
@@ -230,7 +232,7 @@ def microstructure_summary(micro):
         "last_trade": last_trade,
         "trade_window_start": sorted_trades[0].get("ts_ms") if sorted_trades else None,
         "trade_window_end": last_trade.get("ts_ms") if last_trade else None,
-        "cvd_status": "N/D: REST polling with detected tradeId gaps" if trade_gap_events else "N/D: REST polling; continuity not proven",
+        "rest_history_cvd_status": "N/D: REST polling with detected tradeId gaps" if trade_gap_events else "N/D: REST polling; continuity not proven",
         "book_sequence_status": "N/D: REST snapshots do not provide a continuous WS sequence chain",
         "open_interest_history": oi_history,
     }
@@ -437,14 +439,34 @@ def main():
     micro_out["book_imbalance"] = (ws_micro.get("book") or {})
     if ws_micro:
         cvd = ws_micro.get("cvd") or {}
-        cvd_ready_short = bool(cvd.get("ready_1m") and cvd.get("ready_5m"))
-        cvd_ready_full = cvd_ready_short and bool(cvd.get("ready_15m"))
+        # Keep REST-polled history diagnostics separate from the live WebSocket CVD.
+        gap_counts_verified = all(
+            isinstance(cvd.get(f"gap_count_{label}"), int)
+            for label in ("1m", "5m", "15m")
+        )
+        short_windows_gap_free = (
+            gap_counts_verified
+            and cvd.get("gap_count_1m") == 0
+            and cvd.get("gap_count_5m") == 0
+        )
+        trade_tape_complete = ws_micro.get("trade_events_truncated") is False
+        cvd_ready_short = (
+            bool(cvd.get("ready_1m") and cvd.get("ready_5m"))
+            and short_windows_gap_free
+            and trade_tape_complete
+        )
+        cvd_ready_full = (
+            cvd_ready_short
+            and bool(cvd.get("ready_15m"))
+            and cvd.get("gap_count_15m") == 0
+        )
         if cvd_ready_full:
-            micro_out["cvd_status"] = "OK: WebSocket continuo, delta in contratti su 1m/5m/15m"
+            micro_out["websocket_cvd_status"] = "OK: WebSocket continuo verificato su 1m/5m/15m; zero gap nelle finestre"
         elif cvd_ready_short:
-            micro_out["cvd_status"] = "PARZIALE: CVD 1m/5m pronto; finestra 15m in riscaldamento"
+            micro_out["websocket_cvd_status"] = "PARZIALE: WebSocket continuo verificato su 1m/5m; 15m non pronto"
         else:
-            micro_out["cvd_status"] = "N/D: WebSocket in riscaldamento o continuità non verificata"
+            micro_out["websocket_cvd_status"] = "N/D: gap, tape troncato o continuità WebSocket non dimostrata"
+        micro_out["cvd_status"] = micro_out["websocket_cvd_status"]
         micro_out["book_sequence_status"] = (
             "OK: sequenza WebSocket valida"
             if ws_micro.get("book_valid") else "N/D: book non valido o in attesa di snapshot"
@@ -498,6 +520,9 @@ def main():
         },
     }
     output["zec_early_signal"] = evaluate_signal(output, now=now)
+    output["zec_shadow_signal"] = evaluate_shadow_signal(
+        output, baseline=output["zec_early_signal"], now=now
+    )
     # Mirror the independent regional contract comparison into the signal payload;
     # it remains diagnostic and cannot alter any execution/sizing safety flag.
     output["zec_early_signal"]["contract_safety"].update({
@@ -509,6 +534,7 @@ def main():
     })
     output["zec_context_archive"] = update_context_archive(output, now=now)
     output["zec_predictive_engine"] = evaluate_predictive_engine(output)
+    output["zec_prediction_tracking"] = update_prediction_tracking(output, now=now)
     output["zec_predictive_engine"]["context_archive"] = output["zec_context_archive"]
     write_json_atomically(OUT, output)
     print(json.dumps({
@@ -531,6 +557,9 @@ def main():
         "zec_early_signal_status": output["zec_early_signal"]["status"],
         "zec_early_signal_decision": output["zec_early_signal"]["decision"],
         "zec_early_signal_blockers": output["zec_early_signal"]["data_quality"]["blockers"],
+        "zec_shadow_signal_status": output["zec_shadow_signal"]["status"],
+        "zec_shadow_signal_decision": output["zec_shadow_signal"]["decision"],
+        "zec_shadow_candidate_direction": output["zec_shadow_signal"]["candidate_direction"],
         "zec_predictive_engine_archive": output["zec_predictive_engine"]["archive"],
         "zec_predictive_engine_scalping_status": output["zec_predictive_engine"]["scalping"]["status"],
         "zec_predictive_engine_reversals_status": output["zec_predictive_engine"]["reversals"]["status"],
@@ -538,6 +567,9 @@ def main():
         "zec_confirmed_setups": output["zec_context_archive"]["setups_total"],
         "zec_setup_outcomes_matured": output["zec_context_archive"]["outcomes_matured"],
         "zec_movement_events": output["zec_context_archive"].get("movement_events_total", 0),
+        "zec_prediction_tracking_status": output["zec_prediction_tracking"].get("status"),
+        "zec_predictions_total": output["zec_prediction_tracking"].get("predictions_total"),
+        "zec_prediction_outcomes_matured": output["zec_prediction_tracking"].get("mature_outcomes_total"),
     }))
 
 
