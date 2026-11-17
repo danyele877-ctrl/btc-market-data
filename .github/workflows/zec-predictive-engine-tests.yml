@@ -5,6 +5,7 @@ on:
     paths:
       - "zec_predictive_engine.py"
       - "zec_early_signal.py"
+      - "analyze_zec_directional_bias.py"
       - "zec_context_archive.py"
       - "zec_queue_model.py"
       - "candle_service.py"
@@ -17,6 +18,7 @@ on:
     paths:
       - "zec_predictive_engine.py"
       - "zec_early_signal.py"
+      - "analyze_zec_directional_bias.py"
       - "build_radar_snapshot.py"
       - "tests/**"
       - ".github/workflows/zec-predictive-engine-tests.yml"
@@ -38,3 +40,6 @@ jobs:
         run: python -m pip install -r requirements.txt
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+
+      - name: Print paired LONG SHORT archive diagnostics
+        run: python analyze_zec_directional_bias.py --archive data/zec_predictive_archive.json
