@@ -213,6 +213,7 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
             btc_groups[row['btc_context']].append(row)
             feature_groups[row['feature_mode']].append(row)
         by_group[key] = {
+            **_metrics(rows),
             'all_test_observations': _metrics(rows),
             'non_overlapping_primary': _metrics(non_overlap),
             'eligible_test_outcomes': overall_eligible[key],
