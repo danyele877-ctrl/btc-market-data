@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import statistics
 from pathlib import Path
 from typing import Any
@@ -51,6 +52,17 @@ def _non_overlapping(rows: list[dict[str, Any]], horizon: int) -> list[dict[str,
     return selected
 
 
+def _wilson_interval(successes: int, trials: int, z: float = 1.96) -> dict[str, float] | None:
+    """95% Wilson interval for a descriptive binary outcome rate."""
+    if trials <= 0:
+        return None
+    rate = successes / trials
+    denom = 1.0 + z * z / trials
+    center = (rate + z * z / (2.0 * trials)) / denom
+    margin = z * math.sqrt((rate * (1.0 - rate) / trials) + (z * z / (4.0 * trials * trials))) / denom
+    return {"lower": round(max(0.0, center - margin), 4), "upper": round(min(1.0, center + margin), 4)}
+
+
 def _stats(rows: list[dict[str, Any]], engine: str, horizon: int) -> dict[str, Any]:
     matured = []
     for row in rows:
@@ -82,6 +94,11 @@ def _stats(rows: list[dict[str, Any]], engine: str, horizon: int) -> dict[str, A
         "ambiguous": counts["AMBIGUO"],
         "no_barrier": counts["NO_BARRIER"],
         "tp1_before_sl_rate_excluding_ambiguous": round(counts["TP1"] / decisive, 4) if decisive else None,
+        "tp1_before_sl_wilson_95": _wilson_interval(counts["TP1"], decisive),
+        "statistical_readiness": (
+            "IN RACCOLTA — NESSUNA VALIDAZIONE" if decisive < 100
+            else "CAMPIONE DESCRITTIVO ADEGUATO; NON È CALIBRAZIONE"
+        ),
         "mean_directional_return_pct": round(statistics.mean(returns), 5) if returns else None,
         "median_mfe_atr": round(statistics.median(mfe), 4) if mfe else None,
         "median_mae_atr": round(statistics.median(mae), 4) if mae else None,
