@@ -1,8 +1,26 @@
 import unittest
+from datetime import datetime, timezone
 
 from test_zec_early_signal import INSTRUMENT_ID, NOW, valid_snapshot
 from zec_early_signal import evaluate_signal
 from zec_shadow_signal import evaluate_shadow_signal
+
+
+def higher_timeframe_rows(seconds, count=200, rising=True):
+    captured_ms = int(NOW.timestamp() * 1000)
+    interval_ms = seconds * 1000
+    latest_start = (captured_ms // interval_ms) * interval_ms - interval_ms
+    rows = []
+    for index in range(count):
+        ts = latest_start - (count - index - 1) * interval_ms
+        close = 100.0 + index * (0.5 if rising else -0.5)
+        rows.append({
+            "ts_ms": ts,
+            "completed_at": datetime.fromtimestamp((ts + interval_ms) / 1000, timezone.utc).isoformat().replace("+00:00", "Z"),
+            "open": close - 0.1, "high": close + 0.3,
+            "low": close - 0.3, "close": close, "volume": 100,
+        })
+    return rows
 
 
 def directional_snapshot(direction, breakout_volume=500):
@@ -80,6 +98,32 @@ class ZecShadowSignalTests(unittest.TestCase):
         self.assertIn(shadow["candidate_direction"], ("LONG", "SHORT"))
         self.assertEqual(shadow["decision"], "ATTENDERE")
         self.assertFalse(shadow["data_quality"]["ready"])
+
+    def test_higher_timeframe_regime_requires_200_closed_contiguous_bars(self):
+        snapshot = valid_snapshot()
+        snapshot["predictive_history"] = {
+            "xperp_1H": higher_timeframe_rows(3600),
+            "xperp_4H": higher_timeframe_rows(14400),
+        }
+        shadow = evaluate_shadow_signal(snapshot, now=NOW)
+        regime = shadow["higher_timeframe_regime"]
+        self.assertEqual(regime["1H"]["status"], "OK")
+        self.assertEqual(regime["4H"]["status"], "OK")
+        self.assertEqual(regime["1H"]["bars"], 200)
+        self.assertEqual(regime["4H"]["bars"], 200)
+        self.assertEqual(regime["combined"]["regime"], "TREND RIALZISTA")
+
+    def test_higher_timeframe_regime_is_nd_when_history_is_missing_or_short(self):
+        snapshot = valid_snapshot()
+        snapshot["predictive_history"] = {
+            "xperp_1H": higher_timeframe_rows(3600, count=199),
+            "xperp_4H": [],
+        }
+        shadow = evaluate_shadow_signal(snapshot, now=NOW)
+        regime = shadow["higher_timeframe_regime"]
+        self.assertEqual(regime["1H"]["status"], "N/D")
+        self.assertEqual(regime["4H"]["status"], "N/D")
+        self.assertEqual(regime["combined"]["status"], "N/D")
 
 
 if __name__ == "__main__":
