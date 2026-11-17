@@ -6,6 +6,7 @@ on:
       - "zec_predictive_engine.py"
       - "zec_early_signal.py"
       - "zec_shadow_signal.py"
+      - "zec_prediction_tracking.py"
       - "analyze_zec_directional_bias.py"
       - "zec_context_archive.py"
       - "zec_queue_model.py"
