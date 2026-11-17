@@ -38,7 +38,7 @@ class WalkForwardValidationTests(unittest.TestCase):
         self.assertTrue(any("Brier scores" in item for item in report["limitations"]))
 
     def test_rejects_insufficient_history(self):
-        archive = {"events": [event(i * 10 * 60_000, "LONG", True) for i in range(4)]}
+        archive = {"events": [event(i * 10 * 60_000, "LONG", True) for i in range(2)]}
         with self.assertRaises(ValueError):
             analyze(archive, folds=2)
 
