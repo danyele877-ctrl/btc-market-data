@@ -145,6 +145,9 @@ def _evaluate_group(events: list[dict[str, Any]], family: str, side: str,
             "btc_regime": _stratum(event["features"].get("btc_trend_20"), "BTC"),
             "zec_trend": _stratum(event["features"].get("trend"), "ZEC"),
             "feature_mode": feature_mode,
+            "timestamp_ms": int(event["timestamp_ms"]),
+            "setup_proxy": _setup_proxy(event["features"]),
+            "btc_context": "PRESENT" if _number(event["features"].get("btc_trend_20")) is not None else "LEGACY_MISSING",
         })
     return scored, eligible_test
 
