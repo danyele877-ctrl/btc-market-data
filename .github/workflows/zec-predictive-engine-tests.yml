@@ -58,7 +58,10 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
-      - name: Validate published Radar alert contract\n        run: python radar_alert_contract.py data/radar_snapshot.json\n\n      - name: Print paired LONG SHORT archive diagnostics
+      - name: Validate published Radar alert contract
+        run: python radar_alert_contract.py data/radar_snapshot.json
+
+      - name: Print paired LONG SHORT archive diagnostics
         run: python analyze_zec_directional_bias.py --archive data/zec_predictive_archive.json
 
       - name: Run BASELINE SHADOW tracking diagnostics when archive exists
