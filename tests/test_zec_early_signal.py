@@ -44,7 +44,8 @@ def valid_snapshot():
             "1m": {"tail": candles("1m", price, 1)},
             "5m": {"tail": candles("5m", price, 5)},
         }
-    tail["ZEC-USD_UM_XPERP"]["5m"]["tail"][-1]["volume"] = 500
+    latest_x5m = tail["ZEC-USD_UM_XPERP"]["5m"]["tail"][-1]
+    latest_x5m.update({"open": 106.2, "high": 106.8, "low": 106.0, "close": 106.5, "volume": 500})
     funding_time_ms = int(NOW.timestamp() * 1000)
     return {
         "schema_version": 3,
@@ -108,8 +109,8 @@ def directional_snapshot(direction, breakout_volume=500):
                 close = base + sign * step * index
                 row.update({
                     "open": close - sign * step * 0.2,
-                    "high": close + step * 0.3,
-                    "low": close - step * 0.3,
+                    "high": close + step * 0.6,
+                    "low": close - step * 0.6,
                     "close": close,
                     "volume": 100,
                 })
