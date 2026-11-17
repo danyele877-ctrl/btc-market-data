@@ -53,6 +53,7 @@ class ZecShadowSignalTests(unittest.TestCase):
             self.assertEqual(shadow["candidate_direction"], side)
             self.assertEqual(shadow["baseline_comparison"]["status"], baseline_before["status"])
             self.assertTrue(shadow["baseline_unchanged"])
+            self.assertEqual(shadow["validation_status"], "IN RACCOLTA — NESSUNA VALIDAZIONE")
             self.assertFalse(shadow["orders_enabled"])
             self.assertFalse(shadow["position_sizing_enabled"])
             self.assertEqual(baseline, baseline_before)
