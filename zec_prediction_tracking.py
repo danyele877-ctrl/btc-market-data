@@ -172,7 +172,7 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
         shadow_side = None
     stable = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     snapshot_sha = hashlib.sha256(stable.encode("utf-8")).hexdigest()
-    prediction_id = f"{INSTRUMENT_ID}:{captured.isoformat()}:{snapshot_sha[:16]}"
+    prediction_id = f"{INSTRUMENT_ID}:{captured.isoformat()}"
     archive = {"schema_version": 1, "instrument": INSTRUMENT_ID, "updated_at": None, "predictions": []}
     if archive_path.exists():
         try:
@@ -184,6 +184,7 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
             return {"status": "BLOCCATO", "reason": "archivio preesistente non valido; preservato"}
     predictions = archive["predictions"]
     existing = next((item for item in predictions if item.get("id") == prediction_id), None)
+    prediction_added = existing is None
     if existing is None:
         quality = shadow.get("data_quality") or {}
         existing = {
@@ -235,7 +236,7 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
     return {
         "status": "OK", "prediction_id": prediction_id,
         "predictions_total": len(archive["predictions"]),
-        "predictions_added": 1 if existing and existing.get("id") == prediction_id else 0,
+        "predictions_added": 1 if prediction_added else 0,
         "mature_outcomes_total": mature,
         "snapshot_sha256": snapshot_sha,
         "instrument": INSTRUMENT_ID, "orders_enabled": False,
