@@ -204,14 +204,45 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
     book = micro.get("book_imbalance") or {}
     ws_ready = quality.get("websocket_ready") is True
     flow_score = None
+    flow_divergence = {
+        "status": "N/D", "side": None, "score_adjustment": 0.0,
+        "description": "CVD/prezzo non verificabili",
+    }
     if ws_ready:
         cvd1, cvd5 = _number(cvd.get("1m")), _number(cvd.get("5m"))
         imbalance = _number(book.get("imbalance_top10"))
+        price_return5 = _price_change(x5m) if x5m else None
         if cvd1 is not None and cvd5 is not None and imbalance is not None:
             cvd_score = (_sign(cvd1) + _sign(cvd5)) / 2
             book_score = _clamp(imbalance / 0.35)
-            # CVD and book remain one correlated confirmation cluster.
-            flow_score = _clamp(0.65 * cvd_score + 0.35 * book_score)
+            # CVD and book remain one correlated order-flow cluster. A small,
+            # explicit price-response adjustment detects absorption without
+            # treating raw contract counts as ZEC exposure or position size.
+            adjustment = 0.0
+            if price_return5 is not None and cvd5 < 0 and price_return5 > 0.0003:
+                adjustment = 0.15
+                flow_divergence = {
+                    "status": "ASSORBIMENTO_VENDITE",
+                    "side": "LONG",
+                    "score_adjustment": adjustment,
+                    "description": "CVD 5m negativo ma prezzo in rialzo: possibile assorbimento della pressione di vendita",
+                }
+            elif price_return5 is not None and cvd5 > 0 and price_return5 < -0.0003:
+                adjustment = -0.15
+                flow_divergence = {
+                    "status": "ASSORBIMENTO_ACQUISTI",
+                    "side": "SHORT",
+                    "score_adjustment": adjustment,
+                    "description": "CVD 5m positivo ma prezzo in ribasso: possibile assorbimento della pressione di acquisto",
+                }
+            else:
+                flow_divergence = {
+                    "status": "NESSUNA_DIVERGENZA_EVIDENTE",
+                    "side": None,
+                    "score_adjustment": 0.0,
+                    "description": "CVD e risposta del prezzo non mostrano una divergenza significativa",
+                }
+            flow_score = _clamp(0.65 * cvd_score + 0.35 * book_score + adjustment)
 
     components = {"price": (price_score, 0.45)}
     if relative_score is not None:
@@ -320,6 +351,7 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
         },
         "relative_strength_5m": relative,
         "flow_cluster": flow_score,
+        "flow_divergence": flow_divergence,
         "btc_filter": btc_filter,
         "structure": structure,
         "higher_timeframe_regime": {
