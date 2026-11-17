@@ -17,6 +17,28 @@ from zec_early_signal import (
 )
 
 
+def _shadow_series(snapshot: dict[str, Any], instrument: str, bar: str,
+                   now: datetime | None = None) -> tuple[list[dict[str, Any]], str | None]:
+    """Use baseline candle integrity checks, then apply SHADOW's own live-age gate."""
+    rows, error = _series(snapshot, instrument, bar)
+    if error:
+        return [], error
+    try:
+        captured = datetime.fromisoformat(str(snapshot.get("source_captured_at")).replace("Z", "+00:00"))
+        completed = datetime.fromisoformat(str(rows[-1].get("completed_at")).replace("Z", "+00:00"))
+        reference = now or captured
+        if reference.tzinfo is None:
+            reference = reference.replace(tzinfo=captured.tzinfo)
+        if completed.tzinfo is None:
+            completed = completed.replace(tzinfo=captured.tzinfo)
+        age = (reference - completed).total_seconds()
+    except (TypeError, ValueError, OverflowError):
+        return [], f"candele {instrument} {bar}: timestamp SHADOW non valido"
+    if age < -1 or age > 180:
+        return [], f"candele {instrument} {bar}: barra chiusa SHADOW stantia o fuori tempo ({age:.1f}s; limite 180s)"
+    return rows, None
+
+
 def _structure(snapshot: dict[str, Any], x5m: list[dict[str, Any]],
                relative: float | None, flow: float | None) -> dict[str, Any]:
     if len(x5m) < 7:
@@ -156,10 +178,10 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
     baseline = baseline or evaluate_signal(snapshot, now=now)
     quality = baseline.get("data_quality") or {}
     blockers = list(quality.get("blockers") or [])
-    x1m, x1m_error = _series(snapshot, FEED_KEY, "1m", now)
-    x5m, x5m_error = _series(snapshot, FEED_KEY, "5m", now)
-    btc5m, btc_error = _series(snapshot, "BTC-USDC", "5m", now)
-    zec5m, zec_error = _series(snapshot, "ZEC-USDC", "5m", now)
+    x1m, x1m_error = _shadow_series(snapshot, FEED_KEY, "1m", now)
+    x5m, x5m_error = _shadow_series(snapshot, FEED_KEY, "5m", now)
+    btc5m, btc_error = _shadow_series(snapshot, "BTC-USDC", "5m", now)
+    zec5m, zec_error = _shadow_series(snapshot, "ZEC-USDC", "5m", now)
     for error in (x1m_error, x5m_error, btc_error, zec_error):
         if error and error not in blockers:
             blockers.append(error)
