@@ -76,6 +76,65 @@ class PredictiveEngineTests(unittest.TestCase):
         self.assertIsNone(result["p_tp_before_sl_given_touch"])
         self.assertEqual(result["tp_status"], "IN APPRENDIMENTO")
 
+    def test_temporal_analogs_exclude_overlapping_and_unmatured_windows(self):
+        features = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
+                    "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
+                    "trend": 0.0, "rel_strength": 0.0}
+        events = []
+        # Thirty non-overlapping, fully matured 5-minute windows.
+        for i in range(30):
+            stamp = i * 5 * 60_000
+            events.append({
+                "id": str(i), "timestamp_ms": stamp,
+                "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
+                "features": features,
+                "label": {"filled_proxy": True, "tp_before_sl": i % 2 == 0},
+            })
+        # A recent immature observation and a neighbouring overlapping one.
+        events.append({
+            "id": "immature", "timestamp_ms": 30 * 5 * 60_000,
+            "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
+            "features": features,
+            "label": {"filled_proxy": True, "tp_before_sl": None},
+        })
+        events.append({
+            "id": "overlap", "timestamp_ms": 29 * 5 * 60_000 + 60_000,
+            "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
+            "features": features,
+            "label": {"filled_proxy": True, "tp_before_sl": True},
+        })
+        result = _analogs(
+            {"events": events}, "scalp_5m", "LONG", 5, features,
+            as_of_ms=31 * 5 * 60_000,
+        )
+        self.assertEqual(result["archive_samples"], 32)
+        self.assertEqual(result["immature_excluded_samples"], 1)
+        self.assertEqual(result["overlap_excluded_samples"], 1)
+        self.assertEqual(result["temporal_samples"], 30)
+        self.assertEqual(result["samples"], 30)
+        self.assertAlmostEqual(result["p_tp_before_sl_given_touch"], 0.5, places=4)
+
+    def test_temporal_analogs_require_completed_no_touch_window(self):
+        features = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
+                    "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
+                    "trend": 0.0, "rel_strength": 0.0}
+        events = []
+        for i in range(30):
+            events.append({
+                "id": str(i), "timestamp_ms": i * 5 * 60_000,
+                "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
+                "features": features,
+                "label": {"filled_proxy": False,
+                          "fill_window_completed_at_ms": (i + 1) * 5 * 60_000},
+            })
+        result = _analogs(
+            {"events": events}, "scalp_5m", "LONG", 5, features,
+            as_of_ms=31 * 5 * 60_000,
+        )
+        self.assertEqual(result["temporal_samples"], 30)
+        self.assertEqual(result["filled_samples"], 0)
+        self.assertEqual(result["p_limit_touch_proxy"], 0.0)
+
     def test_filled_limit_is_recorded_before_longer_tp_sl_horizon_matures(self):
         entry = {
             "ts_ms": 1000, "_close_ms": 61000, "open": 100.0,
