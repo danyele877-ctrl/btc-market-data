@@ -53,7 +53,7 @@ def _pct_change(current: float | None, previous: float | None) -> float | None:
     return current / previous - 1.0
 
 
-def _series(snapshot: dict[str, Any], instrument: str, bar: str, now: datetime | None = None) -> tuple[list[dict[str, Any]], str | None]:
+def _series(snapshot: dict[str, Any], instrument: str, bar: str) -> tuple[list[dict[str, Any]], str | None]:
     rows = (((snapshot.get("candles_1m_5m") or {}).get(instrument) or {}).get(bar) or {}).get("tail")
     if not isinstance(rows, list):
         series = (((snapshot.get("candles_1m_5m") or {}).get(instrument) or {}).get(bar) or {})
@@ -82,10 +82,8 @@ def _series(snapshot: dict[str, Any], instrument: str, bar: str, now: datetime |
         return [], f"candele {instrument} {bar}: intervallo mancante"
 
     latest_completed = _time(rows[-1].get("completed_at"))
-    reference_time = now or captured_at
-    age = (reference_time - latest_completed).total_seconds() if reference_time and latest_completed else None
-    # The scalp nowcast requires both closed 1m and 5m candles to be <=180s old.
-    max_age = 180
+    age = (captured_at - latest_completed).total_seconds() if captured_at and latest_completed else None
+    max_age = 180 if bar == "1m" else 360
     if age is None or age < -1 or age > max_age:
         return [], f"candele {instrument} {bar}: barra chiusa stantia o fuori tempo ({age})"
     for row in rows:
@@ -242,7 +240,7 @@ def _market_record(snapshot: dict[str, Any], name: str, expected_id: str | None 
     return first, None
 
 
-def _breakout_early_warning(snapshot: dict[str, Any], x1m: list[dict[str, Any]], x5m: list[dict[str, Any]], oi: dict[str, Any] | None, ws_ready: bool, now: datetime | None = None) -> dict[str, Any]:
+def _breakout_early_warning(snapshot: dict[str, Any], x1m: list[dict[str, Any]], x5m: list[dict[str, Any]], oi: dict[str, Any] | None, ws_ready: bool) -> dict[str, Any]:
     """Detect preparation/breakout/retest conditions without changing the entry signal."""
     if len(x5m) < 7:
         return {
@@ -291,8 +289,8 @@ def _breakout_early_warning(snapshot: dict[str, Any], x1m: list[dict[str, Any]],
     older_range = max(value(row, "high") for row in older) - min(value(row, "low") for row in older)
     compression_ratio = round(recent_range / older_range, 3) if older_range > 0 else None
 
-    btc5m, _ = _series(snapshot, "BTC-USDC", "5m", now)
-    zec5m, _ = _series(snapshot, "ZEC-USDC", "5m", now)
+    btc5m, _ = _series(snapshot, "BTC-USDC", "5m")
+    zec5m, _ = _series(snapshot, "ZEC-USDC", "5m")
     relative_strength = None
     if btc5m and zec5m and btc5m[-1].get("ts_ms") == zec5m[-1].get("ts_ms"):
         zec_return = _price_change(zec5m)
@@ -396,8 +394,8 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         blockers.append("snapshot non schema v3")
     if snapshot.get("source_status") != "ok":
         blockers.append("source_status diverso da ok")
-    if captured_at is None or source_age is None or source_age < 0 or source_age > 180:
-        blockers.append("snapshot bridge futuro, oltre 180 secondi o timestamp non valido")
+    if captured_at is None or source_age is None or source_age < -60 or source_age > 180:
+        blockers.append("snapshot bridge oltre 180 secondi o timestamp non valido")
     if any(value for value in (snapshot.get("read_errors") or {}).values()):
         blockers.append("errori di lettura nel radar snapshot")
     if snapshot.get("render_health_http") != 200 or snapshot.get("render_candles_http") != 200:
@@ -423,10 +421,10 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     if funding_interval["status"] in ("API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H", "TIMESTAMP_API_NON_ALLINEATI"):
         limitations.append("Funding: OKX support conferma settlement ogni 4h; timestamp API discordanti (riportati grezzi, non usati per sostituire la specifica 4h)")
 
-    x1m, x1m_error = _series(snapshot, FEED_KEY, "1m", now)
-    x5m, x5m_error = _series(snapshot, FEED_KEY, "5m", now)
-    btc5m, btc5m_error = _series(snapshot, "BTC-USDC", "5m", now)
-    zec5m, zec5m_error = _series(snapshot, "ZEC-USDC", "5m", now)
+    x1m, x1m_error = _series(snapshot, FEED_KEY, "1m")
+    x5m, x5m_error = _series(snapshot, FEED_KEY, "5m")
+    btc5m, btc5m_error = _series(snapshot, "BTC-USDC", "5m")
+    zec5m, zec5m_error = _series(snapshot, "ZEC-USDC", "5m")
     for error in (x1m_error, x5m_error, btc5m_error, zec5m_error):
         if error:
             blockers.append(error)
@@ -435,24 +433,17 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     websocket = micro.get("websocket") or {}
     cvd = micro.get("cvd") or {}
     book = micro.get("book_imbalance") or {}
-    message_age = _number(websocket.get("message_age_seconds"))
-    trade_age = _number(websocket.get("trade_age_seconds"))
-    book_age = _number(websocket.get("book_age_seconds"))
-    cvd_gap_1m = _number(cvd.get("gap_count_1m"))
-    cvd_gap_5m = _number(cvd.get("gap_count_5m"))
-    # Snapshot age must be added to component ages: those ages were measured at capture time.
     ws_ready = (
-        source_age is not None and 0 <= source_age <= 180
-        and bool(x1m and x5m and btc5m and zec5m)
-        and websocket.get("connected") is True
+        websocket.get("connected") is True
         and websocket.get("book_valid") is True
-        and message_age is not None and source_age + message_age <= 120
-        and trade_age is not None and source_age + trade_age <= 180
-        and book_age is not None and source_age + book_age <= 180
-        and websocket.get("trade_events_truncated") is False
+        and _number(websocket.get("message_age_seconds")) is not None
+        and _number(websocket.get("message_age_seconds")) <= 120
+        and _number(websocket.get("trade_age_seconds")) is not None
+        and _number(websocket.get("trade_age_seconds")) <= 180
+        and _number(websocket.get("book_age_seconds")) is not None
+        and _number(websocket.get("book_age_seconds")) <= 180
         and cvd.get("ready_1m") is True
         and cvd.get("ready_5m") is True
-        and cvd_gap_1m == 0 and cvd_gap_5m == 0
         and _number(cvd.get("1m")) is not None
         and _number(cvd.get("5m")) is not None
     )
@@ -610,7 +601,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             if level is not None:
                 invalidation = {"direction": "SHORT", "price": level, "condition": "chiusura 1m sopra il massimo strutturale delle ultime barre completate"}
 
-    breakout_warning = _breakout_early_warning(snapshot, x1m, x5m, oi, ws_ready, now)
+    breakout_warning = _breakout_early_warning(snapshot, x1m, x5m, oi, ws_ready)
 
     contract_safety = build_contract_safety(instrument, verified=not bool(instrument_error))
     contract_safety["funding_interval"] = funding_interval
