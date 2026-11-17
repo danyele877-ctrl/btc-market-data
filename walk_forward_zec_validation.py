@@ -61,6 +61,36 @@ def _stratum(value: Any, prefix: str) -> str:
     return prefix + "_FLAT"
 
 
+def _setup_proxy(features: dict[str, Any]) -> str:
+    r1 = _number(features.get('ret1'))
+    r3 = _number(features.get('ret3'))
+    atr = _number(features.get('atr_pct'))
+    rsi = _number(features.get('rsi14'))
+    trend = _number(features.get('trend'))
+    if any(v is None for v in (r1, r3, atr, rsi, trend)) or atr <= 0:
+        return 'N/D'
+    if r1 >= 0.5 * atr and r3 > 0:
+        return 'BREAKOUT_UP_PROXY'
+    if r1 <= -0.5 * atr and r3 < 0:
+        return 'BREAKOUT_DOWN_PROXY'
+    if rsi <= 0.35 and r1 > 0:
+        return 'REVERSAL_UP_PROXY'
+    if rsi >= 0.65 and r1 < 0:
+        return 'REVERSAL_DOWN_PROXY'
+    if abs(trend) >= 0.003 and trend * r3 > 0:
+        return 'TREND_CONTINUATION_PROXY'
+    return 'RANGE_OR_MIXED_PROXY'
+
+def _non_overlapping(rows: list[dict[str, Any]], horizon: int) -> list[dict[str, Any]]:
+    selected = []
+    next_allowed = None
+    for row in sorted(rows, key=lambda item: item['timestamp_ms']):
+        start = row['timestamp_ms']
+        if next_allowed is None or start >= next_allowed:
+            selected.append(row)
+            next_allowed = start + horizon * 60_000
+    return selected
+
 def _metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
         return {"scored": 0, "brier_score": None, "mean_probability": None,
