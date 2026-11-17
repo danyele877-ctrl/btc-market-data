@@ -36,6 +36,13 @@ class WalkForwardValidationTests(unittest.TestCase):
         self.assertIn("scalp_5m|SHORT|5m", report["results"])
         self.assertIn("by_btc_regime", report["results"]["scalp_5m|LONG|5m"])
         self.assertTrue(any("Brier scores" in item for item in report["limitations"]))
+        group = report["results"]["scalp_5m|LONG|5m"]
+        self.assertIn("non_overlapping_primary", group)
+        self.assertIn("brier_skill_score", group["non_overlapping_primary"])
+        self.assertIn("balanced_accuracy_at_50", group["non_overlapping_primary"])
+        self.assertIn("non_overlapping_by_btc_context", group)
+        self.assertIn("non_overlapping_by_setup_proxy", group)
+        self.assertLessEqual(group["non_overlapping_primary"]["scored"], group["all_test_observations"]["scored"])
 
 
     def test_legacy_archive_without_btc_feature_is_still_scored(self):
