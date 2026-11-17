@@ -164,6 +164,9 @@ def _evaluate_group(events: list[dict[str, Any]], family: str, side: str,
             "btc_regime": _stratum(event["features"].get("btc_trend_20"), "BTC"),
             "zec_trend": _stratum(event["features"].get("trend"), "ZEC"),
             "feature_mode": feature_mode,
+            "timestamp_ms": int(event["timestamp_ms"]),
+            "setup_proxy": _setup_proxy(event["features"]),
+            "btc_context": "PRESENT" if _number(event["features"].get("btc_trend_20")) is not None else "LEGACY_MISSING",
         })
     return scored, eligible_test
 
@@ -219,16 +222,30 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
 
     by_group = {}
     for key, rows in overall.items():
+        horizon = int(key.rsplit('|', 1)[1].replace('m', ''))
+        non_overlap = _non_overlapping(rows, horizon)
+        setup_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        btc_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        feature_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in non_overlap:
+            setup_groups[row['setup_proxy']].append(row)
+            btc_groups[row['btc_context']].append(row)
+            feature_groups[row['feature_mode']].append(row)
         by_group[key] = {
             **_metrics(rows),
-            "eligible_test_outcomes": overall_eligible[key],
-            "coverage": round(len(rows) / overall_eligible[key], 4) if overall_eligible[key] else None,
-            "feature_modes": {
-                mode: sum(1 for row in rows if row.get("feature_mode") == mode)
-                for mode in ("FULL_BTC_CONTEXT", "LEGACY_NO_BTC_CONTEXT")
-            },
-            "by_btc_regime": {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith("BTC_")},
-            "by_zec_trend": {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith("ZEC_")},
+            'all_test_observations': _metrics(rows),
+            'non_overlapping_primary': _metrics(non_overlap),
+            'eligible_test_outcomes': overall_eligible[key],
+            'coverage': round(len(rows) / overall_eligible[key], 4) if overall_eligible[key] else None,
+            'non_overlapping_coverage': round(len(non_overlap) / overall_eligible[key], 4) if overall_eligible[key] else None,
+            'feature_modes_all': {mode: sum(1 for row in rows if row.get('feature_mode') == mode) for mode in ('FULL_BTC_CONTEXT', 'LEGACY_NO_BTC_CONTEXT')},
+            'feature_modes': {mode: sum(1 for row in rows if row.get('feature_mode') == mode) for mode in ('FULL_BTC_CONTEXT', 'LEGACY_NO_BTC_CONTEXT')},
+            'non_overlapping_by_feature_mode': {name: _metrics(items) for name, items in sorted(feature_groups.items())},
+            'non_overlapping_by_btc_context': {name: _metrics(items) for name, items in sorted(btc_groups.items())},
+            'non_overlapping_by_setup_proxy': {name: _metrics(items) for name, items in sorted(setup_groups.items())},
+            'by_btc_regime_all_observations': {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith('BTC_')},
+            'by_btc_regime': {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith('BTC_')},
+            'by_zec_trend_all_observations': {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith('ZEC_')},
         }
 
     scored_total = sum(len(rows) for rows in overall.values())
@@ -238,14 +255,16 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
         "instrument": archive.get("instrument"),
         "archive_updated_at": archive.get("updated_at"),
         "archive_events_total": len(events),
-        "method": "expanding chronological walk-forward; uses only earlier matured labels; prefers full BTC-context features and falls back to the legacy nine-feature schema when needed",
+        "method": "expanding chronological walk-forward; uses only earlier matured labels; reports raw and non-overlapping test metrics, BTC-context availability, and explicitly heuristic setup proxies",
         "warmup_fraction": warmup_fraction,
         "folds": fold_reports,
         "results": by_group,
         "limitations": [
             "scalp_5m only; swing and microstructure families are not included",
             "LONG and SHORT are scored separately; BTC and ZEC trend strata use the sign of the stored feature",
-            "breakout-versus-reversal stratification is omitted because the predictive event archive does not persist a consistent setup label",
+            "breakout/reversal/continuation groups are feature-only heuristic proxies, not manually verified chart patterns; thresholds are descriptive and not performance-tuned",
+            "primary metrics use greedy non-overlapping test windows; raw metrics remain available for coverage comparison",
+            "BTC-context-present and legacy-missing groups are reported separately; legacy rows are not BTC-conditioned",
             "the score is conditional on filled_proxy and uses a candle-touch proxy, not confirmed exchange fills",
             "Brier scores on a small, regime-limited archive are descriptive and do not establish calibrated probabilities or predictive edge",
             "legacy fallback scores pre-BTC-context rows using nine features and labels them separately; those rows are not BTC-context-conditioned",
