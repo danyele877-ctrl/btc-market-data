@@ -35,7 +35,7 @@ class ContractConfigTests(unittest.TestCase):
         self.assertFalse(result["theoretical_sizing_permitted"])
         self.assertFalse(result["position_sizing_enabled"])
         self.assertFalse(result["orders_enabled"])
-        self.assertEqual(result["max_risk_usdc"], 20)
+        self.assertEqual(result["max_risk_usdc"], 15)
 
     def test_api_face_value_is_diagnostic_only_and_global_comparison_never_unlocks_sizing(self):
         global_row = self.instrument(ctVal="0.1")
