@@ -380,6 +380,42 @@ def _breakout_early_warning(snapshot: dict[str, Any], x1m: list[dict[str, Any]],
     }
 
 
+def _directional_structure_veto(direction: str, x5m: list[dict[str, Any]],
+                                breakout_warning: dict[str, Any]) -> str | None:
+    """Apply mirrored support/resistance confirmation gates to directional triggers."""
+    if direction not in ("LONG", "SHORT") or len(x5m) < 7:
+        return None
+    previous = x5m[-4:-1]
+    highs = [_number(row.get("high")) for row in previous]
+    lows = [_number(row.get("low")) for row in previous]
+    recent_ranges = [
+        _number(row.get("high")) - _number(row.get("low"))
+        for row in x5m[-6:]
+        if _number(row.get("high")) is not None and _number(row.get("low")) is not None
+    ]
+    close = _number(x5m[-1].get("close"))
+    if close is None or not highs or not lows or any(v is None for v in highs + lows) or len(recent_ranges) < 6:
+        return "struttura 5m insufficiente: conferma direzionale sospesa"
+    atr_proxy = sum(max(value, 0.0) for value in recent_ranges) / len(recent_ranges)
+    if atr_proxy <= 0:
+        return "ATR proxy 5m non valido: conferma direzionale sospesa"
+    resistance, support = max(highs), min(lows)
+    near_or_beyond_resistance = close >= resistance - 0.60 * atr_proxy
+    near_or_beyond_support = close <= support + 0.60 * atr_proxy
+    warning_status = breakout_warning.get("status")
+    if direction == "SHORT" and near_or_beyond_support and warning_status != "BREAKDOWN RIBASSISTA":
+        return (
+            "VETO SHORT: prezzo vicino/sotto il supporto senza breakdown 5m confermato "
+            "da volume e forza relativa/flusso; attendere chiusura e conferma del retest"
+        )
+    if direction == "LONG" and near_or_beyond_resistance and warning_status != "BREAKOUT RIALZISTA":
+        return (
+            "VETO LONG: prezzo vicino/sopra la resistenza senza breakout 5m confermato "
+            "da volume e forza relativa/flusso; attendere recovery/retest valido"
+        )
+    return None
+
+
 def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
     """Evaluate one compact radar snapshot without emitting orders or position sizing."""
     now = now or datetime.now(timezone.utc)
@@ -556,7 +592,15 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     )
     net = _clamp(net)
     direction = "LONG" if net >= 0.18 else "SHORT" if net <= -0.18 else "NEUTRA"
-    exploratory_direction = "LONG" if net > 0 else "SHORT" if net < 0 else None
+    if net > 0:
+        exploratory_direction, candidate_basis = "LONG", "segno del punteggio euristico"
+    elif net < 0:
+        exploratory_direction, candidate_basis = "SHORT", "segno del punteggio euristico"
+    else:
+        last_momentum = _candlestick_direction(x5m) if x5m else (_candlestick_direction(x1m) if x1m else 0)
+        exploratory_direction = "LONG" if last_momentum >= 0 else "SHORT"
+        candidate_basis = "momentum 5m/1m di spareggio" if last_momentum else "fallback LONG neutro: nessuna evidenza direzionale"
+    candidate_direction = direction if direction in ("LONG", "SHORT") else exploratory_direction
     direction_sign = 1 if direction == "LONG" else -1 if direction == "SHORT" else 0
     aligned_groups = sum(1 for group in groups.values() if direction_sign and _sign(group["score"]) == direction_sign)
     agreement = aligned_groups / len(groups) if groups else 0.0
@@ -567,15 +611,20 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         confidence = min(confidence, 40)
     groups_ready = all(name in groups for name in ("order_flow", "microstructure", "relative_strength"))
     candles_aligned = bool(x1m and x5m and _candlestick_direction(x1m) == _candlestick_direction(x5m) == direction_sign and direction_sign)
+    breakout_warning = _breakout_early_warning(snapshot, x1m, x5m, oi, ws_ready, now)
+    directional_veto = _directional_structure_veto(direction, x5m, breakout_warning)
+    if directional_veto:
+        contrary.append(directional_veto)
     confirmed = (
         not blockers
+        and not directional_veto
         and groups_ready
         and direction_sign != 0
         and abs(net) >= 0.68
         and agreement >= 0.75
         and candles_aligned
     )
-    if blockers or not groups_ready or len(groups) < 3 or not ws_ready or xperp is None or instrument is None:
+    if blockers or directional_veto or not groups_ready or len(groups) < 3 or not ws_ready or xperp is None or instrument is None:
         stage = "ATTENDERE"
     elif confirmed:
         stage = "TRIGGER CONFERMATO"
@@ -610,8 +659,6 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             if level is not None:
                 invalidation = {"direction": "SHORT", "price": level, "condition": "chiusura 1m sopra il massimo strutturale delle ultime barre completate"}
 
-    breakout_warning = _breakout_early_warning(snapshot, x1m, x5m, oi, ws_ready, now)
-
     contract_safety = build_contract_safety(instrument, verified=not bool(instrument_error))
     contract_safety["funding_interval"] = funding_interval
 
@@ -623,8 +670,10 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         "captured_at": snapshot.get("source_captured_at"),
         "status": stage,
         "decision": decision,
-        "candidate_direction": direction,
+        "candidate_direction": candidate_direction,
         "exploratory_direction": exploratory_direction,
+        "candidate_direction_basis": candidate_basis,
+        "directional_veto": directional_veto,
         "scores": {
             "net": round(net * 100, 1),
             "long": round(max(0.0, net) * 100, 1),
