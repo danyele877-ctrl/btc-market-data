@@ -13,6 +13,7 @@ on:
       - "zec_queue_model.py"
       - "zec_context_archive.py"
       - "zec_prediction_tracking.py"
+      - "analyze_zec_prediction_tracking.py"
       - "zec_contract_config.py"
       - "render_bridge_publication.py"
       - "replay_zec_signals.py"
@@ -70,6 +71,9 @@ jobs:
 
       - name: Build compact radar snapshot
         run: python build_radar_snapshot.py
+
+      - name: Analyze BASELINE and SHADOW prediction tracking
+        run: python analyze_zec_prediction_tracking.py --archive data/zec_prediction_tracking.json
 
       - name: Publish only the Render bridge snapshot
         run: |
