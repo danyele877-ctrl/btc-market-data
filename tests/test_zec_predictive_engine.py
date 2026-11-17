@@ -114,6 +114,45 @@ class PredictiveEngineTests(unittest.TestCase):
         self.assertEqual(result["samples"], 30)
         self.assertAlmostEqual(result["p_tp_before_sl_given_touch"], 0.5, places=4)
 
+    def test_regime_aware_analogs_isolate_current_trend_regime(self):
+        base = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
+                "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
+                "trend": 0.0, "rel_strength": 0.0}
+        events = []
+        for i in range(60):
+            features = dict(base)
+            features["trend"] = 0.04 if i < 30 else -0.04
+            events.append({
+                "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
+                "features": features,
+                "label": {"filled_proxy": True, "tp_before_sl": i < 30},
+            })
+        current = dict(base, trend=0.04)
+        result = _analogs({"events": events}, "scalp_5m", "LONG", 5, current)
+        self.assertEqual(result["regime"], "UP/HIGH_VOL")
+        self.assertEqual(result["regime_samples"], 30)
+        self.assertFalse(result["regime_fallback_to_broad_pool"])
+        self.assertEqual(result["samples"], 30)
+        self.assertEqual(result["p_tp_before_sl_given_touch"], 1.0)
+
+    def test_regime_model_falls_back_when_regime_sample_is_too_small(self):
+        base = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
+                "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
+                "trend": 0.0, "rel_strength": 0.0}
+        events = []
+        for i in range(40):
+            features = dict(base)
+            features["trend"] = 0.04 if i < 12 else -0.04
+            events.append({
+                "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
+                "features": features,
+                "label": {"filled_proxy": True, "tp_before_sl": i < 12},
+            })
+        result = _analogs({"events": events}, "scalp_5m", "LONG", 5, dict(base, trend=0.04))
+        self.assertEqual(result["regime_samples"], 12)
+        self.assertTrue(result["regime_fallback_to_broad_pool"])
+        self.assertEqual(result["samples"], 40)
+
     def test_temporal_analogs_require_completed_no_touch_window(self):
         features = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
                     "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
