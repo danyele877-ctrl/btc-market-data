@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from test_zec_early_signal import INSTRUMENT_ID, NOW, valid_snapshot
 from zec_early_signal import evaluate_signal
@@ -102,7 +102,7 @@ class ZecShadowSignalTests(unittest.TestCase):
     def test_shadow_nowcast_rejects_candles_that_age_after_snapshot_capture(self):
         snapshot = directional_snapshot("SHORT")
         baseline = evaluate_signal(snapshot, now=NOW)
-        later = NOW.replace() + __import__("datetime").timedelta(minutes=4)
+        later = NOW + timedelta(minutes=4)
         shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=later)
         self.assertEqual(shadow["decision"], "ATTENDERE")
         self.assertFalse(shadow["data_quality"]["ready"])
