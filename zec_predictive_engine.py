@@ -24,7 +24,7 @@ SWING_HORIZONS = (60, 120, 240)        # minutes
 LIMIT_OFFSETS_ATR = (0.10, 0.20, 0.30, 0.40)
 MAX_ARCHIVE = 12000
 MIN_ANALOGS = 30
-FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength")
+FEATURES = ("ret1", "ret3", "ret6", "atr_pct", "range_pct", "volume_rel", "rsi14", "trend", "rel_strength", "btc_trend_20")
 MICRO_FEATURES = FEATURES + ("cvd1m_log", "cvd5m_log", "cvd15m_log", "imbalance_top10", "book_delta_top10", "book_delta_valid", "spread_bps", "oi_change_pct", "oi_change_valid")
 QUEUE_FEATURES = FEATURES + ("imbalance_top10", "book_delta_top10", "book_delta_valid", "spread_bps", "oi_change_pct", "oi_change_valid")
 CONTEXT_ARCHIVE_PATH = Path("data/zec_context_archive.json")
@@ -108,11 +108,17 @@ def _features(rows: list[dict[str, Any]], i: int, benchmark: dict[int, float] | 
     avg_loss = sum(max(0.0, closes[j-1]-closes[j]) for j in range(len(closes)-14, len(closes)))
     rsi = 50.0 if avg_gain + avg_loss == 0 else 100.0 * avg_gain / (avg_gain + avg_loss)
     relative_strength = 0.0
+    btc_trend_20 = None
     if benchmark:
         current_btc = benchmark.get(rows[i]["ts_ms"])
         prior_btc = benchmark.get(rows[i-3]["ts_ms"])
+        prior_btc_20 = benchmark.get(rows[i-20]["ts_ms"])
         if current_btc and prior_btc:
             relative_strength = ret(3) - (current_btc / prior_btc - 1.0)
+        # BTC context is explicit and horizon-matched to this model family.
+        # Missing benchmark alignment stays missing; it is never imputed as flat.
+        if current_btc and prior_btc_20:
+            btc_trend_20 = current_btc / prior_btc_20 - 1.0
     return {
         "ret1": ret(1), "ret3": ret(3), "ret6": ret(6),
         "atr_pct": atr / px,
@@ -121,6 +127,7 @@ def _features(rows: list[dict[str, Any]], i: int, benchmark: dict[int, float] | 
         "rsi14": rsi / 100.0,
         "trend": (px / closes[0] - 1.0),
         "rel_strength": relative_strength,
+        "btc_trend_20": btc_trend_20,
     }
 
 
