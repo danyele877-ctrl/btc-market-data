@@ -234,7 +234,7 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
     btc_filter = {
         "status": "N/D",
         "regime_1H": btc_1h.get("regime"),
-        "reason": btc_1h.get("reason", "storico BTC 1H non disponibile o non verificabile"),
+        "reason": (btc_1h.get("reason") if btc_1h.get("status") != "OK" else "regime BTC 1H verificato su 200 barre chiuse e continue"),
         "relative_strength_5m": relative,
         "veto": None,
     }
