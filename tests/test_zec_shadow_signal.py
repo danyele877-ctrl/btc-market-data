@@ -132,6 +132,7 @@ class ZecShadowSignalTests(unittest.TestCase):
         shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=NOW)
         self.assertEqual(shadow["candidate_direction"], "LONG")
         self.assertEqual(shadow["btc_filter"]["status"], "FILTRO BTC RIBASSISTA")
+        self.assertIn("verificato", shadow["btc_filter"]["reason"])
         self.assertIn("VETO BTC", shadow["btc_filter"]["veto"])
         self.assertEqual(shadow["decision"], "ATTENDERE")
 
