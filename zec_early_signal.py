@@ -240,6 +240,144 @@ def _market_record(snapshot: dict[str, Any], name: str, expected_id: str | None 
     return first, None
 
 
+def _breakout_early_warning(snapshot: dict[str, Any], x1m: list[dict[str, Any]], x5m: list[dict[str, Any]], oi: dict[str, Any] | None, ws_ready: bool) -> dict[str, Any]:
+    """Detect preparation/breakout/retest conditions without changing the entry signal."""
+    if len(x5m) < 7:
+        return {
+            "status": "NON VERIFICABILE",
+            "candidate_direction": None,
+            "reason": "storico 5m insufficiente per misurare compressione e livelli precedenti",
+            "orders_enabled": False,
+        }
+
+    def value(row: dict[str, Any], field: str) -> float | None:
+        return _number(row.get(field))
+
+    completed = x5m[-1]
+    previous = x5m[-4:-1]
+    older = x5m[-7:-4]
+    close = value(completed, "close")
+    highs = [value(row, "high") for row in previous]
+    lows = [value(row, "low") for row in previous]
+    ranges = [
+        max(value(row, "high") - value(row, "low"), 0.0)
+        for row in x5m[-7:]
+        if value(row, "high") is not None and value(row, "low") is not None
+    ]
+    if close is None or not highs or not lows or any(v is None for v in highs + lows) or len(ranges) < 6:
+        return {
+            "status": "NON VERIFICABILE",
+            "candidate_direction": None,
+            "reason": "OHLC 5m incompleto",
+            "orders_enabled": False,
+        }
+
+    resistance = max(highs)
+    support = min(lows)
+    atr_proxy = sum(ranges[-6:]) / 6
+    if atr_proxy <= 0:
+        return {"status": "NON VERIFICABILE", "candidate_direction": None, "reason": "ATR proxy non valido", "orders_enabled": False}
+
+    volumes = [value(row, "volume") for row in x5m[-6:]]
+    volume_ratio = None
+    if all(v is not None and v >= 0 for v in volumes[:-1]) and volumes[-1] is not None:
+        baseline = sum(volumes[:-1]) / len(volumes[:-1])
+        if baseline > 0:
+            volume_ratio = round(volumes[-1] / baseline, 3)
+
+    recent_range = max(value(row, "high") for row in previous) - min(value(row, "low") for row in previous)
+    older_range = max(value(row, "high") for row in older) - min(value(row, "low") for row in older)
+    compression_ratio = round(recent_range / older_range, 3) if older_range > 0 else None
+
+    btc5m, _ = _series(snapshot, "BTC-USDC", "5m")
+    zec5m, _ = _series(snapshot, "ZEC-USDC", "5m")
+    relative_strength = None
+    if btc5m and zec5m and btc5m[-1].get("ts_ms") == zec5m[-1].get("ts_ms"):
+        zec_return = _price_change(zec5m)
+        btc_return = _price_change(btc5m)
+        if zec_return is not None and btc_return is not None:
+            relative_strength = round((zec_return - btc_return) * 100, 4)
+
+    micro = snapshot.get("microstructure") or {}
+    cvd = micro.get("cvd") or {}
+    cvd_1m = _number(cvd.get("1m")) if ws_ready else None
+    cvd_5m = _number(cvd.get("5m")) if ws_ready else None
+    oi_change = oi.get("oi_change_pct") if oi else None
+
+    up_break = close > resistance
+    down_break = close < support
+    up_distance = (close - resistance) / atr_proxy
+    down_distance = (support - close) / atr_proxy
+    near_resistance = 0 <= (resistance - close) / atr_proxy <= 0.60
+    near_support = 0 <= (close - support) / atr_proxy <= 0.60
+    volume_confirmed = volume_ratio is not None and volume_ratio >= 1.50
+    volume_building = volume_ratio is not None and volume_ratio >= 1.15
+    relative_long = relative_strength is not None and relative_strength >= 0.05
+    relative_short = relative_strength is not None and relative_strength <= -0.05
+    flow_long = (cvd_1m is not None and cvd_1m > 0) or (cvd_5m is not None and cvd_5m > 0)
+    flow_short = (cvd_1m is not None and cvd_1m < 0) or (cvd_5m is not None and cvd_5m < 0)
+    compressed = compression_ratio is not None and compression_ratio <= 0.80
+
+    direction = None
+    status = "NESSUN SETUP IMMINENTE"
+    reasons = []
+    if up_break:
+        direction = "LONG"
+        if volume_confirmed and (relative_long or flow_long):
+            status = "BREAKOUT RIALZISTA" if up_distance <= 0.75 else "BREAKOUT GIA' ESTESO — ATTENDI RETEST"
+            reasons.append("chiusura 5m sopra la resistenza delle tre barre precedenti")
+        else:
+            status = "ROTTURA RIALZISTA NON CONFERMATA"
+            reasons.append("prezzo sopra la resistenza ma volume/forza relativa/flusso non confermano insieme")
+    elif down_break:
+        direction = "SHORT"
+        if volume_confirmed and (relative_short or flow_short):
+            status = "BREAKDOWN RIBASSISTA" if down_distance <= 0.75 else "BREAKDOWN GIA' ESTESO — ATTENDI RETEST"
+            reasons.append("chiusura 5m sotto il supporto delle tre barre precedenti")
+        else:
+            status = "ROTTURA RIBASSISTA NON CONFERMATA"
+            reasons.append("prezzo sotto il supporto ma volume/forza relativa/flusso non confermano insieme")
+    elif near_resistance and (relative_long or (volume_building and compressed)):
+        direction, status = "LONG", "PRE-ALLERTA LONG"
+        reasons.append("prezzo vicino alla resistenza con forza relativa o compressione/volume in aumento")
+    elif near_support and (relative_short or (volume_building and compressed)):
+        direction, status = "SHORT", "PRE-ALLERTA SHORT"
+        reasons.append("prezzo vicino al supporto con debolezza relativa o compressione/volume in aumento")
+
+    if volume_ratio is None:
+        reasons.append("volume 5m non disponibile: conferma volume non verificabile")
+    else:
+        reasons.append(f"volume 5m rispetto alle cinque barre precedenti: {volume_ratio:.2f}x")
+    if compression_ratio is not None:
+        reasons.append(f"rapporto range recente/precedente: {compression_ratio:.2f}")
+    if relative_strength is not None:
+        reasons.append(f"forza relativa ZEC/BTC 5m: {relative_strength:+.4f}%")
+    if oi_change is not None:
+        reasons.append(f"variazione OI osservata: {oi_change:+.4f}% (direzione non dedotta da sola)")
+    if cvd_1m is not None and cvd_5m is not None:
+        reasons.append(f"CVD 1m/5m: {cvd_1m:+.4g}/{cvd_5m:+.4g} contratti")
+
+    return {
+        "status": status,
+        "candidate_direction": direction,
+        "reference_resistance": round(resistance, 6),
+        "reference_support": round(support, 6),
+        "close_5m": round(close, 6),
+        "atr_proxy_5m": round(atr_proxy, 6),
+        "distance_from_resistance_atr": round(up_distance, 3),
+        "distance_from_support_atr": round(down_distance, 3),
+        "volume_ratio_5m": volume_ratio,
+        "compression_ratio": compression_ratio,
+        "relative_strength_pct": relative_strength,
+        "cvd_1m_contracts": cvd_1m,
+        "cvd_5m_contracts": cvd_5m,
+        "oi_change_pct": oi_change,
+        "reasons": reasons,
+        "orders_enabled": False,
+        "interpretation": "preallerta diagnostica; non è un trigger d'ingresso né una probabilità",
+    }
+
+
 def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
     """Evaluate one compact radar snapshot without emitting orders or position sizing."""
     now = now or datetime.now(timezone.utc)
@@ -463,6 +601,8 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             if level is not None:
                 invalidation = {"direction": "SHORT", "price": level, "condition": "chiusura 1m sopra il massimo strutturale delle ultime barre completate"}
 
+    breakout_warning = _breakout_early_warning(snapshot, x1m, x5m, oi, ws_ready)
+
     contract_safety = build_contract_safety(instrument, verified=not bool(instrument_error))
     contract_safety["funding_interval"] = funding_interval
 
@@ -487,6 +627,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         "favorable_signals": list(dict.fromkeys(factors)),
         "contrary_signals": list(dict.fromkeys(contrary)),
         "invalidation": invalidation,
+        "breakout_early_warning": breakout_warning,
         "data_quality": {
             "snapshot_age_seconds": round(source_age, 1) if source_age is not None else None,
             "websocket_ready": ws_ready,
