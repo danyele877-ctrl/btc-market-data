@@ -37,6 +37,19 @@ class WalkForwardValidationTests(unittest.TestCase):
         self.assertIn("by_btc_regime", report["results"]["scalp_5m|LONG|5m"])
         self.assertTrue(any("Brier scores" in item for item in report["limitations"]))
 
+
+    def test_legacy_archive_without_btc_feature_is_still_scored(self):
+        rows = []
+        for i in range(160):
+            for side in ("LONG", "SHORT"):
+                item = event(i * 10 * 60_000, side, i % 3 == 0)
+                item["features"].pop("btc_trend_20")
+                rows.append(item)
+        report = analyze({"events": rows}, folds=2, warmup_fraction=0.5)
+        self.assertGreater(report["scored_total"], 0)
+        group = report["results"]["scalp_5m|LONG|5m"]
+        self.assertGreater(group["feature_modes"]["LEGACY_NO_BTC_CONTEXT"], 0)
+
     def test_rejects_insufficient_history(self):
         archive = {"events": [event(i * 10 * 60_000, "LONG", True) for i in range(2)]}
         with self.assertRaises(ValueError):
