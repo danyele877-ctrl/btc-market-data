@@ -159,6 +159,9 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
     if len(bars) < 15:
         return {"status": "IN ATTESA", "reason": "servono almeno 15 barre 1m chiuse e continue"}
     entry_bar = bars[-1]
+    last_bar_age = (captured.timestamp() * 1000 - entry_bar["_close_ms"]) / 1000
+    if last_bar_age < 0 or last_bar_age > 180:
+        return {"status": "IN ATTESA", "reason": "ultima candela 1m chiusa oltre 180 secondi"}
     entry_index = len(bars) - 1
     entry = entry_bar["close"]
     atr = _atr(bars, entry_index)
