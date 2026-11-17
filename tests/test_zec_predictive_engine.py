@@ -33,7 +33,7 @@ class PredictiveEngineTests(unittest.TestCase):
     def test_analog_model_withholds_probabilities_below_minimum(self):
         result = _analogs({"events": []}, "scalp_5m", "LONG", 5,
                           {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
-                           "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5, "trend": 0.0, "rel_strength": 0.0})
+                           "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5, "trend": 0.0, "rel_strength": 0.0, "btc_trend_20": 0.0})
         self.assertEqual(result["status"], "IN APPRENDIMENTO")
         self.assertIsNone(result["p_limit_touch_proxy"])
         self.assertIsNone(result["p_tp_before_sl_given_touch"])
@@ -41,7 +41,7 @@ class PredictiveEngineTests(unittest.TestCase):
     def test_analog_distance_skips_legacy_events_with_missing_features(self):
         features = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
                     "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
-                    "trend": 0.0, "rel_strength": 0.0}
+                    "trend": 0.0, "rel_strength": 0.0, "btc_trend_20": 0.0}
         events = []
         for i in range(30):
             stored = dict(features)
@@ -62,7 +62,7 @@ class PredictiveEngineTests(unittest.TestCase):
     def test_touch_frequency_can_be_shown_before_tp_sl_sample_threshold(self):
         features = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
                     "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
-                    "trend": 0.0, "rel_strength": 0.0}
+                    "trend": 0.0, "rel_strength": 0.0, "btc_trend_20": 0.0}
         events = []
         for i in range(30):
             events.append({
@@ -79,7 +79,7 @@ class PredictiveEngineTests(unittest.TestCase):
     def test_temporal_analogs_exclude_overlapping_and_unmatured_windows(self):
         features = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
                     "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
-                    "trend": 0.0, "rel_strength": 0.0}
+                    "trend": 0.0, "rel_strength": 0.0, "btc_trend_20": 0.0}
         events = []
         # Thirty non-overlapping, fully matured 5-minute windows.
         for i in range(30):
@@ -117,7 +117,7 @@ class PredictiveEngineTests(unittest.TestCase):
     def test_temporal_analogs_require_completed_no_touch_window(self):
         features = {"ret1": 0.0, "ret3": 0.0, "ret6": 0.0, "atr_pct": 0.01,
                     "range_pct": 0.02, "volume_rel": 1.0, "rsi14": 0.5,
-                    "trend": 0.0, "rel_strength": 0.0}
+                    "trend": 0.0, "rel_strength": 0.0, "btc_trend_20": 0.0}
         events = []
         for i in range(30):
             events.append({
@@ -175,6 +175,22 @@ class PredictiveEngineTests(unittest.TestCase):
         self.assertFalse(result["orders_enabled"])
         self.assertFalse(result["safety"]["position_sizing_enabled"])
         self.assertEqual(result["safety"]["ctVal_status"], "METADATI_API_NON_VERIFICATI")
+
+    def test_features_include_horizon_matched_btc_context_without_imputation(self):
+        rows = []
+        benchmark = {}
+        for i in range(21):
+            ts = i * 300000
+            rows.append({
+                "ts_ms": ts, "open": 100.0, "high": 101.0,
+                "low": 99.0, "close": 100.0, "volume": 10.0,
+            })
+            benchmark[ts] = 50000.0 * (1.001 ** i)
+        features = _features(rows, 20, benchmark)
+        self.assertAlmostEqual(features["btc_trend_20"], 1.001 ** 20 - 1.0, places=8)
+        self.assertAlmostEqual(features["rel_strength"], -(1.001 ** 3 - 1.0), places=8)
+        without_benchmark = _features(rows, 20)
+        self.assertIsNone(without_benchmark["btc_trend_20"])
 
     def test_volume_relative_uses_actual_nineteen_bar_baseline(self):
         rows = []
