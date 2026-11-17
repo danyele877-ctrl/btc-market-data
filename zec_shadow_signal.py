@@ -143,6 +143,7 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
         "schema_version": 1,
         "engine": "ZEC Directional Shadow",
         "mode": "diagnostic_only",
+        "validation_status": "IN RACCOLTA — NESSUNA VALIDAZIONE",
         "baseline_unchanged": True,
         "instrument": "ZEC-USD_UM_XPERP-310530",
         "status": status,
