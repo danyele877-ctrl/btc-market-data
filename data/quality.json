@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-17T06:42:17.254718+00:00",
-  "snapshot_generated_at": "2026-11-17T06:42:17.157214+00:00",
+  "generated_at": "2026-11-17T07:59:00.712082+00:00",
+  "snapshot_generated_at": "2026-11-17T07:59:00.645446+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -88,7 +88,7 @@
     "swole_liquidations_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "swole_btc_snapshot": {
@@ -112,7 +112,7 @@
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_liquidations_btc": {
