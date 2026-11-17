@@ -69,6 +69,7 @@ class ZecShadowSignalTests(unittest.TestCase):
             self.assertEqual(shadow["status"], "TRIGGER CONFERMATO")
             self.assertEqual(shadow["decision"], side)
             self.assertEqual(shadow["candidate_direction"], side)
+            self.assertEqual(shadow["structure"]["setup_type"], "BREAKOUT_LONG" if side == "LONG" else "BREAKDOWN_SHORT")
             self.assertEqual(shadow["baseline_comparison"]["status"], baseline_before["status"])
             self.assertTrue(shadow["baseline_unchanged"])
             self.assertEqual(shadow["validation_status"], "IN RACCOLTA — NESSUNA VALIDAZIONE")
@@ -92,12 +93,48 @@ class ZecShadowSignalTests(unittest.TestCase):
         self.assertEqual(shadow["decision"], "ATTENDERE")
         self.assertIn("VETO LONG", shadow["structure"]["veto"])
 
-    def test_shadow_always_returns_long_or_short_candidate(self):
-        baseline = evaluate_signal({}, now=NOW)
-        shadow = evaluate_shadow_signal({}, baseline=baseline, now=NOW)
-        self.assertIn(shadow["candidate_direction"], ("LONG", "SHORT"))
+    def test_shadow_does_not_invent_direction_when_evidence_is_neutral(self):
+        snapshot = valid_snapshot()
+        for instrument in ("ZEC-USD_UM_XPERP", "ZEC-USDC", "BTC-USDC"):
+            for timeframe in ("1m", "5m"):
+                for row in snapshot["candles_1m_5m"][instrument][timeframe]["tail"]:
+                    row.update({"open": 100.0, "high": 100.3, "low": 99.7, "close": 100.0})
+        snapshot["microstructure"]["cvd"].update({"1m": 0, "5m": 0})
+        snapshot["microstructure"]["book_imbalance"]["imbalance_top10"] = 0
+        snapshot["microstructure"]["websocket"]["book_history"] = [
+            {"ts_ms": int(NOW.timestamp() * 1000) - 5_000, "imbalance_top10": 0},
+            {"ts_ms": int(NOW.timestamp() * 1000), "imbalance_top10": 0},
+        ]
+        baseline = evaluate_signal(snapshot, now=NOW)
+        shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=NOW)
+        self.assertIsNone(shadow["candidate_direction"])
+        self.assertIn("nessuna direzione", shadow["candidate_direction_basis"])
         self.assertEqual(shadow["decision"], "ATTENDERE")
-        self.assertFalse(shadow["data_quality"]["ready"])
+        self.assertEqual(shadow["status"], "ATTENDERE")
+        self.assertFalse(shadow["orders_enabled"])
+
+    def test_shadow_accepts_recently_closed_5m_bar_with_240_second_age(self):
+        snapshot = directional_snapshot("LONG")
+        for instrument in ("ZEC-USD_UM_XPERP", "ZEC-USDC", "BTC-USDC"):
+            for row in snapshot["candles_1m_5m"][instrument]["5m"]["tail"]:
+                row["ts_ms"] -= 240_000
+                completed = datetime.fromisoformat(row["completed_at"].replace("Z", "+00:00"))
+                row["completed_at"] = (completed - timedelta(seconds=240)).isoformat().replace("+00:00", "Z")
+        baseline = evaluate_signal(snapshot, now=NOW)
+        shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=NOW)
+        self.assertTrue(shadow["data_quality"]["ready"])
+        self.assertFalse(any("5m" in item and "SHADOW stantia" in item for item in shadow["data_quality"]["blockers"]))
+
+    def test_btc_bearish_1h_filters_unconfirmed_countertrend_long(self):
+        snapshot = directional_snapshot("LONG", breakout_volume=100)
+        snapshot["predictive_history"] = {"btc_1H": higher_timeframe_rows(3600, rising=False)}
+        baseline = evaluate_signal(snapshot, now=NOW)
+        shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=NOW)
+        self.assertEqual(shadow["candidate_direction"], "LONG")
+        self.assertEqual(shadow["btc_filter"]["status"], "FILTRO BTC RIBASSISTA")
+        self.assertIn("verificato", shadow["btc_filter"]["reason"])
+        self.assertIn("VETO BTC", shadow["btc_filter"]["veto"])
+        self.assertEqual(shadow["decision"], "ATTENDERE")
 
     def test_shadow_nowcast_rejects_candles_that_age_after_snapshot_capture(self):
         snapshot = directional_snapshot("SHORT")
