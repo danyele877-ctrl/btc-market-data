@@ -6,6 +6,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from zec_early_signal import evaluate_signal
+from zec_shadow_signal import evaluate_shadow_signal
 from zec_predictive_engine import evaluate_predictive_engine
 from zec_context_archive import update_context_archive
 from zec_contract_config import build_contract_safety
@@ -518,6 +519,9 @@ def main():
         },
     }
     output["zec_early_signal"] = evaluate_signal(output, now=now)
+    output["zec_shadow_signal"] = evaluate_shadow_signal(
+        output, baseline=output["zec_early_signal"], now=now
+    )
     # Mirror the independent regional contract comparison into the signal payload;
     # it remains diagnostic and cannot alter any execution/sizing safety flag.
     output["zec_early_signal"]["contract_safety"].update({
@@ -551,6 +555,9 @@ def main():
         "zec_early_signal_status": output["zec_early_signal"]["status"],
         "zec_early_signal_decision": output["zec_early_signal"]["decision"],
         "zec_early_signal_blockers": output["zec_early_signal"]["data_quality"]["blockers"],
+        "zec_shadow_signal_status": output["zec_shadow_signal"]["status"],
+        "zec_shadow_signal_decision": output["zec_shadow_signal"]["decision"],
+        "zec_shadow_candidate_direction": output["zec_shadow_signal"]["candidate_direction"],
         "zec_predictive_engine_archive": output["zec_predictive_engine"]["archive"],
         "zec_predictive_engine_scalping_status": output["zec_predictive_engine"]["scalping"]["status"],
         "zec_predictive_engine_reversals_status": output["zec_predictive_engine"]["reversals"]["status"],
