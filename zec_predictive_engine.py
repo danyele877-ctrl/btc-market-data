@@ -513,7 +513,18 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
         for event in pool:
             stamp = _num(event.get("timestamp_ms"))
             label = event.get("label") or {}
-            if stamp is None or stamp + horizon * 60_000 > as_of_ms:
+            if stamp is None:
+                immature_excluded += 1
+                continue
+            # OHLC families store candle-open timestamps; queue samples store
+            # their aligned observation timestamp (already the label origin).
+            if family in ("scalp_5m", "scalp_micro_5m"):
+                origin_ms = stamp + 5 * 60_000
+            elif family in ("swing_1H", "swing_micro_1H"):
+                origin_ms = stamp + 60 * 60_000
+            else:
+                origin_ms = stamp
+            if origin_ms + horizon * 60_000 > as_of_ms:
                 immature_excluded += 1
                 continue
             if label.get("filled_proxy") is True:
@@ -532,10 +543,16 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
         next_allowed_start = float("inf")
         for event in sorted(mature_pool, key=lambda item: _num(item.get("timestamp_ms")) or 0, reverse=True):
             stamp = int(_num(event.get("timestamp_ms")) or 0)
-            end = stamp + horizon * 60_000
+            if family in ("scalp_5m", "scalp_micro_5m"):
+                origin_ms = stamp + 5 * 60_000
+            elif family in ("swing_1H", "swing_micro_1H"):
+                origin_ms = stamp + 60 * 60_000
+            else:
+                origin_ms = stamp
+            end = origin_ms + horizon * 60_000
             if end <= next_allowed_start:
                 selected.append(event)
-                next_allowed_start = stamp
+                next_allowed_start = origin_ms
             else:
                 overlap_excluded += 1
         pool = list(reversed(selected))
