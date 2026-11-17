@@ -140,7 +140,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(result["contract_safety"]["ctMult_api"], 1)
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
         self.assertFalse(result["contract_safety"]["theoretical_sizing_permitted"])
-        self.assertEqual(result["contract_safety"]["max_risk_usdc"], 20)
+        self.assertEqual(result["contract_safety"]["max_risk_usdc"], 15)
         self.assertFalse(result["contract_safety"]["position_sizing_enabled"])
         self.assertFalse(result["execution"]["orders_enabled"])
         self.assertEqual(result["exploratory_direction"], "LONG")
@@ -154,7 +154,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         result = evaluate_signal(snapshot, now=NOW)
         self.assertEqual(result["contract_safety"]["ctVal_status"], "METADATI_API_DISCORDANTI")
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
-        self.assertEqual(result["contract_safety"]["max_risk_usdc"], 20)
+        self.assertEqual(result["contract_safety"]["max_risk_usdc"], 15)
 
     def test_funding_interval_mismatch_is_reported_without_affecting_safety(self):
         snapshot = valid_snapshot()
