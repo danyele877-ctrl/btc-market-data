@@ -210,23 +210,33 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
             "outcomes": {"baseline": {}, "shadow": {}},
         }
         predictions.append(existing)
-    for engine in ("baseline", "shadow"):
-        side = (existing.get(engine) or {}).get("direction")
-        if side not in ("LONG", "SHORT"):
+    bars_by_close = {bar["_close_ms"]: index for index, bar in enumerate(bars)}
+    for prediction in predictions:
+        prediction_close = _num(prediction.get("entry_close_ms"))
+        prediction_entry = _num(prediction.get("entry_reference"))
+        if prediction_close is None or prediction_entry is None:
             continue
-        for horizon in HORIZONS:
-            key = str(horizon)
-            if (existing.get("outcomes") or {}).get(engine, {}).get(key, {}).get("status") == "MATURO":
+        prediction_index = bars_by_close.get(int(prediction_close))
+        if prediction_index is None:
+            continue
+        prediction_atr = _atr(bars, prediction_index)
+        for engine in ("baseline", "shadow"):
+            side = (prediction.get(engine) or {}).get("direction")
+            if side not in ("LONG", "SHORT"):
                 continue
-            deadline = entry_bar["_close_ms"] + horizon * 60000
-            future = [bar for bar in bars if entry_bar["_close_ms"] < bar["_close_ms"] <= deadline]
-            if len(future) < horizon or not future or future[-1]["_close_ms"] < deadline:
-                continue
-            if future[0]["_close_ms"] != entry_bar["_close_ms"] + 60000 or future[-1]["_close_ms"] != deadline:
-                continue
-            outcome = _mature_side(entry, atr, side, future, horizon)
-            if outcome.get("status") == "MATURO":
-                existing["outcomes"][engine][key] = outcome
+            for horizon in HORIZONS:
+                key = str(horizon)
+                if (prediction.get("outcomes") or {}).get(engine, {}).get(key, {}).get("status") == "MATURO":
+                    continue
+                deadline = int(prediction_close) + horizon * 60000
+                future = [bar for bar in bars if int(prediction_close) < bar["_close_ms"] <= deadline]
+                if len(future) != horizon or not future:
+                    continue
+                if future[0]["_close_ms"] != int(prediction_close) + 60000 or future[-1]["_close_ms"] != deadline:
+                    continue
+                outcome = _mature_side(prediction_entry, prediction_atr, side, future, horizon)
+                if outcome.get("status") == "MATURO":
+                    prediction["outcomes"][engine][key] = outcome
     archive["predictions"] = predictions[-MAX_PREDICTIONS:]
     archive["updated_at"] = captured.isoformat().replace("+00:00", "Z")
     _write(archive_path, archive)
