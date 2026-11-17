@@ -16,6 +16,8 @@ from typing import Any
 
 from zec_predictive_engine import FEATURES, _analogs
 
+LEGACY_FEATURES = tuple(name for name in FEATURES if name != 'btc_trend_20')
+
 DEFAULT_ARCHIVE = Path("data/zec_predictive_archive.json")
 FAMILIES = ("scalp_5m",)
 HORIZONS = (5, 15, 30, 40)
@@ -96,6 +98,15 @@ def _evaluate_group(events: list[dict[str, Any]], family: str, side: str,
             event["features"], feature_names=FEATURES, as_of_ms=origin_ms,
         )
         probability = _number(estimate.get("p_tp_before_sl_given_touch"))
+        feature_mode = "FULL_BTC_CONTEXT"
+        if probability is None and all(_number(event["features"].get(key)) is not None for key in LEGACY_FEATURES):
+            legacy = _analogs(
+                {"events": events}, family, side, horizon,
+                event["features"], feature_names=LEGACY_FEATURES, as_of_ms=origin_ms,
+            )
+            probability = _number(legacy.get("p_tp_before_sl_given_touch"))
+            if probability is not None:
+                feature_mode = "LEGACY_NO_BTC_CONTEXT"
         if probability is None:
             continue
         scored.append({
@@ -103,6 +114,7 @@ def _evaluate_group(events: list[dict[str, Any]], family: str, side: str,
             "outcome": 1 if event["label"]["tp_before_sl"] else 0,
             "btc_regime": _stratum(event["features"].get("btc_trend_20"), "BTC"),
             "zec_trend": _stratum(event["features"].get("trend"), "ZEC"),
+            "feature_mode": feature_mode,
         })
     return scored, eligible_test
 
@@ -162,6 +174,10 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
             **_metrics(rows),
             "eligible_test_outcomes": overall_eligible[key],
             "coverage": round(len(rows) / overall_eligible[key], 4) if overall_eligible[key] else None,
+            "feature_modes": {
+                mode: sum(1 for row in rows if row.get("feature_mode") == mode)
+                for mode in ("FULL_BTC_CONTEXT", "LEGACY_NO_BTC_CONTEXT")
+            },
             "by_btc_regime": {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith("BTC_")},
             "by_zec_trend": {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith("ZEC_")},
         }
@@ -173,7 +189,7 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
         "instrument": archive.get("instrument"),
         "archive_updated_at": archive.get("updated_at"),
         "archive_events_total": len(events),
-        "method": "expanding chronological walk-forward; forecast at each event uses only earlier labels fully matured before forecast origin",
+        "method": "expanding chronological walk-forward; uses only earlier matured labels; prefers full BTC-context features and falls back to the legacy nine-feature schema when needed",
         "warmup_fraction": warmup_fraction,
         "folds": fold_reports,
         "results": by_group,
@@ -183,6 +199,7 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
             "breakout-versus-reversal stratification is omitted because the predictive event archive does not persist a consistent setup label",
             "the score is conditional on filled_proxy and uses a candle-touch proxy, not confirmed exchange fills",
             "Brier scores on a small, regime-limited archive are descriptive and do not establish calibrated probabilities or predictive edge",
+            "legacy fallback scores pre-BTC-context rows using nine features and labels them separately; those rows are not BTC-context-conditioned",
             "zero scored forecasts means validation cannot assess predictive accuracy; do not treat a successful CI run as model validation",
             "fees, slippage, latency, funding, and execution are not modeled",
         ],
