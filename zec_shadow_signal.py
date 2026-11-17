@@ -34,8 +34,9 @@ def _shadow_series(snapshot: dict[str, Any], instrument: str, bar: str,
         age = (reference - completed).total_seconds()
     except (TypeError, ValueError, OverflowError):
         return [], f"candele {instrument} {bar}: timestamp SHADOW non valido"
-    if age < -1 or age > 180:
-        return [], f"candele {instrument} {bar}: barra chiusa SHADOW stantia o fuori tempo ({age:.1f}s; limite 180s)"
+    max_age = 180 if bar == "1m" else 360
+    if age < -1 or age > max_age:
+        return [], f"candele {instrument} {bar}: barra chiusa SHADOW stantia o fuori tempo ({age:.1f}s; limite {max_age}s)"
     return rows, None
 
 
@@ -87,7 +88,8 @@ def _structure(snapshot: dict[str, Any], x5m: list[dict[str, Any]],
 
 
 def _higher_timeframe_regime(snapshot: dict[str, Any], timeframe: str,
-                             seconds: int, minimum_bars: int = 200) -> dict[str, Any]:
+                             seconds: int, minimum_bars: int = 200,
+                             history_key: str | None = None) -> dict[str, Any]:
     """Classify only a fully continuous, closed X-Perp history; otherwise N/D."""
     from datetime import timezone
 
@@ -99,7 +101,7 @@ def _higher_timeframe_regime(snapshot: dict[str, Any], timeframe: str,
     except (TypeError, ValueError):
         return {"status": "N/D", "reason": "source_captured_at non valido"}
     history = snapshot.get("predictive_history") or {}
-    raw = history.get(f"xperp_{timeframe}")
+    raw = history.get(history_key or f"xperp_{timeframe}")
     if not isinstance(raw, list):
         return {"status": "N/D", "reason": "serie storica non pubblicata"}
     rows = []
@@ -218,30 +220,79 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
         components["order_flow_cluster"] = (flow_score, 0.25)
     weight_sum = sum(weight for _, weight in components.values())
     score = sum(value * weight for value, weight in components.values()) / weight_sum if weight_sum else 0.0
-    if score > 0:
-        candidate, basis = "LONG", "segno del punteggio shadow"
-    elif score < 0:
-        candidate, basis = "SHORT", "segno del punteggio shadow"
-    elif d5 or d1:
-        candidate, basis = ("LONG" if (d5 or d1) > 0 else "SHORT"), "momentum 5m/1m di spareggio"
+    if score >= 0.10:
+        candidate, basis = "LONG", "punteggio shadow positivo oltre la soglia neutrale"
+    elif score <= -0.10:
+        candidate, basis = "SHORT", "punteggio shadow negativo oltre la soglia neutrale"
     else:
-        candidate, basis = "LONG", "fallback LONG neutro: nessuna evidenza direzionale"
+        candidate, basis = None, "nessuna direzione: evidenze insufficienti o in conflitto"
 
-    structure = _structure(snapshot, x5m, relative, flow_score)
     regime_1h = _higher_timeframe_regime(snapshot, "1H", 3600)
     regime_4h = _higher_timeframe_regime(snapshot, "4H", 14400)
     higher_timeframe_regime = _combined_regime(regime_1h, regime_4h)
+    btc_1h = _higher_timeframe_regime(snapshot, "1H", 3600, history_key="btc_1H")
+    btc_filter = {
+        "status": "N/D",
+        "regime_1H": btc_1h.get("regime"),
+        "reason": btc_1h.get("reason", "storico BTC 1H non disponibile o non verificabile"),
+        "relative_strength_5m": relative,
+        "veto": None,
+    }
+    if btc_1h.get("status") == "OK":
+        if btc_1h.get("regime") == "TREND RIBASSISTA":
+            btc_filter["status"] = "FILTRO BTC RIBASSISTA"
+        elif btc_1h.get("regime") == "TREND RIALZISTA":
+            btc_filter["status"] = "FILTRO BTC RIALZISTA"
+        else:
+            btc_filter["status"] = "FILTRO BTC NEUTRO / TRANSIZIONE"
+
+    structure = _structure(snapshot, x5m, relative, flow_score)
+    if structure.get("breakout_confirmed"):
+        structure["setup_type"] = "BREAKOUT_LONG"
+    elif structure.get("breakdown_confirmed"):
+        structure["setup_type"] = "BREAKDOWN_SHORT"
+    elif (candidate == "LONG" and regime_1h.get("regime") == "TREND RIALZISTA"
+          and structure.get("near_support") and d1 >= 0
+          and ((relative is not None and relative > 0) or (flow_score is not None and flow_score > 0.20))):
+        structure["setup_type"] = "PULLBACK_LONG"
+    elif (candidate == "SHORT" and regime_1h.get("regime") == "TREND RIBASSISTA"
+          and structure.get("near_resistance") and d1 <= 0
+          and ((relative is not None and relative < 0) or (flow_score is not None and flow_score < -0.20))):
+        structure["setup_type"] = "PULLBACK_SHORT"
+    elif (candidate == "LONG" and structure.get("near_support") and d1 > 0
+          and flow_score is not None and flow_score > 0.20
+          and (relative is None or relative >= 0)):
+        structure["setup_type"] = "REVERSAL_LONG"
+    elif (candidate == "SHORT" and structure.get("near_resistance") and d1 < 0
+          and flow_score is not None and flow_score < -0.20
+          and (relative is None or relative <= 0)):
+        structure["setup_type"] = "REVERSAL_SHORT"
+    else:
+        structure["setup_type"] = "RANGE / NO SETUP"
+
     veto = None
     if candidate == "SHORT" and structure.get("near_support") and not structure.get("breakdown_confirmed"):
         veto = "VETO SHORT: vicino/sotto supporto senza breakdown 5m confermato; attendere chiusura e retest/conferma equivalente"
     elif candidate == "LONG" and structure.get("near_resistance") and not structure.get("breakout_confirmed"):
         veto = "VETO LONG: vicino/sopra resistenza senza breakout/recovery 5m confermato"
+    # BTC 1H is a regime filter, not a standalone direction signal. Countertrend
+    # ZEC setups need clear relative outperformance/underperformance or a confirmed break.
+    if (candidate == "LONG" and btc_1h.get("regime") == "TREND RIBASSISTA"
+            and not structure.get("breakout_confirmed")
+            and (relative is None or relative < 0.0010)):
+        veto = "VETO BTC: regime BTC 1H ribassista; LONG ZEC senza sovraperformance relativa sufficiente o breakout confermato"
+        btc_filter["veto"] = veto
+    elif (candidate == "SHORT" and btc_1h.get("regime") == "TREND RIALZISTA"
+            and not structure.get("breakdown_confirmed")
+            and (relative is None or relative > -0.0010)):
+        veto = "VETO BTC: regime BTC 1H rialzista; SHORT ZEC senza sottoperformance relativa sufficiente o breakdown confermato"
+        btc_filter["veto"] = veto
     structure["veto"] = veto
 
-    aligned = bool(d1 and d5 and d1 == d5 == (1 if candidate == "LONG" else -1))
+    aligned = bool(candidate is not None and d1 and d5 and d1 == d5 == (1 if candidate == "LONG" else -1))
     data_ready = not blockers and ws_ready and x1m and x5m and btc5m and zec5m
-    confirmed = bool(data_ready and not veto and abs(score) >= 0.72 and aligned)
-    if not data_ready or veto:
+    confirmed = bool(data_ready and candidate is not None and not veto and abs(score) >= 0.72 and aligned)
+    if not data_ready or candidate is None or veto:
         status = "ATTENDERE"
     elif confirmed:
         status = "TRIGGER CONFERMATO"
@@ -269,6 +320,7 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
         },
         "relative_strength_5m": relative,
         "flow_cluster": flow_score,
+        "btc_filter": btc_filter,
         "structure": structure,
         "higher_timeframe_regime": {
             "1H": regime_1h, "4H": regime_4h, "combined": higher_timeframe_regime,
