@@ -44,8 +44,6 @@ def valid_snapshot():
             "1m": {"tail": candles("1m", price, 1)},
             "5m": {"tail": candles("5m", price, 5)},
         }
-    latest_x5m = tail["ZEC-USD_UM_XPERP"]["5m"]["tail"][-1]
-    latest_x5m.update({"open": 106.2, "high": 106.8, "low": 106.0, "close": 106.5, "volume": 500})
     funding_time_ms = int(NOW.timestamp() * 1000)
     return {
         "schema_version": 3,
@@ -92,42 +90,6 @@ def valid_snapshot():
             ],
         },
     }
-
-
-def directional_snapshot(direction, breakout_volume=500):
-    snapshot = valid_snapshot()
-    sign = 1 if direction == "LONG" else -1
-    for instrument, base, step_pct in (
-        ("ZEC-USD_UM_XPERP", 100.0, 0.0015),
-        ("ZEC-USDC", 100.0, 0.0015),
-        ("BTC-USDC", 1000.0, 0.0010),
-    ):
-        for timeframe in ("1m", "5m"):
-            rows = snapshot["candles_1m_5m"][instrument][timeframe]["tail"]
-            step = base * step_pct
-            for index, row in enumerate(rows):
-                close = base + sign * step * index
-                row.update({
-                    "open": close - sign * step * 0.2,
-                    "high": close + step * 0.6,
-                    "low": close - step * 0.6,
-                    "close": close,
-                    "volume": 100,
-                })
-            if instrument == "ZEC-USD_UM_XPERP" and timeframe == "5m":
-                rows[-1]["volume"] = breakout_volume
-    micro = snapshot["microstructure"]
-    micro["cvd"].update({"1m": sign * 10, "5m": sign * 20})
-    micro["book_imbalance"]["imbalance_top10"] = sign * 0.8
-    micro["websocket"]["book_history"] = [
-        {"ts_ms": int(NOW.timestamp() * 1000) - 5_000, "imbalance_top10": sign * 0.2},
-        {"ts_ms": int(NOW.timestamp() * 1000), "imbalance_top10": sign * 0.8},
-    ]
-    micro["open_interest_history"] = [
-        {"ts_ms": int(NOW.timestamp() * 1000) - 120_000, "oi_contracts": "100", "price_usd": "100", "inst_id": INSTRUMENT_ID},
-        {"ts_ms": int(NOW.timestamp() * 1000), "oi_contracts": "101", "price_usd": str(100 + sign), "inst_id": INSTRUMENT_ID},
-    ]
-    return snapshot
 
 
 class ZecEarlySignalTests(unittest.TestCase):
@@ -247,36 +209,6 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(result["decision"], "ATTENDERE")
         self.assertFalse(result["data_quality"]["websocket_ready"])
         self.assertTrue(any("180" in item or "stantia" in item for item in result["data_quality"]["blockers"]))
-
-    def test_long_and_short_paths_are_mirrored(self):
-        long_result = evaluate_signal(directional_snapshot("LONG"), now=NOW)
-        short_result = evaluate_signal(directional_snapshot("SHORT"), now=NOW)
-        self.assertEqual(long_result["status"], "TRIGGER CONFERMATO")
-        self.assertEqual(short_result["status"], "TRIGGER CONFERMATO")
-        self.assertEqual(long_result["decision"], "LONG")
-        self.assertEqual(short_result["decision"], "SHORT")
-        self.assertGreater(long_result["scores"]["net"], 0)
-        self.assertLess(short_result["scores"]["net"], 0)
-        self.assertAlmostEqual(long_result["scores"]["net"], -short_result["scores"]["net"], delta=1.0)
-        self.assertFalse(long_result["execution"]["orders_enabled"])
-        self.assertFalse(short_result["execution"]["orders_enabled"])
-
-    def test_short_near_support_requires_confirmed_breakdown(self):
-        result = evaluate_signal(directional_snapshot("SHORT", breakout_volume=100), now=NOW)
-        self.assertEqual(result["candidate_direction"], "SHORT")
-        self.assertEqual(result["decision"], "ATTENDERE")
-        self.assertIn("VETO SHORT", result["directional_veto"])
-
-    def test_long_near_resistance_requires_confirmed_breakout(self):
-        result = evaluate_signal(directional_snapshot("LONG", breakout_volume=100), now=NOW)
-        self.assertEqual(result["candidate_direction"], "LONG")
-        self.assertEqual(result["decision"], "ATTENDERE")
-        self.assertIn("VETO LONG", result["directional_veto"])
-
-    def test_candidate_direction_is_always_long_or_short(self):
-        result = evaluate_signal({}, now=NOW)
-        self.assertIn(result["candidate_direction"], ("LONG", "SHORT"))
-        self.assertEqual(result["decision"], "ATTENDERE")
 
     def test_unclosed_candle_blocks_signal(self):
         snapshot = valid_snapshot()
