@@ -220,10 +220,12 @@ def analyze(archive: dict[str, Any], folds: int = 4, warmup_fraction: float = 0.
             'coverage': round(len(rows) / overall_eligible[key], 4) if overall_eligible[key] else None,
             'non_overlapping_coverage': round(len(non_overlap) / overall_eligible[key], 4) if overall_eligible[key] else None,
             'feature_modes_all': {mode: sum(1 for row in rows if row.get('feature_mode') == mode) for mode in ('FULL_BTC_CONTEXT', 'LEGACY_NO_BTC_CONTEXT')},
+            'feature_modes': {mode: sum(1 for row in rows if row.get('feature_mode') == mode) for mode in ('FULL_BTC_CONTEXT', 'LEGACY_NO_BTC_CONTEXT')},
             'non_overlapping_by_feature_mode': {name: _metrics(items) for name, items in sorted(feature_groups.items())},
             'non_overlapping_by_btc_context': {name: _metrics(items) for name, items in sorted(btc_groups.items())},
             'non_overlapping_by_setup_proxy': {name: _metrics(items) for name, items in sorted(setup_groups.items())},
             'by_btc_regime_all_observations': {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith('BTC_')},
+            'by_btc_regime': {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith('BTC_')},
             'by_zec_trend_all_observations': {name: _metrics(items) for name, items in sorted(strata[key].items()) if name.startswith('ZEC_')},
         }
 
