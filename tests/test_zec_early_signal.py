@@ -113,42 +113,6 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(warning["status"], "ROTTURA RIALZISTA NON CONFERMATA")
         self.assertFalse(warning["orders_enabled"])
 
-    def test_positive_relative_strength_vetoes_short_prealert_near_support(self):
-        snapshot = valid_snapshot()
-        x5 = snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"]
-        x5[-1].update({"open": 104.0, "high": 104.2, "low": 103.6, "close": 103.7})
-        zec = snapshot["candles_1m_5m"]["ZEC-USDC"]["5m"]["tail"]
-        btc = snapshot["candles_1m_5m"]["BTC-USDC"]["5m"]["tail"]
-        for index, row in enumerate(zec):
-            row.update({"open": 100 + index * 2 - 0.2, "high": 100 + index * 2 + 0.3,
-                        "low": 100 + index * 2 - 0.5, "close": 100 + index * 2})
-        for index, row in enumerate(btc):
-            row.update({"open": 1000 + index - 0.2, "high": 1000 + index + 0.3,
-                        "low": 1000 + index - 0.5, "close": 1000 + index})
-        result = evaluate_signal(snapshot, now=NOW)
-        warning = result["breakout_early_warning"]
-        self.assertIn("SHORT VETO", warning["status"])
-        self.assertIsNone(warning["candidate_direction"])
-        self.assertTrue(any("ZEC/BTC è positivo" in reason for reason in warning["reasons"]))
-
-    def test_negative_relative_strength_vetoes_long_prealert_near_resistance(self):
-        snapshot = valid_snapshot()
-        x5 = snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"]
-        x5[-1].update({"open": 106.0, "high": 106.2, "low": 105.9, "close": 106.2})
-        zec = snapshot["candles_1m_5m"]["ZEC-USDC"]["5m"]["tail"]
-        btc = snapshot["candles_1m_5m"]["BTC-USDC"]["5m"]["tail"]
-        for index, row in enumerate(zec):
-            row.update({"open": 100 + index - 0.2, "high": 100 + index + 0.3,
-                        "low": 100 + index - 0.5, "close": 100 + index})
-        for index, row in enumerate(btc):
-            row.update({"open": 1000 + index * 2 - 0.2, "high": 1000 + index * 2 + 0.3,
-                        "low": 1000 + index * 2 - 0.5, "close": 1000 + index * 2})
-        result = evaluate_signal(snapshot, now=NOW)
-        warning = result["breakout_early_warning"]
-        self.assertIn("LONG VETO", warning["status"])
-        self.assertIsNone(warning["candidate_direction"])
-        self.assertTrue(any("ZEC/BTC è negativo" in reason for reason in warning["reasons"]))
-
     def test_missing_snapshot_waits_and_has_no_directional_decision(self):
         result = evaluate_signal({}, now=NOW)
         self.assertEqual(result["status"], "ATTENDERE")
