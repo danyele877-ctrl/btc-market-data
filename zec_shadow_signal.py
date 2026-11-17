@@ -64,6 +64,92 @@ def _structure(snapshot: dict[str, Any], x5m: list[dict[str, Any]],
     }
 
 
+def _higher_timeframe_regime(snapshot: dict[str, Any], timeframe: str,
+                             seconds: int, minimum_bars: int = 200) -> dict[str, Any]:
+    """Classify only a fully continuous, closed X-Perp history; otherwise N/D."""
+    from datetime import timezone
+
+    captured_raw = snapshot.get("source_captured_at")
+    try:
+        captured = datetime.fromisoformat(str(captured_raw).replace("Z", "+00:00"))
+        captured = captured.replace(tzinfo=timezone.utc) if captured.tzinfo is None else captured
+        captured = captured.astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        return {"status": "N/D", "reason": "source_captured_at non valido"}
+    history = snapshot.get("predictive_history") or {}
+    raw = history.get(f"xperp_{timeframe}")
+    if not isinstance(raw, list):
+        return {"status": "N/D", "reason": "serie storica non pubblicata"}
+    rows = []
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        try:
+            ts = int(row["ts_ms"])
+            completed = datetime.fromisoformat(str(row["completed_at"]).replace("Z", "+00:00"))
+            completed = completed.replace(tzinfo=timezone.utc) if completed.tzinfo is None else completed
+            completed = completed.astimezone(timezone.utc)
+            close = float(row["close"])
+            if not (close > 0 and completed.timestamp() * 1000 == ts + seconds * 1000
+                    and completed <= captured and ts % (seconds * 1000) == 0):
+                continue
+            rows.append((ts, completed, close))
+        except (KeyError, TypeError, ValueError, OverflowError):
+            continue
+    rows.sort(key=lambda item: item[0])
+    if len(rows) < minimum_bars:
+        return {"status": "N/D", "bars": len(rows), "reason": f"servono {minimum_bars} barre chiuse"}
+    rows = rows[-minimum_bars:]
+    if any(b[0] - a[0] != seconds * 1000 for a, b in zip(rows, rows[1:])):
+        return {"status": "N/D", "bars": len(rows), "reason": "gap o duplicati nella serie"}
+    age = (captured - rows[-1][1]).total_seconds()
+    if age < 0 or age > 2 * seconds:
+        return {"status": "N/D", "bars": len(rows), "age_seconds": round(age, 1),
+                "reason": "ultima barra chiusa stale"}
+    closes = [item[2] for item in rows]
+
+    def ema(values: list[float], period: int) -> list[float]:
+        alpha = 2.0 / (period + 1)
+        result = [values[0]]
+        for value in values[1:]:
+            result.append(alpha * value + (1.0 - alpha) * result[-1])
+        return result
+
+    e20, e50, e200 = ema(closes, 20), ema(closes, 50), ema(closes, 200)
+    last = closes[-1]
+    if last > e20[-1] > e50[-1] > e200[-1] and e20[-1] > e20[-6]:
+        regime = "TREND RIALZISTA"
+    elif last < e20[-1] < e50[-1] < e200[-1] and e20[-1] < e20[-6]:
+        regime = "TREND RIBASSISTA"
+    elif abs(e20[-1] / e50[-1] - 1.0) <= 0.001:
+        regime = "LATERALE / COMPRESSIONE"
+    elif (last > e20[-1] and e50[-1] < e200[-1]) or (last < e20[-1] and e50[-1] > e200[-1]):
+        regime = "POSSIBILE INVERSIONE"
+    else:
+        regime = "LATERALE / MISTO"
+    return {
+        "status": "OK", "regime": regime, "bars": len(rows),
+        "last_closed_at": rows[-1][1].isoformat().replace("+00:00", "Z"),
+        "age_seconds": round(age, 1), "close": round(last, 8),
+        "ema20": round(e20[-1], 8), "ema50": round(e50[-1], 8),
+        "ema200": round(e200[-1], 8),
+    }
+
+
+def _combined_regime(one_hour: dict[str, Any], four_hour: dict[str, Any]) -> dict[str, Any]:
+    a, b = one_hour.get("regime"), four_hour.get("regime")
+    if not a or not b:
+        return {"status": "N/D", "regime": "REGIME TIMEFRAME SUPERIORE N/D",
+                "reason": "servono 200 barre continue e fresche sia 1H sia 4H"}
+    if a == b:
+        return {"status": "OK", "regime": a, "alignment": "1H/4H concordi"}
+    if a.startswith("TREND") and b.startswith("TREND"):
+        return {"status": "MISTO", "regime": "CONFLITTO 1H/4H",
+                "reason": "timeframe superiori discordanti"}
+    return {"status": "MISTO", "regime": "TRANSIZIONE / LATERALE",
+            "reason": "classificazioni 1H/4H non concordi"}
+
+
 def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | None = None,
                            now: datetime | None = None) -> dict[str, Any]:
     """Compute a separate directional diagnostic; baseline remains read-only."""
@@ -120,6 +206,9 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
         candidate, basis = "LONG", "fallback LONG neutro: nessuna evidenza direzionale"
 
     structure = _structure(snapshot, x5m, relative, flow_score)
+    regime_1h = _higher_timeframe_regime(snapshot, "1H", 3600)
+    regime_4h = _higher_timeframe_regime(snapshot, "4H", 14400)
+    higher_timeframe_regime = _combined_regime(regime_1h, regime_4h)
     veto = None
     if candidate == "SHORT" and structure.get("near_support") and not structure.get("breakdown_confirmed"):
         veto = "VETO SHORT: vicino/sotto supporto senza breakdown 5m confermato; attendere chiusura e retest/conferma equivalente"
@@ -159,6 +248,9 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
         "relative_strength_5m": relative,
         "flow_cluster": flow_score,
         "structure": structure,
+        "higher_timeframe_regime": {
+            "1H": regime_1h, "4H": regime_4h, "combined": higher_timeframe_regime,
+        },
         "data_quality": {"ready": bool(data_ready), "websocket_ready": ws_ready, "blockers": blockers},
         "baseline_comparison": {
             "status": baseline.get("status"),
