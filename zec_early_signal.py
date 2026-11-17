@@ -443,6 +443,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     # Snapshot age must be added to component ages: those ages were measured at capture time.
     ws_ready = (
         source_age is not None and 0 <= source_age <= 180
+        and bool(x1m and x5m and btc5m and zec5m)
         and websocket.get("connected") is True
         and websocket.get("book_valid") is True
         and message_age is not None and source_age + message_age <= 120
