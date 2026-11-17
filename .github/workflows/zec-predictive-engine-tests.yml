@@ -5,7 +5,6 @@ on:
     paths:
       - "zec_predictive_engine.py"
       - "zec_early_signal.py"
-      - "zec_early_signal.py"
       - "zec_context_archive.py"
       - "zec_queue_model.py"
       - "candle_service.py"
@@ -17,6 +16,7 @@ on:
   pull_request:
     paths:
       - "zec_predictive_engine.py"
+      - "zec_early_signal.py"
       - "build_radar_snapshot.py"
       - "tests/**"
       - ".github/workflows/zec-predictive-engine-tests.yml"
