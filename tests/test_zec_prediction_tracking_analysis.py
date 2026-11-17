@@ -21,6 +21,8 @@ def prediction(ts, baseline_side, baseline_decision, shadow_side, shadow_decisio
         "shadow": {
             "direction": shadow_side, "decision": shadow_decision,
             "regime": {"status": regime},
+            "setup_type": "BREAKOUT_LONG" if ts == 0 else "PULLBACK_SHORT",
+            "btc_filter": {"status": "FILTRO BTC RIBASSISTA" if ts == 0 else "FILTRO BTC RIALZISTA"},
         },
         "outcomes": outcomes,
     }
@@ -46,6 +48,9 @@ class PredictionTrackingAnalysisTests(unittest.TestCase):
         self.assertEqual(baseline["by_direction"]["SHORT"]["5"]["all_observations"]["matured"], 1)
         self.assertEqual(baseline["by_direction"]["SHORT"]["5"]["non_overlapping"]["matured"], 0)
         self.assertEqual(baseline["confirmed_triggers_by_direction"]["SHORT"]["5"]["all_observations"]["matured"], 1)
+        shadow = report["engines"]["shadow"]
+        self.assertEqual(shadow["shadow_setup_breakdown"]["BREAKOUT_LONG"]["5"]["all_observations"]["matured"], 1)
+        self.assertEqual(shadow["shadow_btc_regime_breakdown"]["FILTRO BTC RIBASSISTA"]["5"]["all_observations"]["matured"], 1)
 
     def test_rejects_wrong_archive_instrument(self):
         with self.assertRaises(ValueError):
