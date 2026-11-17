@@ -93,16 +93,40 @@ def _non_overlapping(rows: list[dict[str, Any]], horizon: int) -> list[dict[str,
 
 def _metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
-        return {"scored": 0, "brier_score": None, "mean_probability": None,
-                "observed_rate": None, "directional_accuracy_at_50": None}
+        return {
+            "scored": 0, "brier_score": None, "baseline_brier_score": None,
+            "brier_skill_score": None, "mean_probability": None, "observed_rate": None,
+            "directional_accuracy_at_50": None, "balanced_accuracy_at_50": None,
+            "precision_at_50": None, "sensitivity_at_50": None, "specificity_at_50": None,
+            "predicted_positive_at_50": 0,
+        }
     probabilities = [row["probability"] for row in rows]
-    outcomes = [row["outcome"] for row in rows]
+    outcomes = [int(row["outcome"]) for row in rows]
+    count = len(rows)
+    observed = sum(outcomes) / count
+    brier = sum((p - y) ** 2 for p, y in zip(probabilities, outcomes)) / count
+    baseline_brier = sum((observed - y) ** 2 for y in outcomes) / count
+    tp = sum(p >= 0.5 and y == 1 for p, y in zip(probabilities, outcomes))
+    fp = sum(p >= 0.5 and y == 0 for p, y in zip(probabilities, outcomes))
+    fn = sum(p < 0.5 and y == 1 for p, y in zip(probabilities, outcomes))
+    tn = sum(p < 0.5 and y == 0 for p, y in zip(probabilities, outcomes))
+    sensitivity = tp / (tp + fn) if tp + fn else None
+    specificity = tn / (tn + fp) if tn + fp else None
+    precision = tp / (tp + fp) if tp + fp else None
+    balanced = (sensitivity + specificity) / 2 if sensitivity is not None and specificity is not None else None
     return {
-        "scored": len(rows),
-        "brier_score": round(sum((p - y) ** 2 for p, y in zip(probabilities, outcomes)) / len(rows), 6),
-        "mean_probability": round(sum(probabilities) / len(probabilities), 4),
-        "observed_rate": round(sum(outcomes) / len(outcomes), 4),
-        "directional_accuracy_at_50": round(sum((p >= 0.5) == bool(y) for p, y in zip(probabilities, outcomes)) / len(rows), 4),
+        "scored": count,
+        "brier_score": round(brier, 6),
+        "baseline_brier_score": round(baseline_brier, 6),
+        "brier_skill_score": round(1 - brier / baseline_brier, 4) if baseline_brier > 0 else None,
+        "mean_probability": round(sum(probabilities) / count, 4),
+        "observed_rate": round(observed, 4),
+        "directional_accuracy_at_50": round((tp + tn) / count, 4),
+        "balanced_accuracy_at_50": round(balanced, 4) if balanced is not None else None,
+        "precision_at_50": round(precision, 4) if precision is not None else None,
+        "sensitivity_at_50": round(sensitivity, 4) if sensitivity is not None else None,
+        "specificity_at_50": round(specificity, 4) if specificity is not None else None,
+        "predicted_positive_at_50": tp + fp,
     }
 
 
