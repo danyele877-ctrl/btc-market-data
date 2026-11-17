@@ -166,6 +166,32 @@ def analyze_archive(archive: dict[str, Any]) -> dict[str, Any]:
                     str(h): _stats(_non_overlapping(rows, h), engine, h)
                     for h in HORIZONS
                 }
+
+            # Break down outcomes by the setup family and BTC regime captured
+            # at forecast time. Missing fields in older archives remain N/D.
+            for field, output_key in (
+                ("setup_type", "shadow_setup_breakdown"),
+                ("btc_filter", "shadow_btc_regime_breakdown"),
+            ):
+                grouped: dict[str, list[dict[str, Any]]] = {}
+                for row in engine_rows:
+                    shadow_row = row.get("shadow") or {}
+                    if field == "setup_type":
+                        label = shadow_row.get("setup_type") or "N/D"
+                    else:
+                        btc = shadow_row.get("btc_filter") or {}
+                        label = btc.get("status") or "N/D"
+                    grouped.setdefault(str(label), []).append(row)
+
+                engine_result[output_key] = {}
+                for label, group_rows in sorted(grouped.items()):
+                    engine_result[output_key][label] = {
+                        str(h): {
+                            "all_observations": _stats(group_rows, engine, h),
+                            "non_overlapping": _stats(_non_overlapping(group_rows, h), engine, h),
+                        }
+                        for h in HORIZONS
+                    }
         result["engines"][engine] = engine_result
     return result
 

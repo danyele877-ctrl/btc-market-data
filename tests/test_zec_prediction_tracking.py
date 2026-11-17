@@ -34,6 +34,9 @@ def make_snapshot(captured, count):
         "zec_shadow_signal": {"candidate_direction": "LONG", "decision": "ATTENDERE", "status": "ATTENDERE",
                               "score": 12.5, "components": {"price": {}, "relative_strength": {}},
                               "higher_timeframe_regime": {"combined": {"status": "N/D"}},
+                              "structure": {"setup_type": "BREAKOUT_LONG"},
+                              "btc_filter": {"status": "FILTRO BTC RIBASSISTA", "regime_1H": "TREND RIBASSISTA"},
+                              "flow_divergence": {"status": "ASSORBIMENTO_VENDITE", "side": "LONG"},
                               "data_quality": {"blockers": ["book non disponibile"]}},
     }
 
@@ -53,6 +56,9 @@ class PredictionTrackingTests(unittest.TestCase):
             self.assertEqual(row["instrument"], INSTRUMENT_ID)
             self.assertEqual(row["baseline"]["direction"], "SHORT")
             self.assertEqual(row["shadow"]["direction"], "LONG")
+            self.assertEqual(row["shadow"]["setup_type"], "BREAKOUT_LONG")
+            self.assertEqual(row["shadow"]["btc_filter"]["status"], "FILTRO BTC RIBASSISTA")
+            self.assertEqual(row["shadow"]["flow_divergence"]["status"], "ASSORBIMENTO_VENDITE")
             self.assertEqual(len(row["snapshot_sha256"]), 64)
 
     def test_matures_forward_outcomes_only_when_full_path_exists(self):

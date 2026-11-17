@@ -172,5 +172,27 @@ class ZecShadowSignalTests(unittest.TestCase):
         self.assertEqual(regime["combined"]["status"], "N/D")
 
 
+    def test_cvd_price_absorption_is_reported_and_adjusts_flow_cluster(self):
+        snapshot = directional_snapshot("LONG")
+        snapshot["microstructure"]["cvd"].update({"1m": -10, "5m": -20})
+        baseline = evaluate_signal(snapshot, now=NOW)
+        shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=NOW)
+        divergence = shadow["flow_divergence"]
+        self.assertEqual(divergence["status"], "ASSORBIMENTO_VENDITE")
+        self.assertEqual(divergence["side"], "LONG")
+        self.assertGreater(divergence["score_adjustment"], 0)
+        self.assertFalse(shadow["orders_enabled"])
+
+        snapshot = directional_snapshot("SHORT")
+        snapshot["microstructure"]["cvd"].update({"1m": 10, "5m": 20})
+        baseline = evaluate_signal(snapshot, now=NOW)
+        shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=NOW)
+        divergence = shadow["flow_divergence"]
+        self.assertEqual(divergence["status"], "ASSORBIMENTO_ACQUISTI")
+        self.assertEqual(divergence["side"], "SHORT")
+        self.assertLess(divergence["score_adjustment"], 0)
+
+
+
 if __name__ == "__main__":
     unittest.main()
