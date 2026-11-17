@@ -567,6 +567,9 @@ def main():
         "zec_confirmed_setups": output["zec_context_archive"]["setups_total"],
         "zec_setup_outcomes_matured": output["zec_context_archive"]["outcomes_matured"],
         "zec_movement_events": output["zec_context_archive"].get("movement_events_total", 0),
+        "zec_prediction_tracking_status": output["zec_prediction_tracking"].get("status"),
+        "zec_predictions_total": output["zec_prediction_tracking"].get("predictions_total"),
+        "zec_prediction_outcomes_matured": output["zec_prediction_tracking"].get("mature_outcomes_total"),
     }))
 
 
