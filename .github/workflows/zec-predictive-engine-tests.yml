@@ -15,6 +15,10 @@ on:
       - "capture_render_feed.py"
       - "replay_zec_signals.py"
       - "build_radar_snapshot.py"
+      - "radar_alert_contract.py"
+      - "docs/**"
+      - "CHANGELOG_RADAR.md"
+      - "README.md"
       - "tests/**"
       - ".github/workflows/zec-predictive-engine-tests.yml"
   pull_request:
@@ -29,6 +33,10 @@ on:
       - "analyze_zec_prediction_tracking.py"
       - "analyze_zec_directional_bias.py"
       - "build_radar_snapshot.py"
+      - "radar_alert_contract.py"
+      - "docs/**"
+      - "CHANGELOG_RADAR.md"
+      - "README.md"
       - "tests/**"
       - ".github/workflows/zec-predictive-engine-tests.yml"
   workflow_dispatch:
@@ -50,7 +58,7 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
-      - name: Print paired LONG SHORT archive diagnostics
+      - name: Validate published Radar alert contract\n        run: python radar_alert_contract.py data/radar_snapshot.json\n\n      - name: Print paired LONG SHORT archive diagnostics
         run: python analyze_zec_directional_bias.py --archive data/zec_predictive_archive.json
 
       - name: Run BASELINE SHADOW tracking diagnostics when archive exists
