@@ -9,6 +9,7 @@ on:
       - "zec_prediction_tracking.py"
       - "analyze_zec_prediction_tracking.py"
       - "analyze_zec_directional_bias.py"
+      - "walk_forward_zec_validation.py"
       - "zec_context_archive.py"
       - "zec_queue_model.py"
       - "candle_service.py"
@@ -47,7 +48,7 @@ permissions:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -71,3 +72,8 @@ jobs:
           else
             echo "Prediction tracking archive not initialized yet; analyzer unit tests still run."
           fi
+
+      - name: Run historical walk-forward diagnostic
+        run: |
+          python walk_forward_zec_validation.py --archive data/zec_predictive_archive.json > /tmp/zec_walk_forward.json
+          python -c 'import json; r=json.load(open("/tmp/zec_walk_forward.json")); print(json.dumps({"folds":r["folds"],"results":{k:{"scored":v["scored"],"brier_score":v["brier_score"],"coverage":v["coverage"]} for k,v in r["results"].items()}},indent=2))'
