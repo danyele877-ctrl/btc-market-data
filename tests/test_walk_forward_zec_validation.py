@@ -38,6 +38,9 @@ class WalkForwardValidationTests(unittest.TestCase):
         self.assertTrue(any("Brier scores" in item for item in report["limitations"]))
         group = report["results"]["scalp_5m|LONG|5m"]
         self.assertIn("non_overlapping_primary", group)
+        self.assertIn("brier_skill_score", group["non_overlapping_primary"])
+        self.assertIn("balanced_accuracy_at_50", group["non_overlapping_primary"])
+        self.assertIn("baseline_brier_score", group["non_overlapping_primary"])
         self.assertIn("non_overlapping_by_btc_context", group)
         self.assertIn("non_overlapping_by_setup_proxy", group)
         self.assertLessEqual(group["non_overlapping_primary"]["scored"], group["all_test_observations"]["scored"])
