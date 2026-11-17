@@ -101,7 +101,7 @@ class PredictiveEngineTests(unittest.TestCase):
             "id": "overlap", "timestamp_ms": 29 * 5 * 60_000 + 60_000,
             "family": "scalp_5m", "side": "LONG", "horizon_min": 5,
             "features": features,
-            "label": {"filled_proxy": True, "tp_before_sl": True},
+            "label": {"filled_proxy": True, "tp_before_sl": False},
         })
         result = _analogs(
             {"events": events}, "scalp_5m", "LONG", 5, features,
