@@ -73,15 +73,27 @@ def validate_snapshot(snapshot: dict[str, Any]) -> list[str]:
         for field in ("orders_enabled", "position_sizing_enabled", "sizing_allowed"):
             if field in section and not _is_false(section[field]):
                 errors.append(f"{label}: {field} must be false")
-        if section.get("ctVal_reconciled") is False and section.get("ctVal_zec_per_contract") is not None:
-            errors.append(f"{label}: unresolved CTVAL must not expose an operational contract value")
+        if section.get("ctVal_reconciled") is False:
+            contract_value = section.get("ctVal_zec_per_contract")
+            if contract_value is not None and not (
+                section.get("ctVal_source_verified") is True
+                and contract_value == 0.01
+            ):
+                errors.append(f"{label}: unreconciled CTVAL may expose only the verified 0.01 diagnostic basis")
+            if section.get("theoretical_sizing_permitted") is not False:
+                errors.append(f"{label}: theoretical_sizing_permitted must remain false")
+            if section.get("margin_or_exposure_calculated") is not False:
+                errors.append(f"{label}: margin/exposure must remain disabled while CTVAL is unreconciled")
         risk = section.get("max_risk_usdc")
         if not isinstance(risk, (int, float)) or isinstance(risk, bool) or risk <= 0:
             errors.append(f"{label}: max_risk_usdc must be a positive configured value")
 
     if safety.get("ctVal_reconciled") is False:
-        if safety.get("ctVal_zec_per_contract") is not None:
-            errors.append("unresolved CTVAL must remain null at the published safety layer")
+        if safety.get("ctVal_zec_per_contract") is not None and not (
+            safety.get("ctVal_source_verified") is True
+            and safety.get("ctVal_zec_per_contract") == 0.01
+        ):
+            errors.append("unreconciled CTVAL may expose only the verified 0.01 diagnostic basis")
         if safety.get("margin_or_exposure_calculated") is not False:
             errors.append("margin/exposure must remain disabled while CTVAL is unresolved")
 

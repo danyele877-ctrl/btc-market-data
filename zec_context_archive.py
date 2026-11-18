@@ -182,7 +182,7 @@ def _micro_observation(snapshot: dict[str, Any], captured: datetime) -> dict[str
         "book_gap_count": int(ws.get("book_gap_count") or 0),
         "trade_age_seconds": _num(ws.get("trade_age_seconds")),
         "book_age_seconds": _num(ws.get("book_age_seconds")),
-        "unit": "contracts; CTVAL unresolved (public spec 0.1 ZEC vs account API 0.01 ZEC); no conversion",
+        "unit": "contracts; current EEA CTVAL source is 0.01 ZEC × ctMult=1; raw CVD/OI remain in contracts and do not enable sizing",
     }
 
 
@@ -608,5 +608,5 @@ def update_context_archive(snapshot: dict[str, Any], archive_path: Path = ARCHIV
         "movement_events_added": movement_added,
         "movement_outcomes_matured": movement_matured,
         "trigger_validation": matured_counts,
-        "note": "Trigger riferiti alla chiusura della candela confermata, non a un fill LIMIT reale; CVD/OI restano in contratti grezzi, CTVAL irrisolto (specifica pubblica 0.1 ZEC vs API account-specifica 0.01 ZEC), nessuna conversione.",
+        "note": "Trigger riferiti alla chiusura della candela confermata, non a un fill LIMIT reale; CVD/OI restano in contratti grezzi, la base CTVAL EEA verificata a 0.01 ZEC × ctMult=1 resta diagnostica e non abilita sizing o ordini.",
     }

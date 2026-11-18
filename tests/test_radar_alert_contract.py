@@ -9,8 +9,10 @@ def valid_snapshot():
         "position_sizing_enabled": False,
         "sizing_allowed": False,
         "ctVal_reconciled": False,
-        "ctVal_zec_per_contract": None,
+        "ctVal_source_verified": True,
+        "ctVal_zec_per_contract": 0.01,
         "margin_or_exposure_calculated": False,
+        "theoretical_sizing_permitted": False,
         "max_risk_usdc": 15,
     }
     return {
@@ -64,10 +66,16 @@ class RadarAlertContractTests(unittest.TestCase):
         snapshot["zec_shadow_signal"]["orders_enabled"] = True
         self.assertTrue(any("orders_enabled" in item for item in validate_snapshot(snapshot)))
 
-    def test_unresolved_ctval_cannot_publish_contract_value(self):
+    def test_verified_diagnostic_ctval_does_not_enable_sizing(self):
+        self.assertEqual(validate_snapshot(valid_snapshot()), [])
+
+    def test_unverified_or_wrong_ctval_cannot_publish_contract_value(self):
         snapshot = valid_snapshot()
         snapshot["zec_contract_safety"]["ctVal_zec_per_contract"] = 0.1
-        self.assertTrue(any("unresolved CTVAL" in item for item in validate_snapshot(snapshot)))
+        self.assertTrue(any("unreconciled CTVAL" in item for item in validate_snapshot(snapshot)))
+        snapshot["zec_contract_safety"]["ctVal_zec_per_contract"] = 0.01
+        snapshot["zec_contract_safety"]["ctVal_source_verified"] = False
+        self.assertTrue(any("unreconciled CTVAL" in item for item in validate_snapshot(snapshot)))
 
     def test_shadow_must_not_modify_baseline(self):
         snapshot = valid_snapshot()

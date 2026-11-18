@@ -50,7 +50,8 @@ Do not introduce a database dependency until hosting, credentials, backup policy
 
 - BASELINE is protected; SHADOW cannot write to or replace BASELINE outputs.
 - SHADOW remains labelled `IN RACCOLTA` until separately validated.
-- CTVAL remains unresolved while the public 0.1 ZEC/contract specification and account-specific API 0.01 ZEC value are unreconciled.
+- For the exact EEA/OEM ZEC X-Perp, the OKX specification updated 2026-11-17 and fresh public instrument metadata agree on 0.01 ZEC/contract, `ctMult=1`, and a 0.01 price tick. The earlier 0.1 specification is superseded for this instrument and region. `CTVAL_RECONCILED=false` remains mandatory: the verified contract basis is diagnostic only, and all sizing/order gates remain false.
+- OKX's published default ZEC funding period is 4 hours; captured public funding API timestamps have shown 8-hour intervals. OKX documents dynamic funding settlement intervals and directs API consumers to use the live `fundingTime`/`nextFundingTime`, but the exact cause of this instrument's observed 8-hour interval is not confirmed. The radar keeps its warning and treats API timestamps as observed schedule evidence rather than silently substituting the published default.
 - No contract conversion, CVD/OI conversion, quantity, exposure, margin, or order sizing while CTVAL is unresolved.
 - Orders remain disabled. The configured maximum risk is policy metadata, not permission to size or trade.
 - Funding timestamps that conflict with the confirmed 4-hour specification remain raw diagnostics, not a basis for projected funding.

@@ -257,10 +257,12 @@ def validate_candidate_bundle(documents: dict[str, dict[str, Any]]) -> list[str]
             for field in required_false:
                 if safety.get(field) is not False:
                     problems.append(f"candidate radar snapshot must keep {field}=false")
-            if safety.get("ctVal_official_spec_zec") != 0.1 or safety.get("ctVal_account_api_observed_zec") != 0.01:
-                problems.append("candidate radar snapshot must preserve the unresolved public/account CTVAL discrepancy")
-            if safety.get("ctVal_status") != "DISCREPANZA_CTVAL_NON_RISOLTA":
-                problems.append("candidate radar snapshot must keep the CTVAL discrepancy explicitly unresolved")
+            if safety.get("ctVal_official_spec_zec") != 0.01 or safety.get("ctVal_account_api_observed_zec") != 0.01:
+                problems.append("candidate radar snapshot must report the verified 0.01 ZEC contract basis")
+            if safety.get("ctVal_status") != "CTVAL_VERIFICATO_SIZING_BLOCCATO":
+                problems.append("candidate radar snapshot must keep CTVAL verified while sizing remains blocked")
+            if safety.get("ctVal_source_verified") is not True:
+                problems.append("candidate radar snapshot must prove the source-verified CTVAL basis")
     except Exception as exc:
         problems.append(f"candidate contract validation could not run: {type(exc).__name__}: {exc}")
     return problems
