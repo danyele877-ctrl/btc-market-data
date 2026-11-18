@@ -1,4 +1,5 @@
 import asyncio
+import gzip
 import json
 import unittest
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
@@ -10,6 +11,15 @@ import candle_service as service
 
 
 class CandleParsingTests(unittest.TestCase):
+    def test_json_http_body_supports_gzip_negotiation(self):
+        payload = {"candles": [{"close": "123.45"}]}
+        body, encoding = service.encode_json_body(payload, "br, gzip")
+        self.assertEqual(encoding, "gzip")
+        self.assertEqual(json.loads(gzip.decompress(body).decode("utf-8")), payload)
+        plain, plain_encoding = service.encode_json_body(payload, "identity")
+        self.assertIsNone(plain_encoding)
+        self.assertEqual(json.loads(plain.decode("utf-8")), payload)
+
     def test_only_completed_candles_are_accepted(self):
         row = ["1794570000000", "100", "105", "99", "103", "12", "12", "1236", "0"]
         self.assertIsNone(service.parse_candle(row, "candle1m"))
@@ -26,7 +36,7 @@ class CandleParsingTests(unittest.TestCase):
         )
 
     def test_websocket_channels_are_only_live_minute_intervals(self):
-        self.assertEqual(service.WS_CHANNELS, ("candle1m", "candle5m"))
+        self.assertEqual(service.WS_CHANNELS, ("candle1m", "candle5m", "candle15m"))
         self.assertIn("1H", service.BAR_SECONDS)
         self.assertIn("4H", service.BAR_SECONDS)
         self.assertNotIn("1H", service.WS_CHANNELS)
@@ -34,7 +44,11 @@ class CandleParsingTests(unittest.TestCase):
 
     def test_malformed_rows_and_unknown_bars_are_ignored(self):
         self.assertIsNone(service.parse_candle([], "candle1m"))
-        self.assertIsNone(service.parse_candle(["1"] * 9, "candle15m"))
+        self.assertIsNone(service.parse_candle(["1"] * 9, "candle30m"))
+        row = ["1794570000000", "100", "105", "99", "103", "12", "12", "1236", "1"]
+        candle = service.parse_candle(row, "candle15m")
+        self.assertIsNotNone(candle)
+        self.assertEqual(candle["completed_at"], "2026-11-13T11:55:00Z")
 
     def test_candles_are_merged_in_time_order_without_duplicates(self):
         target = []
