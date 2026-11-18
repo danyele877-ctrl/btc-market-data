@@ -2,12 +2,13 @@ services:
   - type: web
     name: btc-market-data-candles
     runtime: docker
-    plan: starter
+    plan: free
     autoDeployTrigger: checksPass
     buildFilter:
       paths:
         - candle_service.py
         - Dockerfile
         - requirements.txt
+        - render.yaml
       ignoredPaths: []
     healthCheckPath: /healthz
