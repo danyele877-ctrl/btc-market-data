@@ -103,10 +103,10 @@ def validate_feed(feed, current_time=None):
     def validate_series(series, market, bar, stream_key):
         interval_seconds = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}[bar]
         interval_ms = interval_seconds * 1000
-        freshness_limit = (
-            MAX_FEED_AGE_SECONDS if rest_snapshot
-            else {"1m": 180, "5m": 360, "15m": 1800, "1H": 3 * 3600, "4H": 12 * 3600}[bar]
-        )
+        # Freshness is specific to each candle interval. The 20-minute limit
+        # applies to when this feed bundle was captured, not to an otherwise
+        # valid 1H/4H candle whose latest completion naturally occurred earlier.
+        freshness_limit = {"1m": 180, "5m": 360, "15m": 1800, "1H": 3 * 3600, "4H": 12 * 3600}[bar]
         label = f"{market} {bar}"
         if not isinstance(series, list) or len(series) < 200:
             problems.append(f"OKX {label} has fewer than 200 completed candles")

@@ -157,7 +157,7 @@ class ZecEarlySignalTests(unittest.TestCase):
         snapshot["feed_health"] = {"status": "ok", "websocket_connected": False}
         result = evaluate_signal(snapshot, now=NOW)
         self.assertEqual(result["decision"], "ATTENDERE")
-        self.assertIsNone(result["direction"])
+        self.assertIsNone(result["candidate_direction"])
         self.assertIn(
             "microstruttura WebSocket continua N/D: snapshot REST non prova continuità LIVE",
             result["data_quality"]["blockers"],
