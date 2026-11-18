@@ -1,7 +1,9 @@
 import unittest
 from datetime import datetime, timezone
 
-from zec_early_signal import (\n    INSTRUMENT_ID, _anti_chase_veto, _directional_candidate_scores, evaluate_signal,\n)
+from zec_early_signal import (
+    INSTRUMENT_ID, _anti_chase_veto, _directional_candidate_scores, evaluate_signal,
+)
 
 
 CAPTURED = "2026-01-01T12:10:00Z"
