@@ -125,6 +125,26 @@ class RadarHistoryValidationTests(unittest.TestCase):
     def test_feed_validation_accepts_fresh_spot_history(self):
         self.assertEqual(validate_feed(self.valid_feed()), [])
 
+    def test_feed_validation_accepts_rest_snapshot_without_claiming_live_websocket(self):
+        feed = self.valid_feed()
+        feed["source_mode"] = "OKX_EEA_REST_SNAPSHOT"
+        feed["healthz"]["http_status"] = None
+        feed["healthz"]["payload"]["source_mode"] = "OKX_EEA_REST_SNAPSHOT"
+        feed["healthz"]["payload"]["websocket_connected"] = False
+        feed["healthz"]["payload"]["last_message_age_seconds"] = None
+        feed["healthz"]["payload"]["microstructure"] = {
+            "status": "N/D_REST_SAMPLED_NO_CONTINUOUS_WEBSOCKET",
+            "connected": False, "book_valid": False,
+        }
+        feed["candles"]["http_status"] = None
+        self.assertEqual(validate_feed(feed), [])
+
+        feed["healthz"]["payload"]["websocket_connected"] = True
+        self.assertTrue(any(
+            "must not claim a live WebSocket" in problem
+            for problem in validate_feed(feed)
+        ))
+
     def test_feed_validation_rejects_empty_and_stale_history(self):
         feed = self.valid_feed()
         feed["okx_history"]["BTC-USDC"]["1H"]["candles"] = []

@@ -37,48 +37,25 @@ The collector now records independent, timestamped public EEA REST snapshots for
 - Exact ZEC X-Perp ticker, L2 book, recent trades, mark price, ZEC index references, funding, open interest and instrument metadata
 - The exact futures ID is pinned to `ZEC-USD_UM_XPERP-310530`; no USDT swap or alternate contract is substituted.
 
-The continuous candle service now bootstraps at least 200 completed 1H and 4H candles for that exact ZEC X-Perp using paginated requests (100 rows per OKX history page) before subscribing to the 1m/5m WebSocket channels. It refuses to mark history ready unless at least 200 valid completed candles exist on each requested timeframe. The feed keeps the stable family key `ZEC-USD_UM_XPERP` separate from the dated exchange `instId`.
+The existing BTC + ZEC radar workflow fetches completed candles directly from OKX EEA REST. It keeps the stable family key `ZEC-USD_UM_XPERP` separate from the exact dated exchange `instId` and does not request a Render service.
 
 Important limitations:
-- The GitHub Actions collector remains a 15-minute snapshot, not a live trading feed.
-- The Render candle service uses WebSocket for live 1m/5m candles; code changes are deployed automatically only after GitHub Actions checks pass; the Render build filter ignores collector-only, data, documentation, and test changes.
+- The BTC + ZEC radar bridge is a GitHub Actions snapshot on its existing 5-minute schedule. GitHub may delay scheduled starts; this is not a continuous or guaranteed real-time feed.
+- Candle, order-book and trade observations are REST snapshots from OKX EEA. Sampled trades cannot establish continuous CVD, and sampled books cannot establish a live sequence chain. The snapshot explicitly reports WebSocket microstructure as unavailable; nowcasts requiring it are blocked.
+- The separate BTC context collector retains its existing 15-minute schedule. It continues to collect broader derivatives, ETF-flow and macro sources; the two existing workflows serve different datasets.
 - Funding interval and contract-value discrepancies are deliberately not auto-resolved by code. The raw current API metadata and timestamps are preserved for manual reconciliation.
 - A successful REST request is not proof that a field is semantically comparable; inspect each endpoint's instrument ID, timestamp, venue and payload.
 - Public API access only; no credentials, account access, orders or trading actions.
 
-## Continuous OKX candle feed
+## GitHub-only OKX radar snapshots
 
-The scheduled GitHub Actions collector remains unchanged. It is still a 15-minute job and is not the always-on process. The separate `candle_service.py` process maintains a public, read-only OKX WebSocket connection and serves its own JSON feed without changing the schema of `data/latest.json`.
+The existing `Render Candle Feed Bridge` workflow retains its 5-minute schedule and reads OKX EEA public REST endpoints directly. It fetches up to 500 completed 1m, 5m, 15m, 1H and 4H candles for BTC-USDC, ZEC-USDC and the exact ZEC X-Perp. Each candle keeps exchange timestamps and string-valued OHLCV fields. It also stores timestamped REST order-book and recent-trade samples from the exact X-Perp.
 
-It subscribes to completed 1-minute and 5-minute candles for `BTC-USDC`, `ZEC-USDC`, and the `ZEC-USD_UM_XPERP` futures family when OKX's public instrument metadata reports them as live. Spot pairs that are absent or not live are listed in `unavailable_instruments` and are not subscribed. The EEA catalog may list that X-Perp family under a dated exchange instrument ID (currently `ZEC-USD_UM_XPERP-310530`); discovery resolves it by `instFamily` and keeps the stable `ZEC-USD_UM_XPERP` candle key. It does not substitute `ZEC-USDT-SWAP`.
+The workflow preserves the existing `data/render_feed.json` path for consumers during migration, but its `source_mode` is `OKX_EEA_REST_SNAPSHOT`; it contains no Render response. The historical filename is compatibility only. `data/zec_microstructure_history.json` preserves each sample's source and exchange timestamp. A REST sample is never promoted to LIVE: continuous WebSocket CVD and book sequence state are N/D, so the relevant BASELINE/SHADOW nowcast gates remain in force.
 
-### Feed endpoints
+GitHub Actions schedule starts can be delayed, and the 5-minute task is not an always-on process. This design removes Render from acquisition and avoids Render egress charges; it cannot provide uninterrupted WebSocket microstructure. If continuous LIVE microstructure is required, it needs an always-on host. Do not deploy or sync the legacy Render Blueprint as part of this workflow.
 
-- `GET /candles.json` (also `/`): feed state, candle arrays, connection state, UTC timestamps, and staleness metadata.
-- `GET /healthz`: process and WebSocket health, each stream's latest completed candle time, age, threshold, and stale flag.
-
-Each candle has `ts_ms`, UTC `timestamp` and `completed_at`, and string-valued OHLCV fields to avoid losing decimal precision. Open candles are ignored. The service keeps the latest 500 completed candles per instrument and interval in memory. A process restart creates a short warm-up while subscriptions resume; no historical data is fabricated.
-
-For OKX Europe accounts, the service uses the EEA API hosts (eea.okx.com for REST and wseea.okx.com for WebSocket). The WebSocket client subscribes only to the live `candle1m` and `candle5m` channels (1H/4H are REST history intervals, not WebSocket channels), sends subscriptions after each connection, uses OKX's application-level text ping/pong heartbeat and reconnects with exponential backoff if the pong does not arrive. All timestamps are UTC. The collector follows OKX's [official WebSocket candlestick channel](https://www.okx.com/docs-v5/en/#websocket-api-public-channel) and resolves live instruments from the [public instruments metadata](https://www.okx.com/docs-v5/en/#rest-api-public-data). Only public market endpoints are used; no OKX API keys or trading permissions are used or supported.
-
-### Run locally
-
-```sh
-python -m pip install -r requirements.txt
-python candle_service.py
-```
-
-The default port is `8080`; set `PORT` to override it. Set `CANDLE_DATA_FILE` if you want a local JSON copy. Run the unit tests with `python -m unittest discover -s tests`.
-
-### Free deployment option (with continuity safeguards)
-
-`render.yaml` configures the candle service on Render's `free` compute plan. This avoids the paid Starter compute charge, but it is not an always-on production guarantee: Free web services have 750 instance-hours per workspace per month, spin down after 15 minutes without inbound HTTP/WebSocket traffic, may restart at any time, and have an ephemeral filesystem with no persistent disk. The minute-level GitHub bridge dispatch is intended to keep the service active by calling its HTTP endpoints; GitHub Actions delays or workspace usage by other free services can still cause a spin-down or exhaust the shared hours. On restart, candle history is reloaded from OKX; live trades/book/CVD must warm up again, so the radar must block the immediate nowcast until the feed is fresh.
-
-The Hobby workspace includes 5 GB/month of outbound bandwidth. The service now negotiates gzip for its JSON endpoints and the bridge client requests/decompresses gzip, reducing repeated feed transfer without changing the JSON payload schema. Outbound bandwidth over the included amount may be billed if a payment method is linked; otherwise Render may suspend Free services for the rest of the month. Monitor the Render Billing page and the service Metrics page; do not infer actual usage from code.
-
-To deploy or change an existing service, connect this repository to Render and sync the Blueprint. Confirm that the service compute plan shown in Render is **Free** before assuming the paid Starter service has been changed. `autoDeployTrigger` is `checksPass`; runtime changes wait for successful GitHub Actions checks. Render provides the HTTPS service URL; append `/candles.json` for the full feed and `/healthz` for status.
-
-No secret is needed for OKX. The feed is public and read-only. Keep the GitHub Actions bridge enabled: it supplies inbound requests that keep the Free service warm and publishes the versioned radar snapshot. If the service sleeps or restarts, the alert must identify the degraded/stale state and must not treat the GitHub snapshot as live.
+`candle_service.py`, `Dockerfile` and `render.yaml` are retained as legacy source/configuration for now; the GitHub-only workflow does not run them. If a Render service still exists, suspend it in the Render dashboard; do not delete it as part of the code migration.
 
 ## ZEC Early Signal Engine (simulation only)
 
@@ -105,12 +82,12 @@ The persistent data/zec_predictive_archive.json stores timestamped feature vecto
 
 A hypothetical limit fill is labelled only when the historical OHLC range touches an entry offset of 0.20 ATR within the defined fill window. This is a TOUCH PROXY, not a real fill probability: public candle data cannot reconstruct queue priority, order-book queue depletion, latency, spread or partial fills. TP/SL outcomes use 1.5 ATR / 1.0 ATR barriers; ambiguous same-candle touches are conservatively labelled as SL. Filled observations may be stored with a pending TP/SL outcome; subsequent runs update that outcome only after the full forward horizon has matured.
 
-No order placement or private API credentials are enabled. Automated position sizing, leverage, margin, exposure and PnL output remain disabled in the predictive engine. The exact EEA instrument specification and public API agree on `ctVal=0.01 ZEC`, `ctMult=1`; this is a verified formula basis only, while `CTVAL_RECONCILED=false` and all execution/sizing gates remain false. The risk ceiling is not a calculated position risk. The existing GitHub Actions schedule and Render deployment filters are unchanged.
+No order placement or private API credentials are enabled. Automated position sizing, leverage, margin, exposure and PnL output remain disabled in the predictive engine. The exact EEA instrument specification and public API agree on `ctVal=0.01 ZEC`, `ctMult=1`; this is a verified formula basis only, while `CTVAL_RECONCILED=false` and all execution/sizing gates remain false. The risk ceiling is not a calculated position risk. The existing GitHub Actions schedules are unchanged; Render is not part of the radar data path.
 
 
 ## ZEC Context Archive and trigger validation
 
-The radar now writes a separate `data/zec_context_archive.json` alongside the OHLC predictive archive. It records at most one quality-gated observation per UTC minute from the exact OKX EEA X-Perp: WebSocket CVD 1m/5m/15m in contracts, book imbalance top5/10/20, short book-imbalance change, spread in basis points, OI in contracts, feed ages and sequence-gap counters. Observations are kept for up to 30 days. CVD, book imbalance and OI remain in their original contract units. CTVAL-derived values are diagnostic only; no context archive value enables sizing or orders.
+The radar writes `data/zec_context_archive.json` alongside the OHLC predictive archive. Only previously verified continuous WebSocket observations can populate its CVD/book sequence fields; scheduled REST snapshots do not create those records. REST book/trade samples retain their own source and timestamps. Observations are kept for up to 30 days. CVD, book imbalance and OI remain in their original contract units. CTVAL-derived values are diagnostic only; no context archive value enables sizing or orders.
 
 Only fresh schema-v3 snapshots with the exact instrument and healthy, connected, sequence-valid microstructure are archived. Missing/stale data are skipped rather than filled or interpolated. The bridge stores the context archive in the same GitHub publication step as the radar snapshot.
 
@@ -131,14 +108,14 @@ The event study describes co-occurring factors and subsequent price paths. It do
 
 ## Queue-aware LIMIT execution research
 
-The Render service now exposes a bounded 15-minute WebSocket trade tape (trade ID, aggressor side, price, size in contracts, count and gap flag) plus sequenced top-10 book-depth snapshots sampled at approximately one-second intervals. The bridge merges trades by trade ID, preferring the WS record where REST has the same trade, and deduplicates WebSocket book states by `seqId` (REST snapshots by exchange timestamp). REST polling gaps are not treated as live WS gaps. It records per-capture truncation and sequence-health metadata and retains up to 15,000 WebSocket depth snapshots (about four hours) and 30,000 unique trades.
+The legacy archive may contain bounded 15-minute WebSocket tape and sequenced book-depth observations from earlier continuous capture. New no-Render runs do not generate WebSocket events; they add only directly sampled REST trades/books, tagged `source=rest`. REST polling gaps are not treated as live WS gaps. Historical WebSocket sequence records remain historical and cannot satisfy current live-data gates.
 
 The separate zec_queue_model.py evaluates a hypothetical passive LIMIT by reading the displayed queue at the candidate price and summing aggressive trades at or through that price during the five-minute validity window. It only labels a historical sample when the entry book, book sequence coverage, capture checks and trade tape pass quality gates. If the limit is marketable, book depth is missing, the tape is truncated, or a sequence gap occurs, it returns no estimate. The engine trains separate scalp queue families at 0.10, 0.20, 0.30 and 0.40 ATR offsets, and exposes queue-depletion frequency separately from OHLC touch frequency. Where each offset has sufficient mature analogs, it compares the experimental joint queue-depletion/TP1-before-SL frequency; this is only a candidate offset ranking, not a calibrated optimum.
 
 Queue depletion is still only a proxy for fill: cancellations, hidden liquidity, exact queue position, network latency and partial fills cannot be reconstructed from public aggregated market data. It must never be described as a guaranteed fill or a calibrated execution probability. No orders are sent and no position size is computed.
 
 
-The Render candle service now warms up and retains up to 500 completed 1m/5m candles (the bridge preserves the same 500-bar limit). This provides about 8h20 of 1m paths for scalp labels and about 41h40 of 5m paths for 1H/2H/4H reversal labels, rather than limiting reversal training to roughly one day.
+The scheduled OKX REST capture now retains up to 500 completed candles per instrument and interval. This provides up to about 8h20 of 1m paths and 41h40 of 5m paths when OKX history is complete; each snapshot is validated and missing periods remain gaps rather than being filled.
 
 
 ## Radar architecture, history, and alert integration

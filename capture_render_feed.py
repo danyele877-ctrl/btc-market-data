@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-# Recovery probe: this file change triggers the Render bridge capture workflow.
-"""Capture the public Render candle feed into a GitHub-readable snapshot."""
-import gzip
+"""Capture an OKX EEA REST radar snapshot for the GitHub bridge.
+
+This workflow is deliberately stateless: candles and market observations are
+fetched from OKX on each run. REST-polled book/trades are samples, never LIVE
+WebSocket microstructure.
+"""
 import json
 import math
 import os
@@ -13,7 +16,6 @@ import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
-BASE = "https://btc-market-data-candles.onrender.com"
 TIMEOUT = 20
 OUT = Path("data/render_feed.json")
 MICRO_OUT = Path("data/zec_microstructure_history.json")
@@ -45,12 +47,13 @@ def validate_feed(feed, current_time=None):
             return None
 
     if not isinstance(feed, dict):
-        return ["Render bridge payload is not a JSON object"]
+        return ["Radar feed payload is not a JSON object"]
+    rest_snapshot = feed.get("source_mode") == "OKX_EEA_REST_SNAPSHOT"
     captured = parse_time(feed.get("captured_at"))
     if captured is None or (current_time - captured).total_seconds() > MAX_FEED_AGE_SECONDS or captured > current_time:
         problems.append("captured_at missing, in the future, or older than 20 minutes")
     if feed.get("status") != "ok":
-        problems.append("Render feed status is not ok")
+        problems.append("Radar feed capture status is not ok")
     health = feed.get("healthz", {})
     candles = feed.get("candles", {})
     if not isinstance(health, dict):
@@ -59,22 +62,34 @@ def validate_feed(feed, current_time=None):
     if not isinstance(candles, dict):
         problems.append("Render candles response record is malformed")
         candles = {}
-    if health.get("http_status") != 200 or not isinstance(health.get("payload"), dict):
-        problems.append("Render health response is missing or not HTTP 200")
-    if candles.get("http_status") != 200 or not isinstance(candles.get("payload"), dict):
-        problems.append("Render candles response is missing or not HTTP 200")
+    if not isinstance(health.get("payload"), dict):
+        problems.append("Radar feed diagnostics are missing or malformed")
+    if not isinstance(candles.get("payload"), dict):
+        problems.append("Radar candle payload is missing or malformed")
+    if not rest_snapshot and (
+        health.get("http_status") != 200 or candles.get("http_status") != 200
+    ):
+        problems.append("Render health/candles responses are not both HTTP 200")
     if captured is None:
         return problems + ["captured_at is required to validate completed candle freshness"]
 
     health_payload = health.get("payload") if isinstance(health.get("payload"), dict) else {}
-    if health_payload.get("status") != "ok" or health_payload.get("websocket_connected") is not True:
-        problems.append("Render service or candle WebSocket is not healthy")
-    try:
-        message_age = float(health_payload.get("last_message_age_seconds"))
-    except (TypeError, ValueError):
-        message_age = None
-    if message_age is None or message_age < 0 or message_age > 120:
-        problems.append("Render candle WebSocket message is missing, future-dated or older than 120 seconds")
+    if health_payload.get("status") != "ok":
+        problems.append("Radar source health is not ok")
+    if rest_snapshot:
+        if health_payload.get("source_mode") != "OKX_EEA_REST_SNAPSHOT":
+            problems.append("Radar health source mode does not match the feed")
+        if health_payload.get("websocket_connected") is not False:
+            problems.append("REST snapshot must not claim a live WebSocket connection")
+    else:
+        if health_payload.get("websocket_connected") is not True:
+            problems.append("Render service or candle WebSocket is not healthy")
+        try:
+            message_age = float(health_payload.get("last_message_age_seconds"))
+        except (TypeError, ValueError):
+            message_age = None
+        if message_age is None or message_age < 0 or message_age > 120:
+            problems.append("Render candle WebSocket message is missing, future-dated or older than 120 seconds")
 
     instruments = (candles.get("payload") or {}).get("instruments", {}) if isinstance(candles.get("payload"), dict) else {}
     streams = health_payload.get("streams", {}) if isinstance(health_payload.get("streams"), dict) else {}
@@ -88,10 +103,13 @@ def validate_feed(feed, current_time=None):
     def validate_series(series, market, bar, stream_key):
         interval_seconds = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}[bar]
         interval_ms = interval_seconds * 1000
-        freshness_limit = {"1m": 180, "5m": 360, "15m": 1800, "1H": 3 * 3600, "4H": 12 * 3600}[bar]
+        freshness_limit = (
+            MAX_FEED_AGE_SECONDS if rest_snapshot
+            else {"1m": 180, "5m": 360, "15m": 1800, "1H": 3 * 3600, "4H": 12 * 3600}[bar]
+        )
         label = f"{market} {bar}"
         if not isinstance(series, list) or len(series) < 200:
-            problems.append(f"Render {label} has fewer than 200 completed candles")
+            problems.append(f"OKX {label} has fewer than 200 completed candles")
             return
         timestamps, completions = [], []
         try:
@@ -115,17 +133,17 @@ def validate_feed(feed, current_time=None):
                 timestamps.append(ts_ms)
                 completions.append(completed)
         except (KeyError, TypeError, ValueError) as exc:
-            problems.append(f"Render {label} contains malformed/open candle: {exc}")
+            problems.append(f"OKX {label} contains malformed/open candle: {exc}")
             return
         if timestamps != sorted(set(timestamps)):
-            problems.append(f"Render {label} is unordered or contains duplicate timestamps")
+            problems.append(f"OKX {label} is unordered or contains duplicate timestamps")
             return
         if any(right - left != interval_ms for left, right in zip(timestamps, timestamps[1:])):
-            problems.append(f"Render {label} contains one or more candle gaps")
+            problems.append(f"OKX {label} contains one or more candle gaps")
             return
         age = (captured - completions[-1]).total_seconds()
         if age < 0 or age > freshness_limit:
-            problems.append(f"Render {label} latest completed candle is stale ({age:.1f}s; limit {freshness_limit}s)")
+            problems.append(f"OKX {label} latest completed candle is stale ({age:.1f}s; limit {freshness_limit}s)")
         stream = streams.get(f"{stream_key}:{bar}", {})
         try:
             stream_count = int(stream.get("candle_count") or 0)
@@ -267,33 +285,8 @@ def write_feed_atomically(feed):
     write_json_atomically(OUT, feed)
 
 def get(path):
-    url = BASE + path
-    started = time.time()
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "btc-market-data-github-bridge/1.0",
-        "Accept": "application/json",
-        "Accept-Encoding": "gzip",
-        "Cache-Control": "no-cache",
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
-            raw = response.read()
-            if response.headers.get("Content-Encoding", "").lower() == "gzip":
-                raw = gzip.decompress(raw)
-            payload = json.loads(raw.decode("utf-8"))
-            return {
-                "http_status": response.status,
-                "retrieved_at": now(),
-                "latency_ms": round((time.time() - started) * 1000),
-                "payload": payload,
-            }
-    except Exception as exc:
-        return {
-            "http_status": None,
-            "retrieved_at": now(),
-            "latency_ms": round((time.time() - started) * 1000),
-            "error": f"{type(exc).__name__}: {exc}"[:500],
-        }
+    """Compatibility helper for public EEA endpoints; it never calls Render."""
+    return get_url(f"{OKX_EEA}{path}")
 
 def get_url(url):
     """Fetch a public JSON endpoint and retain its own source timestamp."""
@@ -389,9 +382,12 @@ def get_okx_history(inst_id, bar, limit=300):
         }
 
 def get_okx_xperp_history(inst_id, bars=("1m", "5m", "15m", "1H", "4H"), target=500):
-    """Fetch completed historical candles for the exact ZEC X-Perp, paginating older rows."""
+    """Fetch completed OKX EEA candles, paginating older rows for any exact instrument."""
     seconds = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}
-    output = {"schema_version": 1, "instrument": inst_id, "retrieved_at": now(), "bars": {}}
+    output = {
+        "schema_version": 1, "instrument": inst_id, "source": "OKX_EEA_REST",
+        "retrieved_at": now(), "bars": {},
+    }
     for bar in bars:
         collected = {}
         cursor = None
@@ -591,6 +587,8 @@ def update_microstructure_history(okx_market, websocket_micro=None, captured_at=
     history["trades"] = [x for x in history["trades"] if x["ts_ms"] >= cutoff][-MICRO_MAX_TRADES:]
     history["open_interest_history"] = [x for x in history["open_interest_history"] if x["ts_ms"] >= cutoff]
     history["capture_status"].append({
+        "source_mode": "OKX_EEA_REST_SNAPSHOT",
+        "websocket_connected": False,
         "captured_at": captured_at or websocket_micro.get("last_message_at") or now(),
         "trade_events_returned": int(websocket_micro.get("trade_events_returned") or 0),
         "trade_events_truncated": bool(websocket_micro.get("trade_events_truncated")),
@@ -618,26 +616,102 @@ def main():
         try:
             current = json.loads(OUT.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            raise SystemExit(f"Invalid Render feed file: {exc}")
+            raise SystemExit(f"Invalid radar feed file: {exc}")
         problems = validate_feed(current)
         if problems:
-            raise SystemExit("Render feed validation failed: " + "; ".join(problems))
-        print(f"Render feed validation passed: {OUT}")
+            raise SystemExit("Radar feed validation failed: " + "; ".join(problems))
+        print(f"Radar feed validation passed: {OUT}")
         return
     if sys.argv[1:]:
         raise SystemExit("Usage: python capture_render_feed.py [--validate-existing]")
 
-    health = get("/healthz")
-    candles = get("/candles.json")
-    if "payload" in candles:
-        candles["payload"] = trim_arrays(candles["payload"])
-    health_ok = health.get("http_status") == 200 and isinstance(health.get("payload"), dict)
-    candles_ok = candles.get("http_status") == 200 and isinstance(candles.get("payload"), dict)
-    status = "ok" if health_ok and candles_ok else "partial" if health_ok or candles_ok else "error"
-    okx_history = {
-        market: {bar: get_okx_history(inst_id, bar) for bar in ("1H", "4H")}
+    source_mode = "OKX_EEA_REST_SNAPSHOT"
+    # This is a pull snapshot, not a daemon. Every market and timeframe comes
+    # directly from OKX; no historic WebSocket values are relabelled as LIVE.
+    histories = {
+        market: get_okx_xperp_history(inst_id)
         for market, inst_id in HISTORY_MARKETS.items()
     }
+    okx_history = {
+        market: {
+            bar: {
+                **histories[market]["bars"][bar],
+                "instId": HISTORY_MARKETS[market],
+                "source": "OKX_EEA_REST",
+            }
+            for bar in ("1H", "4H")
+        }
+        for market in ("BTC-USDC", "ZEC-USDC")
+    }
+    instruments = {
+        market: {
+            bar: record.get("candles", [])
+            for bar, record in histories[market]["bars"].items()
+        }
+        for market in HISTORY_MARKETS
+    }
+    streams = {}
+    active = []
+    for market, inst_id in HISTORY_MARKETS.items():
+        is_xperp = market == "ZEC-USD_UM_XPERP"
+        active.append({
+            "instType": "FUTURES" if is_xperp else "SPOT",
+            "instId": inst_id,
+            "stream_key": market,
+        })
+        for bar, record in histories[market]["bars"].items():
+            newest = record.get("newest_completed_at")
+            newest_time = datetime.fromisoformat(newest.replace("Z", "+00:00")) if newest else None
+            age = (datetime.now(timezone.utc) - newest_time).total_seconds() if newest_time else None
+            streams[f"{market}:{bar}"] = {
+                "candle_count": record.get("count", 0),
+                "history_ready_200": record.get("ready_200") is True,
+                "gap_count": record.get("gap_count"),
+                "last_candle_at": record.get("candles", [{}])[-1].get("timestamp") if record.get("candles") else None,
+                "last_completed_at": newest,
+                "age_seconds": round(age, 1) if age is not None else None,
+                "stale_after_seconds": MAX_FEED_AGE_SECONDS,
+                "stale": age is None or age < -60 or age > MAX_FEED_AGE_SECONDS,
+                "source": "OKX_EEA_REST",
+            }
+    captured_at = now()
+    health = {
+        "source": "derived_from_okx_eea_rest",
+        "retrieved_at": captured_at,
+        "payload": {
+            "status": "ok",
+            "source_mode": source_mode,
+            "websocket_connected": False,
+            "last_message_at": None,
+            "last_message_age_seconds": None,
+            "active_instruments": active,
+            "unavailable_instruments": [],
+            "streams": streams,
+            "history_ready_200": all(item["history_ready_200"] for item in streams.values()),
+            "last_error": None,
+            "microstructure": {
+                "status": "N/D_REST_SAMPLED_NO_CONTINUOUS_WEBSOCKET",
+                "source_mode": source_mode,
+                "connected": False,
+                "book_valid": False,
+                "trade_events": [],
+                "trade_events_truncated": None,
+                "trade_gap_count": None,
+                "book_gap_count": None,
+                "cvd": {
+                    "unit": "contracts", "1m": None, "5m": None, "15m": None,
+                    "ready_1m": False, "ready_5m": False, "ready_15m": False,
+                },
+            },
+        },
+    }
+    candles = {
+        "source": "OKX_EEA_REST",
+        "http_status": None,
+        "retrieved_at": captured_at,
+        "payload": {"instruments": instruments, "source_mode": source_mode},
+    }
+    status = "ok"
     # Capture short-lived derivatives context in the same fast bridge snapshot.
     # These are independent public OKX EEA requests, each with its own retrieval time.
     market_paths = {
@@ -669,22 +743,14 @@ def main():
             row for row in index_payload["data"]
             if "ZEC" in str(row.get("instId", "")).upper()
         ]
-    microstructure_status = update_microstructure_history(
-        okx_market,
-        (health.get("payload") or {}).get("microstructure", {}),
-        health.get("retrieved_at"),
-    )
-    # Raw WebSocket tape/depth have been persisted in the dedicated history;
-    # keep the frequently committed bridge feed compact.
-    health_payload = health.get("payload")
-    if isinstance(health_payload, dict) and isinstance(health_payload.get("microstructure"), dict):
-        health_payload["microstructure"].pop("trade_events", None)
-        health_payload["microstructure"].pop("book_depth_history", None)
-    zec_xperp_history = get_okx_xperp_history("ZEC-USD_UM_XPERP-310530")
-    write_json_atomically(Path("data/zec_xperp_history.json"), zec_xperp_history)
+    captured_at = now()
+    health["retrieved_at"] = captured_at
+    candles["retrieved_at"] = captured_at
+    zec_xperp_history = histories["ZEC-USD_UM_XPERP"]
     output = {
-        "bridge_schema_version": 4,
-        "microstructure_history": microstructure_status,
+        "bridge_schema_version": 5,
+        "source_mode": source_mode,
+        "microstructure_history": {},
         "zec_xperp_history": {
             "instrument": zec_xperp_history.get("instrument"),
             "retrieved_at": zec_xperp_history.get("retrieved_at"),
@@ -692,25 +758,29 @@ def main():
         },
         "okx_market": okx_market,
         "okx_history": okx_history,
-        "captured_at": now(),
+        "captured_at": captured_at,
         "status": status,
         "healthz": health,
         "candles": candles,
     }
     problems = validate_feed(output)
     if problems:
-        raise SystemExit("Refusing to replace the last known feed: " + "; ".join(problems))
+        raise SystemExit("Refusing to replace the last known radar feed: " + "; ".join(problems))
+    # Only persist auxiliary histories after every candle stream passed checks.
+    microstructure_status = update_microstructure_history(
+        okx_market, health["payload"]["microstructure"], captured_at
+    )
+    output["microstructure_history"] = microstructure_status
+    write_json_atomically(Path("data/zec_xperp_history.json"), zec_xperp_history)
     write_feed_atomically(output)
     print(json.dumps({
         "status": status,
-        "health_http": health.get("http_status"),
-        "candles_http": candles.get("http_status"),
-        "health_error": health.get("error"),
-        "candles_error": candles.get("error"),
+        "source_mode": source_mode,
+        "websocket_connected": False,
+        "markets": list(instruments),
+        "timeframes": ["1m", "5m", "15m", "1H", "4H"],
         "output": str(OUT),
     }, ensure_ascii=False))
-    # Do not fail the existing market-data collector if Render is temporarily unavailable.
-    # The saved snapshot explicitly records the failure for the radar to classify as unconfirmed.
 
 if __name__ == "__main__":
     main()

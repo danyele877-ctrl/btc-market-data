@@ -17,9 +17,10 @@ The repository is **not** itself a relational database. At present, operational 
    - `data/zec_context_archive.json`: context observations, setups, and movement-event outcomes.
    - `data/radar_snapshot.json`: latest compact output consumed by the alert/bridge.
    - Retention, deduplication, UTC timestamps, source provenance, and atomic writes must be preserved.
-3. **Processing — Radar engine**
-   - Collects and validates feeds, evaluates market regime and directional candidates, records prediction outcomes, and builds the compact snapshot.
-   - Missing, stale, or contradictory data must remain visible and must not be silently replaced with stale values.
+3. **Processing — GitHub Actions + Radar engine**
+   - The existing five-minute radar workflow collects OKX EEA REST snapshots directly, validates them, evaluates market regime and directional candidates, records prediction outcomes, and publishes the compact snapshot.
+   - The separate existing 15-minute BTC market-data workflow continues to collect broader derivatives, ETF and macro context. Neither workflow depends on Render.
+   - GitHub scheduled starts can be delayed. REST snapshots are not an always-on feed; missing, stale, or contradictory data must remain visible and must not be silently replaced with stale values.
 4. **Presentation — alert**
    - The alert is a compact operational view of the latest published snapshot, not the only place where logic or history lives.
    - It must display data freshness/health, BTC regime context, ZEC BASELINE, ZEC SHADOW (clearly labelled experimental), decision and veto/reasons, CTVAL/funding blockers, and prediction-history diagnostics when available.
@@ -31,11 +32,14 @@ The repository is **not** itself a relational database. At present, operational 
 
 ## Live microstructure and nowcast integrity
 
-- The live WebSocket book is trusted only while its `prevSeqId` chain matches the preceding `seqId`; sampled archive rows preserve both IDs but are not a complete event-by-event sequence log. Archived REST books and WebSocket books remain separate sources. Identical millisecond timestamps across sources, or distinct WS `seqId` values at one millisecond, must not be deduplicated together.
+- The GitHub-only pipeline captures REST order books and recent trades at each scheduled run. These are sampled snapshots; they cannot prove continuous trade coverage, live CVD or a WebSocket `prevSeqId` chain. They remain labelled REST/BRIDGE and are never promoted to LIVE.
+- Legacy WebSocket archive rows remain historical observations with their original source and timestamps. They cannot stand in for current LIVE data after the continuous service is stopped.
+- If a continuous WebSocket service is later used locally, its book is trusted only while `prevSeqId` matches the preceding `seqId`; sampled archive rows are not a complete event-by-event sequence log. REST and WebSocket rows stay separate, even when timestamps collide.
 - REST trade history is polling-sampled. Missing adjacent `tradeId` values in that history do not prove WebSocket loss and must not be counted as live CVD gaps. Live CVD uses only the WebSocket channel's `count`, `tradeId`, and `gap_before` checks, on bounded 1m/5m/15m windows; events later than the evaluation timestamp are excluded.
 - The BASELINE nowcast requires the latest completed 1m and 5m candles to be no more than 180 seconds old. If the 5m candle is older, BASELINE remains available with status/reason but its directional decision is `ATTENDERE`. SHADOW retains its pre-existing 360-second 5m diagnostic freshness limit; its outputs remain experimental and cannot place orders or size positions.
-- BTC spot, ZEC spot, and ZEC X-Perp candle endpoints must align for both 1m and 5m evidence before a setup can be evaluated. Historical archives stay diagnostic and cannot substitute for live inputs.
-- The existing Render bridge job validates the candidate bundle before publishing. Its schedule, workflow identity, and trigger configuration are unchanged by these integrity rules.
+- BTC spot, ZEC spot, and ZEC X-Perp candle timestamps must align for both 1m and 5m evidence before a setup can be evaluated. Historical archives stay diagnostic and cannot substitute for fresh inputs.
+- BASELINE/SHADOW nowcasts that require continuous microstructure remain blocked in REST snapshot mode. The radar still publishes diagnostics and makes missing LIVE inputs explicit.
+- The existing five-minute workflow validates the candidate bundle before publishing. It no longer listens for Render `repository_dispatch` events; its scheduled cadence is unchanged.
 
 ## Storage evolution
 
@@ -71,6 +75,8 @@ Do not introduce a database dependency until hosting, credentials, backup policy
 - [ ] Unit tests cover normal, missing-data, and safety-boundary cases.
 - [ ] Snapshot builder emits the new field(s).
 - [ ] Bridge publishes the new snapshot without stale overwrite.
+- [ ] Snapshot source mode distinguishes scheduled OKX REST from continuous LIVE data.
+- [ ] Legacy Render service is suspended before the migration is activated.
 - [ ] Alert contract and CI pass.
 - [ ] Changelog and decision record updated.
 - [ ] BASELINE regression checks pass.

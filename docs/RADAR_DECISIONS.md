@@ -9,6 +9,7 @@
 | ADR-005 | Alert readiness is gated by a machine-checkable contract | Prevents code-only changes from being mistaken for complete alert integration | Active |
 | ADR-006 | BASELINE remains protected and SHADOW remains isolated and experimental | Prevents unvalidated logic from changing the established reference | Non-negotiable |
 | ADR-007 | CTVAL and order/sizing safety gates remain closed until OKX resolves the discrepancy | Prevents invalid contract-value conversions | Non-negotiable |
+| ADR-008 | Radar acquisition uses the existing GitHub Actions 5-minute workflow and direct OKX EEA REST snapshots; Render is not a data dependency | Removes Render egress dependence without creating another schedule; sampled REST cannot claim continuous LIVE microstructure | Prepared on branch; not active |
 
 ## Update procedure
 

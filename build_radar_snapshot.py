@@ -471,12 +471,12 @@ def main():
     ws_micro = dict(ws_micro_full) if isinstance(ws_micro_full, dict) else {}
     ws_micro.pop("trade_events", None)
     ws_micro.pop("book_depth_history", None)
-    render_health = dict(health_payload) if isinstance(health_payload, dict) else {}
-    render_micro = dict(render_health.get("microstructure") or {})
-    render_micro.pop("trade_events", None)
-    render_micro.pop("book_depth_history", None)
-    if render_micro:
-        render_health["microstructure"] = render_micro
+    feed_health = dict(health_payload) if isinstance(health_payload, dict) else {}
+    feed_micro = dict(feed_health.get("microstructure") or {})
+    feed_micro.pop("trade_events", None)
+    feed_micro.pop("book_depth_history", None)
+    if feed_micro:
+        feed_health["microstructure"] = feed_micro
     micro_out = microstructure_summary(micro)
     micro_out["websocket"] = ws_micro
     micro_out["cvd"] = ws_micro.get("cvd")
@@ -520,9 +520,9 @@ def main():
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "source_captured_at": feed.get("captured_at"),
         "source_status": feed.get("status"),
-        "render_health_http": (feed.get("healthz") or {}).get("http_status"),
-        "render_candles_http": (feed.get("candles") or {}).get("http_status"),
-        "render_health": render_health,
+        "feed_source_mode": feed.get("source_mode", "LEGACY_RENDER_WEBSOCKET"),
+        "feed_capture_status": feed.get("status"),
+        "feed_health": feed_health,
         "market": market_out,
         "funding_diagnostics": funding_diagnostics(market_out.get("zec_xperp_funding"), now),
         "zec_contract_safety": build_contract_safety(

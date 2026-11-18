@@ -401,14 +401,26 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     if snapshot.get("source_status") != "ok":
         blockers.append("source_status diverso da ok")
     if captured_at is None or source_age is None or source_age < -60 or source_age > 180:
-        blockers.append("snapshot bridge oltre 180 secondi o timestamp non valido")
+        blockers.append("snapshot oltre 180 secondi o timestamp non valido")
     if any(value for value in (snapshot.get("read_errors") or {}).values()):
         blockers.append("errori di lettura nel radar snapshot")
-    if snapshot.get("render_health_http") != 200 or snapshot.get("render_candles_http") != 200:
-        blockers.append("healthz/candles non entrambi HTTP 200")
-    health = snapshot.get("render_health") or {}
-    if health.get("status") != "ok" or not health.get("websocket_connected"):
-        blockers.append("WebSocket Render non connesso o health non OK")
+    source_mode = snapshot.get("feed_source_mode")
+    if source_mode in ("OKX_EEA_REST_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET"):
+        if snapshot.get("feed_capture_status") != "ok":
+            blockers.append("acquisizione feed non valida")
+        health = snapshot.get("feed_health") or {}
+        if health.get("status") != "ok":
+            blockers.append("diagnostica del feed non valida")
+        if source_mode == "OKX_EEA_REST_SNAPSHOT":
+            blockers.append("microstruttura WebSocket continua N/D: snapshot REST non prova continuità LIVE")
+        elif not health.get("websocket_connected"):
+            blockers.append("feed WebSocket non connesso o health non OK")
+    else:
+        if snapshot.get("render_health_http") != 200 or snapshot.get("render_candles_http") != 200:
+            blockers.append("healthz/candles non entrambi HTTP 200")
+        health = snapshot.get("render_health") or {}
+        if health.get("status") != "ok" or not health.get("websocket_connected"):
+            blockers.append("feed WebSocket non connesso o health non OK")
 
     xperp, xperp_error = _market_record(snapshot, "zec_xperp_ticker", INSTRUMENT_ID)
     if xperp_error:

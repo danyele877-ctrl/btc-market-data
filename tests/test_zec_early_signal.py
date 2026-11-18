@@ -147,6 +147,24 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(result["decision"], "ATTENDERE")
         self.assertFalse(result["execution"]["orders_enabled"])
 
+    def test_rest_snapshot_never_claims_live_microstructure_or_unblocks_nowcast(self):
+        snapshot = valid_snapshot()
+        snapshot.pop("render_health_http")
+        snapshot.pop("render_candles_http")
+        snapshot.pop("render_health")
+        snapshot["feed_source_mode"] = "OKX_EEA_REST_SNAPSHOT"
+        snapshot["feed_capture_status"] = "ok"
+        snapshot["feed_health"] = {"status": "ok", "websocket_connected": False}
+        result = evaluate_signal(snapshot, now=NOW)
+        self.assertEqual(result["decision"], "ATTENDERE")
+        self.assertIsNone(result["direction"])
+        self.assertIn(
+            "microstruttura WebSocket continua N/D: snapshot REST non prova continuità LIVE",
+            result["data_quality"]["blockers"],
+        )
+        self.assertFalse(result["execution"]["orders_enabled"])
+        self.assertFalse(result["execution"]["sizing_calculated"])
+
     def test_exact_xperp_contract_is_required(self):
         snapshot = valid_snapshot()
         snapshot["market"]["zec_xperp_ticker"]["first"]["instId"] = "ZEC-USDT-SWAP"

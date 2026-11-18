@@ -1,5 +1,13 @@
 # BTC + ZEC Futures Radar — change log
 
+## 2026-11-18 — Render-free scheduled REST pipeline (prepared)
+
+- Repurposed the existing five-minute radar workflow to fetch completed candles and current market context directly from public OKX EEA REST endpoints; removed its Render `repository_dispatch` dependency without adding a workflow or schedule.
+- Preserved the separate 15-minute BTC context collector schedule.
+- Added an explicit `OKX_EEA_REST_SNAPSHOT` source mode. Sampled books/trades remain REST/BRIDGE; no continuous CVD or live book sequence is claimed, and nowcast gates block on missing WebSocket microstructure.
+- Kept the historical `data/render_feed.json` path temporarily for consumer compatibility; it no longer contains Render responses.
+- This change is local to a review branch and is not yet published or active. The existing Render service must remain suspended manually; this code does not change account or billing settings.
+
 ## 2026-11-18 — Live feed integrity and nowcast gates
 
 - Tightened the completed 5m nowcast freshness limit to 180 seconds; stale data leaves the radar visible but forces `ATTENDERE`.
