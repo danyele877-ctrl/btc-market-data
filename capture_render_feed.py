@@ -30,7 +30,7 @@ def now():
 
 
 def validate_feed(feed, current_time=None):
-    """Reject stale, incomplete or internally inconsistent Render/OKX history."""
+    """Reject stale, incomplete or internally inconsistent radar history."""
     current_time = current_time or datetime.now(timezone.utc)
     if current_time.tzinfo is None:
         current_time = current_time.replace(tzinfo=timezone.utc)
@@ -57,10 +57,10 @@ def validate_feed(feed, current_time=None):
     health = feed.get("healthz", {})
     candles = feed.get("candles", {})
     if not isinstance(health, dict):
-        problems.append("Render health response record is malformed")
+        problems.append("Radar health response record is malformed")
         health = {}
     if not isinstance(candles, dict):
-        problems.append("Render candles response record is malformed")
+        problems.append("Radar candles response record is malformed")
         candles = {}
     if not isinstance(health.get("payload"), dict):
         problems.append("Radar feed diagnostics are missing or malformed")
@@ -69,7 +69,7 @@ def validate_feed(feed, current_time=None):
     if not rest_snapshot and (
         health.get("http_status") != 200 or candles.get("http_status") != 200
     ):
-        problems.append("Render health/candles responses are not both HTTP 200")
+        problems.append("Legacy health/candles responses are not both HTTP 200")
     if captured is None:
         return problems + ["captured_at is required to validate completed candle freshness"]
 
@@ -83,13 +83,13 @@ def validate_feed(feed, current_time=None):
             problems.append("REST snapshot must not claim a live WebSocket connection")
     else:
         if health_payload.get("websocket_connected") is not True:
-            problems.append("Render service or candle WebSocket is not healthy")
+            problems.append("Legacy candle WebSocket is not healthy")
         try:
             message_age = float(health_payload.get("last_message_age_seconds"))
         except (TypeError, ValueError):
             message_age = None
         if message_age is None or message_age < 0 or message_age > 120:
-            problems.append("Render candle WebSocket message is missing, future-dated or older than 120 seconds")
+            problems.append("Legacy candle WebSocket message is missing, future-dated or older than 120 seconds")
 
     instruments = (candles.get("payload") or {}).get("instruments", {}) if isinstance(candles.get("payload"), dict) else {}
     streams = health_payload.get("streams", {}) if isinstance(health_payload.get("streams"), dict) else {}
@@ -155,11 +155,11 @@ def validate_feed(feed, current_time=None):
             or stream.get("history_ready_200") is not True
             or stream_count < 200 or stream_gaps != 0
         ):
-            problems.append(f"Render health stream {stream_key}:{bar} is stale, gapped or below 200 bars")
+            problems.append(f"Radar health stream {stream_key}:{bar} is stale, gapped or below 200 bars")
         else:
             health_completed = parse_time(stream.get("last_completed_at"))
             if health_completed is None or abs((health_completed - completions[-1]).total_seconds()) > 1:
-                problems.append(f"Render health/candles timestamp mismatch for {stream_key}:{bar}")
+                problems.append(f"Radar health/candles timestamp mismatch for {stream_key}:{bar}")
 
     if isinstance(active, list):
         for _feed_key, stream_key, inst_id, inst_type in expected:
@@ -170,9 +170,9 @@ def validate_feed(feed, current_time=None):
                 and item.get("stream_key", item.get("instId")) == stream_key
                 for item in active
             ):
-                problems.append(f"Render active instrument missing or wrong: {inst_id}")
+                problems.append(f"Radar active instrument missing or wrong: {inst_id}")
     else:
-        problems.append("Render active_instruments is missing or malformed")
+        problems.append("Radar active_instruments is missing or malformed")
 
     for feed_key, stream_key, _inst_id, _inst_type in expected:
         market_series = instruments.get(feed_key, {}) if isinstance(instruments, dict) else {}
@@ -670,8 +670,8 @@ def main():
                 "last_candle_at": record.get("candles", [{}])[-1].get("timestamp") if record.get("candles") else None,
                 "last_completed_at": newest,
                 "age_seconds": round(age, 1) if age is not None else None,
-                "stale_after_seconds": MAX_FEED_AGE_SECONDS,
-                "stale": age is None or age < -60 or age > MAX_FEED_AGE_SECONDS,
+                "stale_after_seconds": HISTORY_MAX_AGE_SECONDS[bar],
+                "stale": age is None or age < -60 or age > HISTORY_MAX_AGE_SECONDS[bar],
                 "source": "OKX_EEA_REST",
             }
     captured_at = now()
