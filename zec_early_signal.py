@@ -378,6 +378,56 @@ def _breakout_early_warning(snapshot: dict[str, Any], x1m: list[dict[str, Any]],
     }
 
 
+def _directional_candidate_scores(groups: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Expose independent LONG/SHORT evidence contributions without treating them as probabilities."""
+    available_weight = sum(
+        float(group.get("weight", 0.0))
+        for group in groups.values()
+        if _number(group.get("score")) is not None and _number(group.get("weight")) is not None
+    )
+    if available_weight <= 0:
+        return {
+            "long": {"score": 0.0, "supporting_groups": []},
+            "short": {"score": 0.0, "supporting_groups": []},
+            "unit": "heuristic evidence points, not probability",
+        }
+
+    candidates = {}
+    for label, sign in (("long", 1), ("short", -1)):
+        contributions = []
+        weighted_score = 0.0
+        for name, group in groups.items():
+            score, weight = _number(group.get("score")), _number(group.get("weight"))
+            if score is None or weight is None or weight <= 0:
+                continue
+            contribution = max(0.0, sign * score) * weight
+            if contribution > 0:
+                weighted_score += contribution
+                contributions.append(name)
+        candidates[label] = {
+            "score": round(100.0 * weighted_score / available_weight, 1),
+            "supporting_groups": contributions,
+        }
+    candidates["unit"] = "heuristic evidence points, not probability"
+    return candidates
+
+
+def _anti_chase_veto(direction: str, warning: dict[str, Any]) -> str | None:
+    """Block chasing an extended break or entering into nearby opposing structure."""
+    status = str(warning.get("status") or "")
+    if direction == "LONG":
+        if status == "BREAKOUT GIA' ESTESO — ATTENDI RETEST":
+            return "LONG bloccato: breakout già esteso, attendere retest"
+        if status in ("PRE-ALLERTA LONG", "ROTTURA RIALZISTA NON CONFERMATA"):
+            return "LONG bloccato: resistenza/rottura non ancora confermata"
+    elif direction == "SHORT":
+        if status == "BREAKDOWN GIA' ESTESO — ATTENDI RETEST":
+            return "SHORT bloccato: breakdown già esteso, attendere retest"
+        if status in ("PRE-ALLERTA SHORT", "ROTTURA RIBASSISTA NON CONFERMATA"):
+            return "SHORT bloccato: supporto/rottura non ancora confermati"
+    return None
+
+
 def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
     """Evaluate one compact radar snapshot without emitting orders or position sizing."""
     now = now or datetime.now(timezone.utc)
@@ -558,14 +608,21 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         confidence = min(confidence, 40)
     groups_ready = all(name in groups for name in ("order_flow", "microstructure", "relative_strength"))
     candles_aligned = bool(x1m and x5m and _candlestick_direction(x1m) == _candlestick_direction(x5m) == direction_sign and direction_sign)
+    breakout_warning = _breakout_early_warning(snapshot, x1m, x5m, oi, ws_ready)
+    directional_candidates = _directional_candidate_scores(groups)
+    anti_chase_reason = _anti_chase_veto(direction, breakout_warning) if direction_sign else None
     confirmed = (
         not blockers
+        and anti_chase_reason is None
         and groups_ready
         and direction_sign != 0
         and abs(net) >= 0.68
         and agreement >= 0.75
         and candles_aligned
     )
+    if anti_chase_reason:
+        contrary.append(anti_chase_reason)
+        limitations.append(anti_chase_reason)
     if blockers or not groups_ready or len(groups) < 3 or not ws_ready or xperp is None or instrument is None:
         stage = "ATTENDERE"
     elif confirmed:
@@ -601,8 +658,6 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             if level is not None:
                 invalidation = {"direction": "SHORT", "price": level, "condition": "chiusura 1m sopra il massimo strutturale delle ultime barre completate"}
 
-    breakout_warning = _breakout_early_warning(snapshot, x1m, x5m, oi, ws_ready)
-
     contract_safety = build_contract_safety(instrument, verified=not bool(instrument_error))
     contract_safety["funding_interval"] = funding_interval
 
@@ -617,6 +672,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         "candidate_direction": direction,
         "exploratory_direction": exploratory_direction,
         "scores": {
+            "directional_candidates": directional_candidates,
             "net": round(net * 100, 1),
             "long": round(max(0.0, net) * 100, 1),
             "short": round(max(0.0, -net) * 100, 1),
@@ -628,6 +684,11 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         "contrary_signals": list(dict.fromkeys(contrary)),
         "invalidation": invalidation,
         "breakout_early_warning": breakout_warning,
+        "anti_chase": {
+            "blocked": anti_chase_reason is not None,
+            "reason": anti_chase_reason,
+            "entry_allowed_by_structure": anti_chase_reason is None,
+        },
         "data_quality": {
             "snapshot_age_seconds": round(source_age, 1) if source_age is not None else None,
             "websocket_ready": ws_ready,
