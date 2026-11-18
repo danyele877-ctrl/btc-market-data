@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-18T13:59:03.333985+00:00",
-  "snapshot_generated_at": "2026-11-18T13:59:03.263051+00:00",
+  "generated_at": "2026-11-18T14:35:59.609712+00:00",
+  "snapshot_generated_at": "2026-11-18T14:35:59.519676+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -100,7 +100,7 @@
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_open_interest_btc": {
@@ -124,7 +124,7 @@
     "coinboss_market_tickers_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "bitcoin_etf_flows_tftc": {
@@ -136,7 +136,7 @@
     "fred_macro": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_btc_usdc_ticker": {
@@ -178,25 +178,25 @@
     "okx_eea_zec_index": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     }
   }
