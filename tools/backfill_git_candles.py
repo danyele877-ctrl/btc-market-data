@@ -141,12 +141,15 @@ def walk_snapshot(doc: dict[str, Any], source: dict[str, Any], sink: list) -> No
             emit_list(history.get(alias), instrument, timeframe, source, sink)
 
     # Older/current feed schemas keep a short tail under instrument -> timeframe -> tail.
-    for root_name in ("candles_1m_5m", "spot_history", "zec_xperp_history"):
+    for root_name in ("candles_1m_5m", "spot_history", "zec_xperp_history", "okx_history", "candles"):
         root = doc.get(root_name)
         if not isinstance(root, dict):
             continue
         if root_name == "zec_xperp_history" and isinstance(root.get("bars"), dict):
             root = {"ZEC-USD_UM_XPERP": root["bars"]}
+        elif root_name == "candles":
+            # Render bridge schema: candles.payload.instruments -> instrument -> timeframe -> rows.
+            root = ((root.get("payload") or {}).get("instruments") or {})
         for instrument, frames in root.items():
             if not isinstance(frames, dict):
                 continue
@@ -162,7 +165,12 @@ def walk_snapshot(doc: dict[str, Any], source: dict[str, Any], sink: list) -> No
             for timeframe, payload in frames.items():
                 if timeframe not in SECONDS:
                     continue
-                rows = payload.get("tail") if isinstance(payload, dict) else payload
+                if isinstance(payload, list):
+                    rows = payload
+                elif isinstance(payload, dict):
+                    rows = payload.get("tail") or payload.get("candles") or payload.get("rows") or payload.get("data")
+                else:
+                    rows = None
                 emit_list(rows, canonical, timeframe, source, sink)
 
 
