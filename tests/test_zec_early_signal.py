@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timezone
 
-from zec_early_signal import INSTRUMENT_ID, evaluate_signal
+from zec_early_signal import INSTRUMENT_ID, _series, evaluate_signal
 
 
 CAPTURED = "2026-01-01T12:10:00Z"
@@ -87,6 +87,40 @@ def valid_snapshot():
 
 
 class ZecEarlySignalTests(unittest.TestCase):
+    def _shift_series(self, snapshot, instrument, bar, offset_ms):
+        for row in snapshot["candles_1m_5m"][instrument][bar]["tail"]:
+            row["ts_ms"] += offset_ms
+            completed = datetime.fromisoformat(row["completed_at"].replace("Z", "+00:00"))
+            row["completed_at"] = datetime.fromtimestamp(
+                completed.timestamp() + offset_ms / 1000, timezone.utc
+            ).isoformat().replace("+00:00", "Z")
+
+    def test_nowcast_5m_accepts_180_seconds_and_rejects_181(self):
+        for age, expected_error in ((180, None), (181, "nowcast 5m bloccato")):
+            with self.subTest(age=age):
+                snapshot = valid_snapshot()
+                self._shift_series(snapshot, "ZEC-USD_UM_XPERP", "5m", -age * 1000)
+                rows, error = _series(snapshot, "ZEC-USD_UM_XPERP", "5m")
+                self.assertEqual(bool(rows), error is None)
+                if expected_error:
+                    self.assertIn(expected_error, error)
+
+    def test_stale_5m_nowcast_blocks_but_radar_remains_active(self):
+        snapshot = valid_snapshot()
+        self._shift_series(snapshot, "ZEC-USD_UM_XPERP", "5m", -181_000)
+        result = evaluate_signal(snapshot, now=NOW)
+        self.assertEqual(result["status"], "ATTENDERE")
+        self.assertEqual(result["decision"], "ATTENDERE")
+        self.assertTrue(any("nowcast 5m bloccato" in item for item in result["data_quality"]["blockers"]))
+        self.assertFalse(result["execution"]["orders_enabled"])
+
+    def test_misaligned_spot_and_xperp_candle_timestamps_block_setup(self):
+        snapshot = valid_snapshot()
+        self._shift_series(snapshot, "BTC-USDC", "1m", -60_000)
+        result = evaluate_signal(snapshot, now=NOW)
+        self.assertEqual(result["status"], "ATTENDERE")
+        self.assertTrue(any("coerenza temporale 1m" in item for item in result["data_quality"]["blockers"]))
+
     def test_breakout_warning_is_separate_and_never_enables_orders(self):
         snapshot = valid_snapshot()
         rows = snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"]

@@ -79,6 +79,26 @@ class MicrostructureHistoryTests(unittest.TestCase):
         self.assertEqual(saved["trades"][0]["source"], "websocket")
         self.assertTrue(saved["trades"][0]["gap_before"])
 
+    def test_book_keeps_rest_websocket_collision_and_same_ms_ws_sequences(self):
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        depth = {"bids": [["900", "1"]], "asks": [["901", "1"]]}
+        micro = {"book_depth_history": [
+            {"ts_ms": now_ms - 1000, "seq_id": 10, "prev_seq_id": -1, **depth},
+            {"ts_ms": now_ms - 1000, "seq_id": 11, "prev_seq_id": 10, **depth},
+        ]}
+        rest = {"zec_xperp_book": {"http_status": 200, "retrieved_at": "2026-01-01T00:00:00Z",
+            "payload": {"data": [{"ts": str(now_ms - 1000), **depth}]}}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "micro.json"
+            with patch.object(capture, "MICRO_OUT", path):
+                capture.update_microstructure_history(rest, micro)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(len(saved["book_snapshots"]), 3)
+        self.assertEqual({row["source"] for row in saved["book_snapshots"]}, {"rest", "websocket"})
+        ws_rows = [row for row in saved["book_snapshots"] if row["source"] == "websocket"]
+        self.assertEqual({row["seq_id"] for row in ws_rows}, {10, 11})
+        self.assertEqual({row["prev_seq_id"] for row in ws_rows}, {-1, 10})
+
 
 if __name__ == "__main__":
     unittest.main()

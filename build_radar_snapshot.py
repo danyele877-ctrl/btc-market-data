@@ -199,12 +199,34 @@ def microstructure_summary(micro):
     books = micro.get("book_snapshots", []) if isinstance(micro, dict) else []
     trades = micro.get("trades", []) if isinstance(micro, dict) else []
     sorted_trades = sorted(trades, key=lambda item: (int(item.get("ts_ms", 0)), int(item.get("tradeId", 0))))
-    ids = sorted({int(item["tradeId"]) for item in sorted_trades if str(item.get("tradeId", "")).isdigit()})
-    trade_gap_events = sum(1 for previous, current in zip(ids, ids[1:]) if current - previous > 1)
+    rest_trades = [item for item in sorted_trades if item.get("source", "rest") == "rest"]
+    websocket_trades = [item for item in sorted_trades if item.get("source") == "websocket"]
+    rest_ids = {str(item.get("tradeId")) for item in rest_trades if str(item.get("tradeId", "")).isdigit()}
+    websocket_ids = {str(item.get("tradeId")) for item in websocket_trades if str(item.get("tradeId", "")).isdigit()}
+    # WS gap_before is computed from the live channel sequence, including OKX
+    # aggregated-trade count semantics. REST polling is sampled and cannot
+    # prove continuity from adjacent tradeId values.
+    websocket_trade_gaps = sum(1 for item in websocket_trades if item.get("gap_before") is True)
     sorted_books = sorted(books, key=lambda item: int(item.get("ts_ms", 0)))
+    websocket_books = sorted(
+        (item for item in books if item.get("source") == "websocket"),
+        key=lambda item: (int(item.get("ts_ms", 0)), int(item.get("seq_id", 0))),
+    )
+    books_by_timestamp = {}
+    for item in books:
+        books_by_timestamp.setdefault(int(item.get("ts_ms", 0)), []).append(item)
+    cross_source_timestamp_groups = sum(
+        1 for rows in books_by_timestamp.values()
+        if len({row.get("source", "rest") for row in rows}) > 1
+    )
+    same_source_timestamp_groups = sum(
+        1 for rows in books_by_timestamp.values()
+        if any(sum(row.get("source", "rest") == source for row in rows) > 1
+               for source in {row.get("source", "rest") for row in rows})
+    )
     intervals = [
         (int(current["ts_ms"]) - int(previous["ts_ms"])) / 1000.0
-        for previous, current in zip(sorted_books, sorted_books[1:])
+        for previous, current in zip(websocket_books, websocket_books[1:])
         if int(current.get("ts_ms", 0)) > int(previous.get("ts_ms", 0))
     ]
     median_interval = None
@@ -221,19 +243,31 @@ def microstructure_summary(micro):
         "instrument": micro.get("instrument"),
         "rest_history_collection_method": "REST polling",
         "book_snapshot_count": len(books),
+        "rest_book_snapshot_count": sum(1 for item in books if item.get("source", "rest") == "rest"),
+        "websocket_book_snapshot_count": len(websocket_books),
+        "book_duplicate_timestamp_collisions": max(0, len(books) - len({int(item.get("ts_ms", 0)) for item in books})),
+        "book_cross_source_timestamp_groups": cross_source_timestamp_groups,
+        "book_same_source_timestamp_groups": same_source_timestamp_groups,
         "book_sample_median_seconds": round(median_interval, 1) if median_interval is not None else None,
         "last_book": last_book,
         "previous_book": sorted_books[-2] if len(sorted_books) > 1 else None,
         "last_book_captured_at": last_book.get("captured_at") if last_book else None,
         "trade_count": len(trades),
-        "unique_trade_ids": len(ids),
-        "trade_id_gap_events": trade_gap_events,
+        "rest_trade_count": len(rest_trades),
+        "websocket_trade_count": len(websocket_trades),
+        "unique_trade_ids": len(rest_ids | websocket_ids),
+        "rest_unique_trade_ids": len(rest_ids),
+        "websocket_unique_trade_ids": len(websocket_ids),
+        "trade_id_gap_events": websocket_trade_gaps,
+        "websocket_trade_gap_events": websocket_trade_gaps,
+        "rest_trade_gap_events": None,
         "first_trade": sorted_trades[0] if sorted_trades else None,
         "last_trade": last_trade,
         "trade_window_start": sorted_trades[0].get("ts_ms") if sorted_trades else None,
         "trade_window_end": last_trade.get("ts_ms") if last_trade else None,
-        "rest_history_cvd_status": "N/D: REST polling with detected tradeId gaps" if trade_gap_events else "N/D: REST polling; continuity not proven",
-        "book_sequence_status": "N/D: REST snapshots do not provide a continuous WS sequence chain",
+        "rest_history_cvd_status": "N/D: REST polling campionato; continuità tradeId non dimostrabile",
+        "websocket_archive_continuity_status": "N/D: gap rilevati nel flusso archiviato" if websocket_trade_gaps else "N/D: archivio campionato; continuità LIVE si legge solo dallo stato WebSocket",
+        "book_sequence_status": "N/D: archivio WS campionato; integrità sequenza verificata dal servizio LIVE",
         "open_interest_history": oi_history,
     }
 
@@ -468,7 +502,7 @@ def main():
             micro_out["websocket_cvd_status"] = "N/D: gap, tape troncato o continuità WebSocket non dimostrata"
         micro_out["cvd_status"] = micro_out["websocket_cvd_status"]
         micro_out["book_sequence_status"] = (
-            "OK: sequenza WebSocket valida"
+            "OK: catena WebSocket LIVE valida; archivio persistito campionato"
             if ws_micro.get("book_valid") else "N/D: book non valido o in attesa di snapshot"
         )
     output = {

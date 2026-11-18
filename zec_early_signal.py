@@ -53,7 +53,8 @@ def _pct_change(current: float | None, previous: float | None) -> float | None:
     return current / previous - 1.0
 
 
-def _series(snapshot: dict[str, Any], instrument: str, bar: str) -> tuple[list[dict[str, Any]], str | None]:
+def _series(snapshot: dict[str, Any], instrument: str, bar: str,
+            max_age_seconds: int | None = None) -> tuple[list[dict[str, Any]], str | None]:
     rows = (((snapshot.get("candles_1m_5m") or {}).get(instrument) or {}).get(bar) or {}).get("tail")
     if not isinstance(rows, list):
         series = (((snapshot.get("candles_1m_5m") or {}).get(instrument) or {}).get(bar) or {})
@@ -83,8 +84,13 @@ def _series(snapshot: dict[str, Any], instrument: str, bar: str) -> tuple[list[d
 
     latest_completed = _time(rows[-1].get("completed_at"))
     age = (captured_at - latest_completed).total_seconds() if captured_at and latest_completed else None
-    max_age = 180 if bar == "1m" else 360
+    # A nowcast may only use a recent completed candle. The same 180 second
+    # ceiling applies to 5m as well as 1m; a longer lookback is history, not
+    # verified current-state evidence.
+    max_age = 180 if max_age_seconds is None else max_age_seconds
     if age is None or age < -1 or age > max_age:
+        if bar == "5m" and max_age == 180 and age is not None and age > max_age:
+            return [], f"nowcast 5m bloccato: barra chiusa oltre 180 secondi ({age:.1f}s)"
         return [], f"candele {instrument} {bar}: barra chiusa stantia o fuori tempo ({age})"
     for row in rows:
         if any(_number(row.get(field)) is None for field in ("open", "high", "low", "close")):
@@ -423,11 +429,22 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
 
     x1m, x1m_error = _series(snapshot, FEED_KEY, "1m")
     x5m, x5m_error = _series(snapshot, FEED_KEY, "5m")
+    btc1m, btc1m_error = _series(snapshot, "BTC-USDC", "1m")
+    zec1m, zec1m_error = _series(snapshot, "ZEC-USDC", "1m")
     btc5m, btc5m_error = _series(snapshot, "BTC-USDC", "5m")
     zec5m, zec5m_error = _series(snapshot, "ZEC-USDC", "5m")
-    for error in (x1m_error, x5m_error, btc5m_error, zec5m_error):
+    for error in (x1m_error, x5m_error, btc1m_error, zec1m_error, btc5m_error, zec5m_error):
         if error:
             blockers.append(error)
+
+    for bar, rows_by_market in (
+        ("1m", (x1m, btc1m, zec1m)),
+        ("5m", (x5m, btc5m, zec5m)),
+    ):
+        if all(rows_by_market):
+            candle_starts = [rows[-1].get("ts_ms") for rows in rows_by_market]
+            if len(set(candle_starts)) != 1:
+                blockers.append(f"coerenza temporale {bar} non valida tra BTC spot, ZEC spot e ZEC X-Perp")
 
     micro = snapshot.get("microstructure") or {}
     websocket = micro.get("websocket") or {}

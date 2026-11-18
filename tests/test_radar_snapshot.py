@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-from build_radar_snapshot import summarize_history, funding_diagnostics
+from build_radar_snapshot import microstructure_summary, summarize_history, funding_diagnostics
 from capture_render_feed import get_okx_xperp_history, validate_feed
 
 
@@ -96,6 +96,31 @@ class RadarHistoryValidationTests(unittest.TestCase):
                 "newest_completed_at": newest, "error": None,
             }
         return feed
+
+    def test_rest_trade_polling_gaps_do_not_contaminate_live_ws_gap_status(self):
+        result = microstructure_summary({
+            "book_snapshots": [
+                {"source": "rest", "ts_ms": 1000},
+                {"source": "websocket", "ts_ms": 1000, "seq_id": 10, "prev_seq_id": -1},
+                {"source": "websocket", "ts_ms": 1000, "seq_id": 11, "prev_seq_id": 10},
+            ],
+            "trades": [
+                {"source": "rest", "tradeId": "10", "ts_ms": 1000},
+                {"source": "rest", "tradeId": "100", "ts_ms": 2000},
+                {"source": "websocket", "tradeId": "101", "ts_ms": 2000, "gap_before": False},
+                {"source": "websocket", "tradeId": "105", "ts_ms": 3000, "gap_before": True},
+            ],
+        })
+        self.assertEqual(result["rest_trade_count"], 2)
+        self.assertEqual(result["websocket_trade_count"], 2)
+        self.assertIsNone(result["rest_trade_gap_events"])
+        self.assertEqual(result["websocket_trade_gap_events"], 1)
+        self.assertEqual(result["trade_id_gap_events"], 1)
+        self.assertIn("campionato", result["rest_history_cvd_status"])
+        self.assertEqual(result["book_snapshot_count"], 3)
+        self.assertEqual(result["book_duplicate_timestamp_collisions"], 2)
+        self.assertEqual(result["book_cross_source_timestamp_groups"], 1)
+        self.assertEqual(result["book_same_source_timestamp_groups"], 1)
 
     def test_feed_validation_accepts_fresh_spot_history(self):
         self.assertEqual(validate_feed(self.valid_feed()), [])

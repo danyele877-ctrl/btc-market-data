@@ -29,6 +29,14 @@ The repository is **not** itself a relational database. At present, operational 
 
 `radar_alert_contract.py` validates that the snapshot contains all required sections and that safety invariants remain intact. The test suite and CI run this check against the published snapshot. A component is not considered integrated merely because its code exists: its output must be represented in the snapshot, the bridge must publish it, and the alert contract must pass.
 
+## Live microstructure and nowcast integrity
+
+- The live WebSocket book is trusted only while its `prevSeqId` chain matches the preceding `seqId`; sampled archive rows preserve both IDs but are not a complete event-by-event sequence log. Archived REST books and WebSocket books remain separate sources. Identical millisecond timestamps across sources, or distinct WS `seqId` values at one millisecond, must not be deduplicated together.
+- REST trade history is polling-sampled. Missing adjacent `tradeId` values in that history do not prove WebSocket loss and must not be counted as live CVD gaps. Live CVD uses only the WebSocket channel's `count`, `tradeId`, and `gap_before` checks, on bounded 1m/5m/15m windows; events later than the evaluation timestamp are excluded.
+- The BASELINE nowcast requires the latest completed 1m and 5m candles to be no more than 180 seconds old. If the 5m candle is older, BASELINE remains available with status/reason but its directional decision is `ATTENDERE`. SHADOW retains its pre-existing 360-second 5m diagnostic freshness limit; its outputs remain experimental and cannot place orders or size positions.
+- BTC spot, ZEC spot, and ZEC X-Perp candle endpoints must align for both 1m and 5m evidence before a setup can be evaluated. Historical archives stay diagnostic and cannot substitute for live inputs.
+- The existing Render bridge job validates the candidate bundle before publishing. Its schedule, workflow identity, and trigger configuration are unchanged by these integrity rules.
+
 ## Storage evolution
 
 ### Current state

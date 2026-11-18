@@ -489,7 +489,8 @@ def update_microstructure_history(okx_market, websocket_micro=None, captured_at=
         if ts and row.get("bids") is not None and row.get("asks") is not None:
             history["book_snapshots"].append({
                 "ts_ms": ts, "captured_at": None, "source": "websocket",
-                "seq_id": seq_id, "bids": row.get("bids", [])[:10],
+                "seq_id": seq_id, "prev_seq_id": row.get("prev_seq_id"),
+                "bids": row.get("bids", [])[:10],
                 "asks": row.get("asks", [])[:10],
             })
     # Pair OI with the exact X-Perp ticker's USD price at capture time. This is
@@ -564,8 +565,18 @@ def update_microstructure_history(okx_market, websocket_micro=None, captured_at=
             history["trades"].append(item)
     book_by_key = {}
     for row in history["book_snapshots"]:
-        book_by_key[(row.get("source", "rest"), int(row.get("ts_ms", 0)))] = row
-    history["book_snapshots"] = sorted(book_by_key.values(), key=lambda x: x["ts_ms"])
+        source = row.get("source", "rest")
+        # WebSocket states are sequenced: two valid states can share the same
+        # millisecond. Deduplicate by seqId, not exchange timestamp. REST has
+        # no sequence id and remains keyed by its timestamp.
+        if source == "websocket" and row.get("seq_id") is not None:
+            identity = (source, int(row["seq_id"]))
+        else:
+            identity = (source, int(row.get("ts_ms", 0)))
+        book_by_key[identity] = row
+    history["book_snapshots"] = sorted(
+        book_by_key.values(), key=lambda x: (int(x.get("ts_ms", 0)), x.get("source", ""), int(x.get("seq_id", 0)))
+    )
     history["trades"].sort(key=lambda x: (x["ts_ms"], x["tradeId"]))
     history["open_interest_history"] = sorted(
         {int(x["ts_ms"]): x for x in history["open_interest_history"] if x.get("ts_ms")}.values(),

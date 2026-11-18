@@ -281,22 +281,60 @@ class FeedStateTests(unittest.TestCase):
 
         asyncio.run(run_case())
 
+    def test_cvd_windows_exclude_future_dated_events(self):
+        feed = service.CandleFeed()
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        micro = feed.state["microstructure"]
+        micro["connected"] = True
+        micro["connected_since_ms"] = now_ms - 16 * 60 * 1000
+        feed.micro_trade_events.extend([
+            {"ts_ms": now_ms - 1000, "delta_contracts": 2.0, "gap_before": False},
+            {"ts_ms": now_ms + 10_000, "delta_contracts": 100.0, "gap_before": False},
+        ])
+        feed._refresh_micro_cvd(now_ms)
+        cvd = micro["cvd"]
+        self.assertEqual(cvd["trade_count_1m"], 1)
+        self.assertEqual(cvd["1m"], 2.0)
+        self.assertEqual(cvd["5m"], 2.0)
+        self.assertEqual(cvd["15m"], 2.0)
+
+    def test_ws_trade_far_in_future_is_rejected_before_live_state_update(self):
+        async def run_case():
+            with TemporaryDirectory() as directory:
+                feed = service.CandleFeed(Path(directory) / "candles.json")
+                now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+                payload = {
+                    "arg": {"channel": "trades", "instId": service.EXPECTED_XPERP_INST_ID},
+                    "data": [{"tradeId": "101", "count": "1", "sz": "3", "side": "buy",
+                        "px": "100", "ts": str(now_ms + 5000)}],
+                }
+                await feed.handle_microstructure_message(json.dumps(payload))
+                micro = feed.state["microstructure"]
+                self.assertEqual(micro["trade_timestamp_reject_count"], 1)
+                self.assertIsNone(micro["last_trade_at"])
+                self.assertEqual(len(feed.micro_trade_events), 0)
+
+        asyncio.run(run_case())
+
     def test_microstructure_book_requires_valid_sequence_chain(self):
         async def run_case():
             with TemporaryDirectory() as directory:
                 feed = service.CandleFeed(Path(directory) / "candles.json")
+                feed.micro_last_persist = 0
+                now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
                 base = {"arg": {"channel": "books", "instId": service.EXPECTED_XPERP_INST_ID}}
                 snapshot = dict(base, action="snapshot", data=[{
-                    "seqId": 10, "prevSeqId": -1, "ts": "1794570000000",
+                    "seqId": 10, "prevSeqId": -1, "ts": str(now_ms),
                     "bids": [["100", "5", "0", "1"]],
                     "asks": [["101", "3", "0", "1"]],
                 }])
                 await feed.handle_microstructure_message(json.dumps(snapshot))
                 self.assertTrue(feed.state["microstructure"]["book_valid"])
                 self.assertEqual(feed.state["microstructure"]["book_seq_id"], 10)
+                self.assertEqual(feed.state["microstructure"]["book_depth_history"][0]["prev_seq_id"], -1)
 
                 update = dict(base, action="update", data=[{
-                    "seqId": 11, "prevSeqId": 10, "ts": "1794570000100",
+                    "seqId": 11, "prevSeqId": 10, "ts": str(now_ms + 100),
                     "bids": [["100", "7", "0", "1"]],
                     "asks": [],
                 }])
@@ -305,7 +343,7 @@ class FeedStateTests(unittest.TestCase):
                 self.assertEqual(feed.state["microstructure"]["book_seq_id"], 11)
 
                 broken = dict(base, action="update", data=[{
-                    "seqId": 13, "prevSeqId": 12, "ts": "1794570000200",
+                    "seqId": 13, "prevSeqId": 12, "ts": str(now_ms + 200),
                     "bids": [], "asks": [],
                 }])
                 await feed.handle_microstructure_message(json.dumps(broken))

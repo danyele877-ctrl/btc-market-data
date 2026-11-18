@@ -122,8 +122,21 @@ class ZecShadowSignalTests(unittest.TestCase):
                 row["completed_at"] = (completed - timedelta(seconds=240)).isoformat().replace("+00:00", "Z")
         baseline = evaluate_signal(snapshot, now=NOW)
         shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=NOW)
+        self.assertEqual(baseline["decision"], "ATTENDERE")
+        self.assertTrue(any("nowcast 5m bloccato" in item for item in baseline["data_quality"]["blockers"]))
         self.assertTrue(shadow["data_quality"]["ready"])
         self.assertFalse(any("5m" in item and "SHADOW stantia" in item for item in shadow["data_quality"]["blockers"]))
+
+    def test_shadow_blocks_misaligned_live_candle_endpoints(self):
+        snapshot = directional_snapshot("LONG")
+        for row in snapshot["candles_1m_5m"]["BTC-USDC"]["1m"]["tail"]:
+            row["ts_ms"] -= 60_000
+            completed = datetime.fromisoformat(row["completed_at"].replace("Z", "+00:00"))
+            row["completed_at"] = (completed - timedelta(seconds=60)).isoformat().replace("+00:00", "Z")
+        baseline = evaluate_signal(snapshot, now=NOW)
+        shadow = evaluate_shadow_signal(snapshot, baseline=baseline, now=NOW)
+        self.assertFalse(shadow["data_quality"]["ready"])
+        self.assertTrue(any("coerenza temporale 1m" in item for item in shadow["data_quality"]["blockers"]))
 
     def test_btc_bearish_1h_filters_unconfirmed_countertrend_long(self):
         snapshot = directional_snapshot("LONG", breakout_volume=100)

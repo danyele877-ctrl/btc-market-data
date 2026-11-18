@@ -168,6 +168,7 @@ def new_state() -> dict[str, Any]:
             "reconnects": 0,
             "last_trade_id": None,
             "trade_gap_count": 0,
+            "trade_timestamp_reject_count": 0,
             "trade_message_count": 0,
             "book_valid": False,
             "book_seq_id": None,
@@ -421,7 +422,9 @@ class CandleFeed:
         connected_since = micro.get("connected_since_ms")
         for label, window_seconds in (("1m", 60), ("5m", 300), ("15m", 900)):
             start_ms = now_ms - window_seconds * 1000
-            window = [item for item in self.micro_trade_events if item["ts_ms"] >= start_ms]
+            # Bound both ends of rolling windows. A future-dated exchange
+            # event must never leak into a live CVD value.
+            window = [item for item in self.micro_trade_events if start_ms <= item["ts_ms"] <= now_ms]
             window_gap_count = sum(1 for item in window if item.get("gap_before"))
             cvd[f"trade_count_{label}"] = len(window)
             cvd[f"gap_count_{label}"] = window_gap_count
@@ -505,6 +508,9 @@ class CandleFeed:
                 side = row.get("side")
                 if size <= 0 or side not in ("buy", "sell"):
                     continue
+                if ts_ms <= 0 or ts_ms > now_ms + 1000:
+                    micro["trade_timestamp_reject_count"] = int(micro.get("trade_timestamp_reject_count", 0)) + 1
+                    continue
                 previous_id = micro.get("last_trade_id")
                 first_id = trade_id - count + 1
                 gap_before = False
@@ -585,6 +591,7 @@ class CandleFeed:
                     micro.setdefault("book_depth_history", []).append({
                         "ts_ms": exchange_ts,
                         "seq_id": seq_id,
+                        "prev_seq_id": prev_seq_id,
                         "bids": summary.get("bids", [])[:10],
                         "asks": summary.get("asks", [])[:10],
                     })

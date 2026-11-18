@@ -20,7 +20,10 @@ from zec_early_signal import (
 def _shadow_series(snapshot: dict[str, Any], instrument: str, bar: str,
                    now: datetime | None = None) -> tuple[list[dict[str, Any]], str | None]:
     """Use baseline candle integrity checks, then apply SHADOW's own live-age gate."""
-    rows, error = _series(snapshot, instrument, bar)
+    # Preserve SHADOW's existing 360s 5m diagnostic freshness criterion.
+    # BASELINE's stricter 180s blocker remains separate and SHADOW cannot
+    # enable execution or sizing.
+    rows, error = _series(snapshot, instrument, bar, max_age_seconds=360 if bar == "5m" else 180)
     if error:
         return [], error
     try:
@@ -179,14 +182,33 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
     """Compute a separate directional diagnostic; baseline remains read-only."""
     baseline = baseline or evaluate_signal(snapshot, now=now)
     quality = baseline.get("data_quality") or {}
-    blockers = list(quality.get("blockers") or [])
+    # The shared BASELINE result applies its 180s nowcast gate. This is not a
+    # SHADOW criterion: remove only that specific blocker, then apply SHADOW's
+    # own unchanged 360s 5m freshness gate below. Other baseline safety/data
+    # blockers continue to propagate.
+    blockers = [
+        item for item in (quality.get("blockers") or [])
+        if not str(item).startswith("nowcast 5m bloccato:")
+    ]
     x1m, x1m_error = _shadow_series(snapshot, FEED_KEY, "1m", now)
     x5m, x5m_error = _shadow_series(snapshot, FEED_KEY, "5m", now)
+    btc1m, btc1m_error = _shadow_series(snapshot, "BTC-USDC", "1m", now)
+    zec1m, zec1m_error = _shadow_series(snapshot, "ZEC-USDC", "1m", now)
     btc5m, btc_error = _shadow_series(snapshot, "BTC-USDC", "5m", now)
     zec5m, zec_error = _shadow_series(snapshot, "ZEC-USDC", "5m", now)
-    for error in (x1m_error, x5m_error, btc_error, zec_error):
+    for error in (x1m_error, x5m_error, btc1m_error, zec1m_error, btc_error, zec_error):
         if error and error not in blockers:
             blockers.append(error)
+    for bar, streams in (("1m", (x1m, btc1m, zec1m)), ("5m", (x5m, btc5m, zec5m))):
+        if all(streams) and len({rows[-1].get("ts_ms") for rows in streams}) != 1:
+            blockers.append(f"coerenza temporale {bar} BTC/ZEC/X-Perp non valida per SHADOW")
+    if btc5m and zec5m and btc5m[-1].get("ts_ms") == zec5m[-1].get("ts_ms"):
+        # The baseline's relative-strength blocker can be a consequence of
+        # its stricter 180s freshness gate. Re-evaluate alignment on SHADOW's
+        # own validated series before deciding whether that blocker applies.
+        blockers = [item for item in blockers if item != "forza relativa 5m ZEC/BTC non allineata o non disponibile"]
+    elif btc5m and zec5m:
+        blockers.append("coerenza temporale 5m BTC/ZEC non valida per SHADOW")
 
     d1 = _candlestick_direction(x1m) if x1m else 0
     d5 = _candlestick_direction(x5m) if x5m else 0
