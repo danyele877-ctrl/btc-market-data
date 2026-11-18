@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Recovery probe: this file change triggers the Render bridge capture workflow.
 """Capture the public Render candle feed into a GitHub-readable snapshot."""
+import gzip
 import json
 import math
 import os
@@ -20,7 +21,7 @@ MICRO_MAX_MINUTES = 1440
 MICRO_MAX_TRADES = 30000
 MICRO_MAX_BOOK_SNAPSHOTS = 15000
 MAX_FEED_AGE_SECONDS = 20 * 60
-HISTORY_MAX_AGE_SECONDS = {"1m": 180, "5m": 360, "1H": 3 * 3600, "4H": 12 * 3600}
+HISTORY_MAX_AGE_SECONDS = {"1m": 180, "5m": 360, "15m": 30 * 60, "1H": 3 * 3600, "4H": 12 * 3600}
 
 def now():
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -85,9 +86,9 @@ def validate_feed(feed, current_time=None):
     )
 
     def validate_series(series, market, bar, stream_key):
-        interval_seconds = {"1m": 60, "5m": 300}[bar]
+        interval_seconds = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}[bar]
         interval_ms = interval_seconds * 1000
-        freshness_limit = {"1m": 180, "5m": 360}[bar]
+        freshness_limit = {"1m": 180, "5m": 360, "15m": 1800, "1H": 3 * 3600, "4H": 12 * 3600}[bar]
         label = f"{market} {bar}"
         if not isinstance(series, list) or len(series) < 200:
             problems.append(f"Render {label} has fewer than 200 completed candles")
@@ -157,7 +158,7 @@ def validate_feed(feed, current_time=None):
 
     for feed_key, stream_key, _inst_id, _inst_type in expected:
         market_series = instruments.get(feed_key, {}) if isinstance(instruments, dict) else {}
-        for bar in ("1m", "5m"):
+        for bar in ("1m", "5m", "15m", "1H", "4H"):
             validate_series(market_series.get(bar, []), feed_key, bar, stream_key)
 
     okx_history = feed.get("okx_history", {})
@@ -218,7 +219,7 @@ def validate_feed(feed, current_time=None):
     if not isinstance(xperp_bars, dict):
         problems.append("ZEC X-Perp history bars are missing or malformed")
         xperp_bars = {}
-    for bar in ("1m", "5m", "1H", "4H"):
+    for bar in ("1m", "5m", "15m", "1H", "4H"):
         record = xperp_bars.get(bar, {})
         if not isinstance(record, dict):
             problems.append(f"ZEC-USD_UM_XPERP-310530 {bar} history record is malformed")
@@ -271,11 +272,14 @@ def get(path):
     req = urllib.request.Request(url, headers={
         "User-Agent": "btc-market-data-github-bridge/1.0",
         "Accept": "application/json",
+        "Accept-Encoding": "gzip",
         "Cache-Control": "no-cache",
     })
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
             raw = response.read()
+            if response.headers.get("Content-Encoding", "").lower() == "gzip":
+                raw = gzip.decompress(raw)
             payload = json.loads(raw.decode("utf-8"))
             return {
                 "http_status": response.status,
@@ -384,16 +388,16 @@ def get_okx_history(inst_id, bar, limit=300):
             "candles": [],
         }
 
-def get_okx_xperp_history(inst_id, bars=("1m", "5m", "1H", "4H"), target=250):
+def get_okx_xperp_history(inst_id, bars=("1m", "5m", "15m", "1H", "4H"), target=500):
     """Fetch completed historical candles for the exact ZEC X-Perp, paginating older rows."""
-    seconds = {"1m": 60, "5m": 300, "1H": 3600, "4H": 14400}
+    seconds = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}
     output = {"schema_version": 1, "instrument": inst_id, "retrieved_at": now(), "bars": {}}
     for bar in bars:
         collected = {}
         cursor = None
         errors = []
         response_statuses = []
-        for _ in range(4):
+        for _ in range(6):
             params = {"instId": inst_id, "bar": bar, "limit": "100"}
             if cursor is not None:
                 params["after"] = str(cursor)
