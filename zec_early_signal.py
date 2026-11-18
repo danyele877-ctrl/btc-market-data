@@ -197,6 +197,8 @@ def _funding_interval_diagnostic(snapshot: dict[str, Any]) -> dict[str, Any]:
         status = "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H"
     return {
         "published_reference_interval_hours": 4,
+        "published_reference_source_url": "https://www.okx.com/en-gb/help/x-perps-contract-specifications",
+        "dynamic_interval_policy_source_url": "https://www.okx.com/en-eu/help/okx-to-enable-automatic-updates-for-funding-fee-settlement-period",
         "live_next_interval_hours": live_next_interval,
         "observed_intervals": observed,
         "status": status,
@@ -206,9 +208,7 @@ def _funding_interval_diagnostic(snapshot: dict[str, Any]) -> dict[str, Any]:
         "raw_next_funding_rate": funding.get("nextFundingRate"),
         "method": funding.get("method"),
         "interpretation": (
-            "OKX support conferma settlement ogni 4 ore per questo X-Perp. I timestamp API grezzi mostrano un intervallo diverso e non sostituiscono la periodicità confermata. Riportare nextFundingTime come dato API non riconciliato. "
-            "restituito dall'API. La cadenza osservata differisce dalla specifica confermata 4h; discrepanza "
-            "documentale mantenuta visibile. Nessuna proiezione del funding futuro."
+            "La specifica pubblica OKX OEM/EEA indica un intervallo standard di 4 ore per ZEC X-Perps. OKX documenta anche adeguamenti dinamici della frequenza; i timestamp API live qui osservati sono a 8 ore, ma la causa specifica non è confermata. Il warning resta visibile e nextFundingTime è riportato come osservazione API, senza proiettare funding futuro."
             if status == "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H" else
             "Timestamp API non allineati: nextFundingTime resta un dato grezzo non verificato."
             if status == "TIMESTAMP_API_NON_ALLINEATI" else

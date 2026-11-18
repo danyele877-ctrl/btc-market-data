@@ -167,6 +167,8 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(diagnostic["status"], "API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H")
         self.assertEqual(diagnostic["observed_intervals"]["previous_to_current_hours"], 8.0)
         self.assertEqual(diagnostic["live_next_interval_hours"], 8.0)
+        self.assertIn("causa specifica non è confermata", diagnostic["interpretation"])
+        self.assertIn("published_reference_source_url", diagnostic)
         self.assertFalse(result["contract_safety"]["sizing_allowed"])
         self.assertFalse(result["execution"]["orders_enabled"])
         self.assertTrue(any("Funding:" in item for item in result["data_quality"]["limitations"]))
