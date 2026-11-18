@@ -1,14 +1,112 @@
 import json
+import gzip
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import capture_render_feed as capture
 
 
 class MicrostructureHistoryTests(unittest.TestCase):
+    def _candle_payloads(self):
+        previous = {
+            "schema_version": 1, "generated_at": "2026-01-01T00:00:00Z",
+            "service": {"status": "ok"}, "microstructure": {"connected": True}, "instruments": {},
+        }
+        delta = {
+            "schema_version": 1, "generated_at": "2026-01-01T00:01:00Z",
+            "service": {"status": "ok", "last_message_at": "2026-01-01T00:01:00Z"},
+            "microstructure": {"connected": True, "last_trade_id": 201}, "instruments": {},
+        }
+        for instrument in capture.BRIDGE_INSTRUMENTS:
+            previous["instruments"][instrument] = {}
+            delta["instruments"][instrument] = {}
+            for bar, interval_ms in capture.CANDLE_INTERVAL_MS.items():
+                rows = [{"ts_ms": interval_ms * index, "close": str(index)} for index in range(1, 201)]
+                previous["instruments"][instrument][bar] = rows
+                delta["instruments"][instrument][bar] = [{
+                    "ts_ms": rows[-1]["ts_ms"] + interval_ms, "close": "201"
+                }]
+        return previous, delta
+
+    def test_delta_merge_keeps_complete_500_bar_shape_and_appends_only_new_rows(self):
+        previous, delta = self._candle_payloads()
+        result = capture.merge_candle_delta(previous, delta)
+        self.assertIsNotNone(result)
+        merged, added = result
+        self.assertEqual(added, 15)
+        rows = merged["instruments"]["ZEC-USD_UM_XPERP"]["15m"]
+        self.assertEqual(len(rows), 201)
+        self.assertEqual(rows[-1]["close"], "201")
+        self.assertEqual(merged["generated_at"], delta["generated_at"])
+        self.assertEqual(merged["service"], delta["service"])
+        self.assertEqual(merged["microstructure"], delta["microstructure"])
+
+    def test_delta_merge_rejects_gaps_and_malformed_streams_for_full_resync(self):
+        previous, delta = self._candle_payloads()
+        delta["instruments"]["BTC-USDC"]["1m"][0]["ts_ms"] += capture.CANDLE_INTERVAL_MS["1m"]
+        self.assertIsNone(capture.merge_candle_delta(previous, delta))
+        previous, delta = self._candle_payloads()
+        delta["instruments"]["BTC-USDC"].pop("1m")
+        self.assertIsNone(capture.merge_candle_delta(previous, delta))
+
+    def test_incremental_fetch_uses_delta_without_full_feed_request(self):
+        previous, delta = self._candle_payloads()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "render_feed.json"
+            path.write_text(json.dumps({"candles": {"payload": previous}}), encoding="utf-8")
+            with patch.object(capture, "OUT", path), patch.object(
+                capture, "get", return_value={
+                    "http_status": 200,
+                    "retrieved_at": "2026-01-01T00:01:01Z",
+                    "latency_ms": 12,
+                    "payload": delta,
+                },
+            ) as fetch:
+                result = capture.get_candles_incrementally()
+        self.assertEqual(result["transport_mode"], "delta")
+        self.assertEqual(result["delta_candles_received"], 15)
+        self.assertIn("/candles.delta.json?cursor=", fetch.call_args.args[0])
+
+    def test_missing_base_falls_back_to_single_full_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "missing.json"
+            with patch.object(capture, "OUT", path), patch.object(
+                capture, "get", return_value={"http_status": 200, "payload": {"instruments": {}}}
+            ) as fetch:
+                result = capture.get_candles_incrementally()
+        self.assertEqual(result["transport_mode"], "full")
+        fetch.assert_called_once_with("/candles.json")
+
+    def test_unavailable_delta_endpoint_falls_back_to_full_feed(self):
+        previous, _delta = self._candle_payloads()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "render_feed.json"
+            path.write_text(json.dumps({"candles": {"payload": previous}}), encoding="utf-8")
+            full = {"http_status": 200, "payload": {"instruments": {}}}
+            with patch.object(capture, "OUT", path), patch.object(
+                capture, "get", side_effect=[{"http_status": None, "error": "HTTP 404"}, full]
+            ) as fetch:
+                result = capture.get_candles_incrementally()
+        self.assertEqual(result["transport_mode"], "full")
+        self.assertEqual(fetch.call_args_list[0].args[0].split("?", 1)[0], "/candles.delta.json")
+        self.assertEqual(fetch.call_args_list[1].args[0], "/candles.json")
+
+    def test_render_get_requests_and_decompresses_gzip(self):
+        raw = gzip.compress(json.dumps({"generated_at": "2026-01-01T00:00:00Z"}).encode())
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = raw
+        response.__enter__.return_value.status = 200
+        response.__enter__.return_value.headers.get.return_value = "gzip"
+        with patch("capture_render_feed.urllib.request.urlopen", return_value=response) as urlopen:
+            result = capture.get("/healthz")
+        sent_request = urlopen.call_args.args[0]
+        self.assertEqual(result["payload"]["generated_at"], "2026-01-01T00:00:00Z")
+        self.assertEqual(result["http_status"], 200)
+        self.assertEqual(sent_request.get_header("Accept-encoding"), "gzip")
+
     def test_generic_json_writer_replaces_file_atomically(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "history.json"

@@ -205,6 +205,37 @@ class CandleFeed:
         self.micro_book = {"bids": {}, "asks": {}, "seq_id": None, "valid": False}
         self.micro_last_persist = 0.0
 
+    def candle_delta(self, cursors: dict[str, dict[str, int]]) -> dict[str, Any]:
+        """Return candles newer than per-stream cursors without retransmitting history."""
+        if not isinstance(cursors, dict):
+            raise ValueError("cursor must be an object")
+        output: dict[str, Any] = {
+            "schema_version": 1,
+            "generated_at": self.state.get("generated_at"),
+            "service": self.state.get("service", {}),
+            "instruments": {},
+        }
+        # Preserve the payload's current summary fields without resending the
+        # rolling book/depth arrays already carried by the health endpoint.
+        output["microstructure"] = {
+            key: value for key, value in self.state.get("microstructure", {}).items()
+            if key not in ("book_history", "book_depth_history", "trade_events")
+        }
+        for inst_id, bars in self.state.get("instruments", {}).items():
+            inst_cursors = cursors.get(inst_id)
+            if not isinstance(inst_cursors, dict):
+                raise ValueError(f"missing cursor for {inst_id}")
+            output["instruments"][inst_id] = {}
+            for bar, candles in bars.items():
+                try:
+                    cursor = int(inst_cursors[bar])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ValueError(f"missing or invalid cursor for {inst_id}:{bar}") from exc
+                output["instruments"][inst_id][bar] = [
+                    row for row in candles if int(row["ts_ms"]) > cursor
+                ]
+        return output
+
     def health(self) -> dict[str, Any]:
         now = utc_now()
         service = dict(self.state["service"])
@@ -944,7 +975,9 @@ async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: as
         if len(parts) < 2 or parts[0] != "GET":
             await write_response(writer, "405 Method Not Allowed", b'{"error":"GET only"}', "application/json")
             return
-        path = urllib.parse.urlsplit(parts[1]).path
+        parsed_url = urllib.parse.urlsplit(parts[1])
+        path = parsed_url.path
+        query = urllib.parse.parse_qs(parsed_url.query)
         request_headers = {}
         while True:
             line = await reader.readline()
@@ -957,6 +990,19 @@ async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: as
         accept_encoding = request_headers.get("accept-encoding", "")
         if path in ("/", "/candles.json"):
             body, encoding = encode_json_body(feed.state, accept_encoding)
+            await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
+        elif path == "/candles.delta.json":
+            try:
+                cursor_values = query.get("cursor", [])
+                if len(cursor_values) != 1 or len(cursor_values[0]) > 4096:
+                    raise ValueError("one bounded cursor parameter is required")
+                cursors = json.loads(cursor_values[0])
+                payload = feed.candle_delta(cursors)
+            except (json.JSONDecodeError, ValueError) as exc:
+                body = json.dumps({"error": str(exc)}, separators=(",", ":")).encode("utf-8")
+                await write_response(writer, "400 Bad Request", body, "application/json; charset=utf-8")
+                return
+            body, encoding = encode_json_body(payload, accept_encoding)
             await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
         elif path == "/healthz":
             body, encoding = encode_json_body(feed.health(), accept_encoding)

@@ -2,6 +2,7 @@
 # Recovery probe: this file change triggers the Render bridge capture workflow.
 """Capture the public Render candle feed into a GitHub-readable snapshot."""
 import gzip
+import copy
 import json
 import math
 import os
@@ -22,6 +23,8 @@ MICRO_MAX_TRADES = 30000
 MICRO_MAX_BOOK_SNAPSHOTS = 15000
 MAX_FEED_AGE_SECONDS = 20 * 60
 HISTORY_MAX_AGE_SECONDS = {"1m": 180, "5m": 360, "15m": 30 * 60, "1H": 3 * 3600, "4H": 12 * 3600}
+CANDLE_INTERVAL_MS = {"1m": 60_000, "5m": 300_000, "15m": 900_000, "1H": 3_600_000, "4H": 14_400_000}
+BRIDGE_INSTRUMENTS = ("BTC-USDC", "ZEC-USDC", "ZEC-USD_UM_XPERP")
 
 def now():
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -294,6 +297,119 @@ def get(path):
             "latency_ms": round((time.time() - started) * 1000),
             "error": f"{type(exc).__name__}: {exc}"[:500],
         }
+
+
+def load_previous_candle_payload(path=None):
+    """Load the last full bridge payload to use as the base for incremental updates."""
+    path = Path(path) if path is not None else OUT
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+        payload = document.get("candles", {}).get("payload")
+        return payload if isinstance(payload, dict) and isinstance(payload.get("instruments"), dict) else None
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None
+
+
+def candle_cursors(payload):
+    """Return one latest timestamp per instrument/timeframe, or None if the base is incomplete."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("instruments"), dict):
+        return None
+    instruments = payload["instruments"]
+    cursors = {}
+    for instrument in BRIDGE_INSTRUMENTS:
+        bars = instruments.get(instrument)
+        if not isinstance(bars, dict):
+            return None
+        cursors[instrument] = {}
+        for bar in CANDLE_INTERVAL_MS:
+            rows = bars.get(bar)
+            if not isinstance(rows, list) or len(rows) < 200:
+                return None
+            try:
+                stamps = [int(row["ts_ms"]) for row in rows]
+            except (KeyError, TypeError, ValueError):
+                return None
+            if stamps != sorted(set(stamps)):
+                return None
+            cursors[instrument][bar] = stamps[-1]
+    return cursors
+
+
+def merge_candle_delta(previous_payload, delta, *, limit=500):
+    """Merge a validated complete delta into the previous full candle archive."""
+    if not isinstance(delta, dict) or delta.get("schema_version") != 1:
+        return None
+    generated_at = delta.get("generated_at")
+    if not isinstance(generated_at, str):
+        return None
+    try:
+        datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    prior_instruments = (previous_payload or {}).get("instruments")
+    delta_instruments = delta.get("instruments")
+    if not isinstance(prior_instruments, dict) or not isinstance(delta_instruments, dict):
+        return None
+    merged = copy.deepcopy(previous_payload)
+    for key in ("service", "microstructure"):
+        if not isinstance(delta.get(key), dict):
+            return None
+        merged[key] = copy.deepcopy(delta[key])
+    total_added = 0
+    for instrument in BRIDGE_INSTRUMENTS:
+        prior_bars = prior_instruments.get(instrument)
+        delta_bars = delta_instruments.get(instrument)
+        if not isinstance(prior_bars, dict) or not isinstance(delta_bars, dict):
+            return None
+        for bar, interval_ms in CANDLE_INTERVAL_MS.items():
+            prior_rows = prior_bars.get(bar)
+            new_rows = delta_bars.get(bar)
+            if not isinstance(prior_rows, list) or len(prior_rows) < 200 or not isinstance(new_rows, list):
+                return None
+            try:
+                previous_times = [int(row["ts_ms"]) for row in prior_rows]
+                new_times = [int(row["ts_ms"]) for row in new_rows]
+            except (KeyError, TypeError, ValueError):
+                return None
+            if previous_times != sorted(set(previous_times)) or new_times != sorted(set(new_times)):
+                return None
+            cursor = previous_times[-1]
+            if any(stamp <= cursor for stamp in new_times):
+                return None
+            if new_times and new_times[0] != cursor + interval_ms:
+                # A missing candle or an expired 500-row server window requires a full resync.
+                return None
+            combined = prior_rows + new_rows
+            merged["instruments"][instrument][bar] = combined[-limit:]
+            total_added += len(new_rows)
+    merged["generated_at"] = generated_at
+    return merged, total_added
+
+
+def get_candles_incrementally():
+    """Prefer small Render deltas, retaining a full-feed fallback for bootstrap or gaps."""
+    previous_payload = load_previous_candle_payload()
+    cursors = candle_cursors(previous_payload)
+    if cursors is not None:
+        query = urllib.parse.urlencode({
+            "cursor": json.dumps(cursors, separators=(",", ":")),
+        })
+        delta_record = get(f"/candles.delta.json?{query}")
+        delta = delta_record.get("payload")
+        result = merge_candle_delta(previous_payload, delta)
+        if delta_record.get("http_status") == 200 and result is not None:
+            payload, added = result
+            return {
+                **{key: value for key, value in delta_record.items() if key != "payload"},
+                "payload": payload,
+                "transport_mode": "delta",
+                "delta_candles_received": added,
+            }
+    full = get("/candles.json")
+    if "payload" in full:
+        full["payload"] = trim_arrays(full["payload"])
+    full["transport_mode"] = "full"
+    return full
 
 def get_url(url):
     """Fetch a public JSON endpoint and retain its own source timestamp."""
@@ -628,9 +744,7 @@ def main():
         raise SystemExit("Usage: python capture_render_feed.py [--validate-existing]")
 
     health = get("/healthz")
-    candles = get("/candles.json")
-    if "payload" in candles:
-        candles["payload"] = trim_arrays(candles["payload"])
+    candles = get_candles_incrementally()
     health_ok = health.get("http_status") == 200 and isinstance(health.get("payload"), dict)
     candles_ok = candles.get("http_status") == 200 and isinstance(candles.get("payload"), dict)
     status = "ok" if health_ok and candles_ok else "partial" if health_ok or candles_ok else "error"
@@ -698,13 +812,26 @@ def main():
         "candles": candles,
     }
     problems = validate_feed(output)
+    if problems and candles.get("transport_mode") == "delta" and any(
+        problem.startswith("Render ") for problem in problems
+    ):
+        # A complete resync is the safe recovery path for a bad cursor, a missed
+        # interval or a health/candle generation mismatch. Never publish partial data.
+        full = get("/candles.json")
+        if "payload" in full:
+            full["payload"] = trim_arrays(full["payload"])
+        full["transport_mode"] = "full_resync"
+        output["candles"] = full
+        problems = validate_feed(output)
     if problems:
         raise SystemExit("Refusing to replace the last known feed: " + "; ".join(problems))
     write_feed_atomically(output)
     print(json.dumps({
         "status": status,
         "health_http": health.get("http_status"),
-        "candles_http": candles.get("http_status"),
+        "candles_http": output["candles"].get("http_status"),
+        "candles_transport_mode": output["candles"].get("transport_mode", "full"),
+        "delta_candles_received": output["candles"].get("delta_candles_received"),
         "health_error": health.get("error"),
         "candles_error": candles.get("error"),
         "output": str(OUT),

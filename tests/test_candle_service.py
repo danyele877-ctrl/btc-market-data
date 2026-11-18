@@ -2,6 +2,7 @@ import asyncio
 import gzip
 import json
 import unittest
+import urllib.parse
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from datetime import datetime, timezone
 from pathlib import Path
@@ -372,6 +373,28 @@ class FeedStateTests(unittest.TestCase):
         self.assertEqual(health["status"], "degraded")
         self.assertTrue(health["streams"]["BTC-USDC:1m"]["stale"])
 
+    def test_candle_delta_returns_only_rows_newer_than_each_cursor(self):
+        feed = service.CandleFeed()
+        cursors = {}
+        for instrument, bars in feed.state["instruments"].items():
+            cursors[instrument] = {}
+            for bar in bars:
+                feed.state["instruments"][instrument][bar] = [
+                    {"ts_ms": 1000, "close": "1"},
+                    {"ts_ms": 2000, "close": "2"},
+                ]
+                cursors[instrument][bar] = 1000
+        delta = feed.candle_delta(cursors)
+        self.assertEqual(delta["instruments"]["BTC-USDC"]["1m"], [{"ts_ms": 2000, "close": "2"}])
+        self.assertEqual(delta["instruments"]["ZEC-USD_UM_XPERP"]["4H"], [{"ts_ms": 2000, "close": "2"}])
+        self.assertEqual(delta["service"], feed.state["service"])
+        self.assertNotIn("book_depth_history", delta["microstructure"])
+
+    def test_candle_delta_requires_cursor_for_every_stream(self):
+        feed = service.CandleFeed()
+        with self.assertRaisesRegex(ValueError, "missing cursor"):
+            feed.candle_delta({})
+
     def test_http_health_route_serves_json(self):
         async def run_case():
             feed = service.CandleFeed()
@@ -394,6 +417,37 @@ class FeedStateTests(unittest.TestCase):
                 server.close()
                 await server.wait_closed()
 
+        asyncio.run(run_case())
+
+    def test_http_candle_delta_route_supports_gzip(self):
+        async def run_case():
+            feed = service.CandleFeed()
+            cursors = {}
+            for instrument, bars in feed.state["instruments"].items():
+                cursors[instrument] = {}
+                for bar in bars:
+                    feed.state["instruments"][instrument][bar] = [{"ts_ms": 2000}]
+                    cursors[instrument][bar] = 1000
+            query = urllib.parse.urlencode({"cursor": json.dumps(cursors, separators=(",", ":"))})
+            async def handle(reader, writer):
+                await service.handle_http(feed, reader, writer)
+            server = await asyncio.start_server(handle, "127.0.0.1", 0)
+            port = server.sockets[0].getsockname()[1]
+            try:
+                reader, writer = await asyncio.open_connection("127.0.0.1", port)
+                writer.write((f"GET /candles.delta.json?{query} HTTP/1.1\r\nHost: localhost\r\nAccept-Encoding: gzip\r\n\r\n").encode())
+                await writer.drain()
+                response = await reader.read()
+                writer.close()
+                await writer.wait_closed()
+                headers, body = response.split(b"\r\n\r\n", 1)
+                self.assertIn(b"HTTP/1.1 200 OK", headers)
+                self.assertIn(b"Content-Encoding: gzip", headers)
+                payload = json.loads(gzip.decompress(body).decode("utf-8"))
+                self.assertEqual(payload["instruments"]["BTC-USDC"]["1m"], [{"ts_ms": 2000}])
+            finally:
+                server.close()
+                await server.wait_closed()
         asyncio.run(run_case())
 
 
