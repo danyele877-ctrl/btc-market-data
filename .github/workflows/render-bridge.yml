@@ -93,7 +93,14 @@ jobs:
               --candidate-feed /tmp/render-feed.json \
               --candidate-snapshot /tmp/radar-snapshot.json \
               --published-feed data/render_feed.json \
-              --published-snapshot data/radar_snapshot.json
+              --published-snapshot data/radar_snapshot.json \
+              --bundle-file /tmp/render-feed.json data/render_feed.json \
+              --bundle-file /tmp/zec-microstructure-history.json data/zec_microstructure_history.json \
+              --bundle-file /tmp/zec-xperp-history.json data/zec_xperp_history.json \
+              --bundle-file /tmp/radar-snapshot.json data/radar_snapshot.json \
+              --bundle-file /tmp/zec-prediction-tracking.json data/zec_prediction_tracking.json \
+              --bundle-file /tmp/zec-predictive-archive.json data/zec_predictive_archive.json \
+              --bundle-file /tmp/zec-context-archive.json data/zec_context_archive.json
             decision=$?
             set -e
             if [ "$decision" -eq 10 ]; then
@@ -103,13 +110,6 @@ jobs:
             if [ "$decision" -ne 0 ]; then
               exit "$decision"
             fi
-            cp /tmp/render-feed.json data/render_feed.json
-            cp /tmp/zec-microstructure-history.json data/zec_microstructure_history.json
-            cp /tmp/zec-xperp-history.json data/zec_xperp_history.json
-            cp /tmp/radar-snapshot.json data/radar_snapshot.json
-            cp /tmp/zec-prediction-tracking.json data/zec_prediction_tracking.json
-            cp /tmp/zec-predictive-archive.json data/zec_predictive_archive.json
-            cp /tmp/zec-context-archive.json data/zec_context_archive.json
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add data/render_feed.json data/zec_microstructure_history.json data/zec_xperp_history.json data/radar_snapshot.json data/zec_prediction_tracking.json data/zec_predictive_archive.json data/zec_context_archive.json
