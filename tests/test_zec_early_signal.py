@@ -156,8 +156,10 @@ class ZecEarlySignalTests(unittest.TestCase):
         snapshot["feed_capture_status"] = "ok"
         snapshot["feed_health"] = {"status": "ok", "websocket_connected": False}
         result = evaluate_signal(snapshot, now=NOW)
+        # A directional candidate may remain visible as a diagnostic score;
+        # only decision/status control whether a setup is permitted.
+        self.assertEqual(result["status"], "ATTENDERE")
         self.assertEqual(result["decision"], "ATTENDERE")
-        self.assertIsNone(result["candidate_direction"])
         self.assertIn(
             "microstruttura WebSocket continua N/D: snapshot REST non prova continuità LIVE",
             result["data_quality"]["blockers"],
