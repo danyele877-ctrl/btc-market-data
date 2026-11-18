@@ -41,7 +41,7 @@ class RadarHistoryValidationTests(unittest.TestCase):
             ("ZEC-USD_UM_XPERP", "ZEC-USD_UM_XPERP"),
         ):
             instruments[market] = {}
-            for bar, seconds in (("1m", 60), ("5m", 300)):
+            for bar, seconds in (("1m", 60), ("5m", 300), ("15m", 900), ("1H", 3600), ("4H", 14400)):
                 interval_ms = seconds * 1000
                 end = int(now.timestamp()) // seconds * seconds
                 latest_start = (end - seconds) * 1000
@@ -88,7 +88,7 @@ class RadarHistoryValidationTests(unittest.TestCase):
                     for index in range(200)
                 ]
                 feed["okx_history"][market][bar] = {"http_status": 200, "count": 200, "candles": candles}
-        for bar, seconds in (("1m", 60), ("5m", 300), ("1H", 3600), ("4H", 14400)):
+        for bar, seconds in (("1m", 60), ("5m", 300), ("15m", 900), ("1H", 3600), ("4H", 14400)):
             end = int(now.timestamp()) // seconds * seconds
             newest = datetime.fromtimestamp(end, timezone.utc).isoformat().replace("+00:00", "Z")
             feed["zec_xperp_history"]["bars"][bar] = {

@@ -18,7 +18,7 @@ FEED = ROOT / "render_feed.json"
 MICRO = ROOT / "zec_microstructure_history.json"
 HISTORY = ROOT / "zec_xperp_history.json"
 OUT = ROOT / "radar_snapshot.json"
-BAR_SECONDS = {"1m": 60, "5m": 300, "1H": 3600, "4H": 14400}
+BAR_SECONDS = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}
 
 
 def write_json_atomically(path, payload):
@@ -385,7 +385,7 @@ def main():
     ):
         raise SystemExit("Refusing to build radar snapshot from missing, stale or wrong-instrument X-Perp history")
     feed_history_bars = (feed.get("zec_xperp_history") or {}).get("bars", {})
-    for bar in ("1m", "5m", "1H", "4H"):
+    for bar in ("1m", "5m", "15m", "1H", "4H"):
         record = hist_bars.get(bar, {})
         summary = feed_history_bars.get(bar, {})
         candles = record.get("candles", []) if isinstance(record, dict) else []
@@ -413,6 +413,16 @@ def main():
                 "latest": tail[-1] if tail else None,
                 "previous": tail[-2] if len(tail) > 1 else None,
             }
+
+    candles_15m = {}
+    for key in ("BTC-USDC", "ZEC-USDC", "ZEC-USD_UM_XPERP"):
+        tail = candle_tail(feed, key, "15m")
+        candles_15m[key] = {
+            "tail_count": len(tail),
+            "tail": tail[-8:],
+            "latest": tail[-1] if tail else None,
+            "previous": tail[-2] if len(tail) > 1 else None,
+        }
 
     market_out = {}
     for name, record in market.items():
@@ -533,17 +543,26 @@ def main():
             ),
         ),
         "candles_1m_5m": candles,
+        "candles_15m": candles_15m,
         "zec_xperp_history": xperp_history,
         "predictive_history": {
             # Prefer longer Render completed-candle series for intraday outcome paths;
             # use the OKX history archive only as a fallback.
             "xperp_1m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USD_UM_XPERP", {}).get("1m", []) or hist_bars.get("1m", {}).get("candles", []),
             "xperp_5m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USD_UM_XPERP", {}).get("5m", []) or hist_bars.get("5m", {}).get("candles", []),
+            "xperp_15m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USD_UM_XPERP", {}).get("15m", []) or hist_bars.get("15m", {}).get("candles", []),
             "xperp_1H": hist_bars.get("1H", {}).get("candles", []),
             "xperp_4H": hist_bars.get("4H", {}).get("candles", []),
             "btc_1m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("1m", []),
             "btc_5m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("5m", []),
-            "btc_1H": okx_history.get("BTC-USDC", {}).get("1H", {}).get("candles", []),
+            "btc_15m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("15m", []),
+            "zec_1m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USDC", {}).get("1m", []),
+            "zec_5m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USDC", {}).get("5m", []),
+            "zec_15m": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USDC", {}).get("15m", []),
+            "btc_1H": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("1H", []) or okx_history.get("BTC-USDC", {}).get("1H", {}).get("candles", []),
+            "btc_4H": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("BTC-USDC", {}).get("4H", []) or okx_history.get("BTC-USDC", {}).get("4H", {}).get("candles", []),
+            "zec_1H": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USDC", {}).get("1H", []) or okx_history.get("ZEC-USDC", {}).get("1H", {}).get("candles", []),
+            "zec_4H": (((feed.get("candles") or {}).get("payload") or {}).get("instruments") or {}).get("ZEC-USDC", {}).get("4H", []) or okx_history.get("ZEC-USDC", {}).get("4H", {}).get("candles", []),
         },
         "spot_history": spot_history,
         "microstructure": micro_out,

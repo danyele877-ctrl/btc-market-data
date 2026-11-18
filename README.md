@@ -70,11 +70,15 @@ python candle_service.py
 
 The default port is `8080`; set `PORT` to override it. Set `CANDLE_DATA_FILE` if you want a local JSON copy. Run the unit tests with `python -m unittest discover -s tests`.
 
-### Always-on deployment option
+### Free deployment option (with continuity safeguards)
 
-`render.yaml` defines an opt-in Render web service using the Dockerfile and an always-on paid `starter` plan. To deploy, connect this GitHub repository to Render, select **Blueprint** deployment, review the plan, and create the service. `autoDeployTrigger` is set to `checksPass`, with a build filter limited to `candle_service.py`, `Dockerfile`, and `requirements.txt`; Render waits for successful GitHub Actions checks before deploying runtime changes. Render provides the HTTPS service URL; append `/candles.json` for the data and `/healthz` for status.
+`render.yaml` configures the candle service on Render's `free` compute plan. This avoids the paid Starter compute charge, but it is not an always-on production guarantee: Free web services have 750 instance-hours per workspace per month, spin down after 15 minutes without inbound HTTP/WebSocket traffic, may restart at any time, and have an ephemeral filesystem with no persistent disk. The minute-level GitHub bridge dispatch is intended to keep the service active by calling its HTTP endpoints; GitHub Actions delays or workspace usage by other free services can still cause a spin-down or exhaust the shared hours. On restart, candle history is reloaded from OKX; live trades/book/CVD must warm up again, so the radar must block the immediate nowcast until the feed is fresh.
 
-No secret is needed for OKX. The feed endpoint contains public market data and is read-only. Keep the existing GitHub Actions workflow enabled for the BTC snapshot; the continuous feed runs independently and does not overwrite `data/latest.json`. Deployment requires the owner to connect the repository to a Render account and approve the paid always-on service.
+The Hobby workspace includes 5 GB/month of outbound bandwidth. The service now negotiates gzip for its JSON endpoints and the bridge client requests/decompresses gzip, reducing repeated feed transfer without changing the JSON payload schema. Outbound bandwidth over the included amount may be billed if a payment method is linked; otherwise Render may suspend Free services for the rest of the month. Monitor the Render Billing page and the service Metrics page; do not infer actual usage from code.
+
+To deploy or change an existing service, connect this repository to Render and sync the Blueprint. Confirm that the service compute plan shown in Render is **Free** before assuming the paid Starter service has been changed. `autoDeployTrigger` is `checksPass`; runtime changes wait for successful GitHub Actions checks. Render provides the HTTPS service URL; append `/candles.json` for the full feed and `/healthz` for status.
+
+No secret is needed for OKX. The feed is public and read-only. Keep the GitHub Actions bridge enabled: it supplies inbound requests that keep the Free service warm and publishes the versioned radar snapshot. If the service sleeps or restarts, the alert must identify the degraded/stale state and must not treat the GitHub snapshot as live.
 
 ## ZEC Early Signal Engine (simulation only)
 

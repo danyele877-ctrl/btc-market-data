@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import gzip
 import json
 from collections import deque
 import os
@@ -20,8 +21,8 @@ import websockets
 OKX_REST = "https://eea.okx.com"
 OKX_WS = "wss://wseea.okx.com/ws/v5/business"
 OKX_PUBLIC_WS = "wss://wseea.okx.com/ws/v5/public"
-BAR_SECONDS = {"candle1m": 60, "candle5m": 300, "1H": 3600, "4H": 14400}
-WS_CHANNELS = ("candle1m", "candle5m")
+BAR_SECONDS = {"candle1m": 60, "candle5m": 300, "candle15m": 900, "1H": 3600, "4H": 14400}
+WS_CHANNELS = ("candle1m", "candle5m", "candle15m")
 HISTORY_PAGE_LIMIT = 100
 HISTORY_MAX_PAGES = 5
 HISTORY_TARGET_CANDLES = 500
@@ -139,7 +140,7 @@ def merge_candles(target: list[dict[str, Any]], candles: list[dict[str, Any]]) -
 def new_state() -> dict[str, Any]:
     streams: dict[str, dict[str, list[dict[str, Any]]]] = {}
     for _, inst_id in DESIRED_INSTRUMENTS:
-        streams[inst_id] = {"1m": [], "5m": [], "1H": [], "4H": []}
+        streams[inst_id] = {"1m": [], "5m": [], "15m": [], "1H": [], "4H": []}
     return {
         "schema_version": 1,
         "generated_at": iso_utc(),
@@ -215,7 +216,7 @@ class CandleFeed:
                 newest = candles[-1] if candles else None
                 completed = parse_iso(newest.get("completed_at")) if newest else None
                 age = (now - completed).total_seconds() if completed else None
-                interval = {"1m": 60, "5m": 300, "1H": 3600, "4H": 14400}[bar]
+                interval = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}[bar]
                 stale_after = interval * 3
                 gap_count = 0
                 for previous, current in zip(candles, candles[1:]):
@@ -238,11 +239,11 @@ class CandleFeed:
         }
         active_streams = [
             streams[f"{inst_id}:{bar}"]
-            for inst_id in active_ids for bar in ("1m", "5m")
+            for inst_id in active_ids for bar in ("1m", "5m", "15m")
         ]
         history_streams = [
             streams[f"{inst_id}:{bar}"]
-            for inst_id in active_ids if inst_id == "ZEC-USD_UM_XPERP"
+            for inst_id in active_ids
             for bar in ("1H", "4H")
         ]
         streams_fresh = bool(active_streams) and all(not item["stale"] for item in active_streams)
@@ -669,8 +670,8 @@ class CandleFeed:
                 micro["book_valid"] = False
                 self.micro_book["valid"] = False
 
-    async def bootstrap_history(self, active: list[dict[str, str]]) -> None:
-        """Warm 300 completed 1m/5m candles for all active markets and 1H/4H for exact ZEC X-Perp."""
+    async def bootstrap_history(self, active: list[dict[str, str]], include_intraday: bool = True) -> None:
+        """Warm completed 1m/5m/15m and 1H/4H history for every configured market."""
         xperp = next((x for x in active if x.get("instId") == EXPECTED_XPERP_INST_ID), None)
         if xperp is None:
             raise RuntimeError(
@@ -685,7 +686,7 @@ class CandleFeed:
         history_request_gate = asyncio.Semaphore(1)
 
         async def load(inst_id: str, stream_key: str, bar_name: str, interval: str) -> None:
-            parse_bar = {"1m": "candle1m", "5m": "candle5m"}.get(interval, interval)
+            parse_bar = {"1m": "candle1m", "5m": "candle5m", "15m": "candle15m"}.get(interval, interval)
             collected: dict[int, dict[str, Any]] = {}
             cursor: int | None = None
             for _page in range(HISTORY_MAX_PAGES):
@@ -773,12 +774,11 @@ class CandleFeed:
         for item in active:
             exchange_id = item["instId"]
             stream_key = item.get("stream_key", exchange_id)
-            for interval in ("1m", "5m"):
+            if include_intraday:
+                for interval in ("1m", "5m", "15m"):
+                    jobs.append(load(exchange_id, stream_key, interval, interval))
+            for interval in ("1H", "4H"):
                 jobs.append(load(exchange_id, stream_key, interval, interval))
-        jobs.extend([
-            load(EXPECTED_XPERP_INST_ID, "ZEC-USD_UM_XPERP", "1H", "1H"),
-            load(EXPECTED_XPERP_INST_ID, "ZEC-USD_UM_XPERP", "4H", "4H"),
-        ])
         results = await asyncio.gather(*jobs, return_exceptions=True)
         errors = [f"{type(result).__name__}: {result}" for result in results if isinstance(result, Exception)]
         if errors:
@@ -834,7 +834,7 @@ class CandleFeed:
 
                     # Connect the live candle stream first. Historical bootstrap runs
                     # in the background so a slow REST history request cannot delay
-                    # the 1m/5m WebSocket or leave healthz disconnected at startup.
+                    # the 1m/5m/15m WebSocket or leave healthz disconnected at startup.
                     history_task = asyncio.create_task(self.bootstrap_history(active))
                     last_history_refresh = time.monotonic()
 
@@ -863,14 +863,14 @@ class CandleFeed:
                             history_task = None
                             await self.persist()
 
-                        # Refresh completed 1H/4H history every 15 minutes, also
+                        # Refresh completed 1H/4H history for all markets every 15 minutes, also
                         # in the background so live candles are never blocked.
                         if (
                             history_task is None
                             and any(x.get("instId") == EXPECTED_XPERP_INST_ID for x in active)
                             and time.monotonic() - last_history_refresh >= 900
                         ):
-                            history_task = asyncio.create_task(self.bootstrap_history(active))
+                            history_task = asyncio.create_task(self.bootstrap_history(active, include_intraday=False))
                             last_history_refresh = time.monotonic()
             except asyncio.CancelledError:
                 raise
@@ -909,11 +909,25 @@ async def dispatch_bridge_refresh(completed_at: str) -> int:
             return response.status
     return await asyncio.to_thread(send)
 
-async def write_response(writer: asyncio.StreamWriter, status: str, body: bytes, content_type: str) -> None:
+def encode_json_body(payload: Any, accept_encoding: str = "") -> tuple[bytes, str | None]:
+    """Encode JSON and negotiate gzip to reduce repeated bridge egress."""
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    if "gzip" in accept_encoding.lower():
+        return gzip.compress(body, compresslevel=6, mtime=0), "gzip"
+    return body, None
+
+
+async def write_response(
+    writer: asyncio.StreamWriter, status: str, body: bytes, content_type: str,
+    content_encoding: str | None = None,
+) -> None:
+    encoding_header = f"Content-Encoding: {content_encoding}\r\n" if content_encoding else ""
     headers = (
         f"HTTP/1.1 {status}\r\n"
         f"Content-Type: {content_type}\r\n"
         f"Content-Length: {len(body)}\r\n"
+        f"{encoding_header}"
+        "Vary: Accept-Encoding\r\n"
         "Cache-Control: no-store\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Connection: close\r\n\r\n"
@@ -931,14 +945,22 @@ async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: as
             await write_response(writer, "405 Method Not Allowed", b'{"error":"GET only"}', "application/json")
             return
         path = urllib.parse.urlsplit(parts[1]).path
-        while await reader.readline() not in (b"\r\n", b"\n", b""):
-            pass
+        request_headers = {}
+        while True:
+            line = await reader.readline()
+            if line in (b"\r\n", b"\n", b""):
+                break
+            decoded = line.decode("ascii", "replace").strip()
+            if ":" in decoded:
+                key, value = decoded.split(":", 1)
+                request_headers[key.strip().lower()] = value.strip()
+        accept_encoding = request_headers.get("accept-encoding", "")
         if path in ("/", "/candles.json"):
-            body = json.dumps(feed.state, ensure_ascii=False).encode("utf-8")
-            await write_response(writer, "200 OK", body, "application/json; charset=utf-8")
+            body, encoding = encode_json_body(feed.state, accept_encoding)
+            await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
         elif path == "/healthz":
-            body = json.dumps(feed.health(), ensure_ascii=False).encode("utf-8")
-            await write_response(writer, "200 OK", body, "application/json; charset=utf-8")
+            body, encoding = encode_json_body(feed.health(), accept_encoding)
+            await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
         else:
             await write_response(writer, "404 Not Found", b'{"error":"not found"}', "application/json")
     except (asyncio.TimeoutError, ConnectionError, BrokenPipeError):
