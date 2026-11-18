@@ -1,7 +1,9 @@
 import unittest
 from datetime import datetime, timezone
 
-from zec_early_signal import INSTRUMENT_ID, evaluate_signal
+from zec_early_signal import (
+    INSTRUMENT_ID, _anti_chase_veto, _directional_candidate_scores, evaluate_signal,
+)
 
 
 CAPTURED = "2026-01-01T12:10:00Z"
@@ -107,6 +109,29 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertEqual(warning["status"], "ROTTURA RIALZISTA NON CONFERMATA")
         self.assertFalse(warning["orders_enabled"])
 
+    def test_anti_chase_veto_is_symmetric_for_long_and_short(self):
+        self.assertIsNotNone(_anti_chase_veto("LONG", {"status": "PRE-ALLERTA LONG"}))
+        self.assertIsNotNone(_anti_chase_veto("SHORT", {"status": "PRE-ALLERTA SHORT"}))
+        self.assertIsNotNone(_anti_chase_veto("LONG", {"status": "BREAKOUT GIA' ESTESO — ATTENDI RETEST"}))
+        self.assertIsNotNone(_anti_chase_veto("SHORT", {"status": "BREAKDOWN GIA' ESTESO — ATTENDI RETEST"}))
+        self.assertIsNone(_anti_chase_veto("LONG", {"status": "BREAKOUT RIALZISTA"}))
+        self.assertIsNone(_anti_chase_veto("SHORT", {"status": "BREAKDOWN RIBASSISTA"}))
+
+    def test_directional_candidates_keep_long_and_short_evidence_separate(self):
+        scores = _directional_candidate_scores({
+            "price": {"score": 0.8, "weight": 0.5},
+            "relative_strength": {"score": -0.4, "weight": 0.5},
+        })
+        self.assertEqual(scores["long"]["score"], 40.0)
+        self.assertEqual(scores["short"]["score"], 20.0)
+        self.assertEqual(scores["unit"], "heuristic evidence points, not probability")
+
+    def test_unconfirmed_long_breakout_cannot_become_confirmed_entry(self):
+        result = evaluate_signal(valid_snapshot(), now=NOW)
+        self.assertEqual(result["anti_chase"]["blocked"], True)
+        self.assertIn("resistenza/rottura non ancora confermata", result["anti_chase"]["reason"])
+        self.assertNotEqual(result["decision"], "LONG")
+
     def test_missing_snapshot_waits_and_has_no_directional_decision(self):
         result = evaluate_signal({}, now=NOW)
         self.assertEqual(result["status"], "ATTENDERE")
@@ -128,9 +153,15 @@ class ZecEarlySignalTests(unittest.TestCase):
         self.assertNotIn("book", result["scores"]["groups"])
 
     def test_valid_strong_setup_is_simulation_only_and_never_sizes(self):
-        result = evaluate_signal(valid_snapshot(), now=NOW)
+        snapshot = valid_snapshot()
+        latest_5m = snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"][-1]
+        latest_5m.update({"open": 106.4, "high": 107.0, "low": 106.2, "close": 106.6, "volume": 200})
+        result = evaluate_signal(snapshot, now=NOW)
         self.assertEqual(result["status"], "TRIGGER CONFERMATO")
         self.assertEqual(result["decision"], "LONG")
+        self.assertFalse(result["anti_chase"]["blocked"])
+        self.assertGreater(result["scores"]["directional_candidates"]["long"]["score"], 0)
+        self.assertEqual(result["scores"]["directional_candidates"]["short"]["score"], 0)
         self.assertEqual(result["instrument"]["inst_id"], INSTRUMENT_ID)
         self.assertEqual(result["contract_safety"]["ctVal_status"], "DISCREPANZA_CTVAL_NON_RISOLTA")
         self.assertTrue(result["contract_safety"]["ctVal_ui_api_match"])

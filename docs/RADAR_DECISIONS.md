@@ -13,3 +13,5 @@
 ## Update procedure
 
 Append a new row rather than rewriting an earlier decision. If a decision is superseded, mark the old row as superseded and link the replacement decision. Record the pull request and commit in the changelog.
+
+| ADR-008 | BASELINE publishes separate LONG/SHORT evidence contributions and vetoes unconfirmed/extended entries symmetrically | Exposes conflicting directional evidence and reduces chasing into nearby structure; scores remain heuristic, not probabilities | Active on feature branch; pending review/merge |
