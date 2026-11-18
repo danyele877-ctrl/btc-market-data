@@ -154,7 +154,8 @@ class ZecEarlySignalTests(unittest.TestCase):
 
     def test_valid_strong_setup_is_simulation_only_and_never_sizes(self):
         snapshot = valid_snapshot()
-        snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"][-1]["volume"] = 200
+        latest_5m = snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["tail"][-1]
+        latest_5m.update({"open": 106.4, "high": 107.0, "low": 106.2, "close": 106.6, "volume": 200})
         result = evaluate_signal(snapshot, now=NOW)
         self.assertEqual(result["status"], "TRIGGER CONFERMATO")
         self.assertEqual(result["decision"], "LONG")
