@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timezone
 
-from zec_early_signal import INSTRUMENT_ID, evaluate_signal
+from zec_early_signal import (\n    INSTRUMENT_ID, _anti_chase_veto, _directional_candidate_scores, evaluate_signal,\n)
 
 
 CAPTURED = "2026-01-01T12:10:00Z"
@@ -106,6 +106,29 @@ class ZecEarlySignalTests(unittest.TestCase):
         warning = result["breakout_early_warning"]
         self.assertEqual(warning["status"], "ROTTURA RIALZISTA NON CONFERMATA")
         self.assertFalse(warning["orders_enabled"])
+
+    def test_anti_chase_veto_is_symmetric_for_long_and_short(self):
+        self.assertIsNotNone(_anti_chase_veto("LONG", {"status": "PRE-ALLERTA LONG"}))
+        self.assertIsNotNone(_anti_chase_veto("SHORT", {"status": "PRE-ALLERTA SHORT"}))
+        self.assertIsNotNone(_anti_chase_veto("LONG", {"status": "BREAKOUT GIA' ESTESO — ATTENDI RETEST"}))
+        self.assertIsNotNone(_anti_chase_veto("SHORT", {"status": "BREAKDOWN GIA' ESTESO — ATTENDI RETEST"}))
+        self.assertIsNone(_anti_chase_veto("LONG", {"status": "BREAKOUT RIALZISTA"}))
+        self.assertIsNone(_anti_chase_veto("SHORT", {"status": "BREAKDOWN RIBASSISTA"}))
+
+    def test_directional_candidates_keep_long_and_short_evidence_separate(self):
+        scores = _directional_candidate_scores({
+            "price": {"score": 0.8, "weight": 0.5},
+            "relative_strength": {"score": -0.4, "weight": 0.5},
+        })
+        self.assertEqual(scores["long"]["score"], 40.0)
+        self.assertEqual(scores["short"]["score"], 20.0)
+        self.assertEqual(scores["unit"], "heuristic evidence points, not probability")
+
+    def test_unconfirmed_long_breakout_cannot_become_confirmed_entry(self):
+        result = evaluate_signal(valid_snapshot(), now=NOW)
+        self.assertEqual(result["anti_chase"]["blocked"], True)
+        self.assertIn("resistenza/rottura non ancora confermata", result["anti_chase"]["reason"])
+        self.assertNotEqual(result["decision"], "LONG")
 
     def test_missing_snapshot_waits_and_has_no_directional_decision(self):
         result = evaluate_signal({}, now=NOW)
