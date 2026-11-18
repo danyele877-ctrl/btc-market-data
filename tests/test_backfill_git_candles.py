@@ -38,6 +38,21 @@ class CandleValidationTests(unittest.TestCase):
         }
         self.assertIsNone(BACKFILL.validate_candle(row, "ZEC-USD_UM_XPERP", "1m", self.source))
 
+    def test_extracts_render_bridge_instrument_arrays(self):
+        doc = {
+            "candles": {"payload": {"instruments": {
+                "BTC-USDC": {"1m": [{
+                    "ts_ms": 1794882180000, "completed_at": "2026-11-17T02:24:00Z",
+                    "open": 10, "high": 12, "low": 9, "close": 11,
+                }]}
+            }}}
+        }
+        sink = []
+        BACKFILL.walk_snapshot(doc, self.source, sink)
+        self.assertEqual(len(sink), 1)
+        self.assertEqual(sink[0]["instrument"], "BTC-USDC")
+        self.assertEqual(sink[0]["timeframe"], "1m")
+
 
 if __name__ == "__main__":
     unittest.main()
