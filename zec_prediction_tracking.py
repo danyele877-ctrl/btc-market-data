@@ -13,7 +13,7 @@ from typing import Any
 
 INSTRUMENT_ID = "ZEC-USD_UM_XPERP-310530"
 ARCHIVE_PATH = Path("data/zec_prediction_tracking.json")
-HORIZONS = (5, 15, 30, 40)
+HORIZONS = (5, 15, 30, 40, 45)
 MAX_PREDICTIONS = 12000
 
 
@@ -195,6 +195,13 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
             "captured_at": captured.isoformat().replace("+00:00", "Z"),
             "entry_candle_completed_at": entry_bar.get("completed_at"),
             "entry_close_ms": entry_bar["_close_ms"], "entry_reference": entry,
+            "forward_anchor_ms": -(-int(max(captured, _time(snapshot.get("generated_at")) or captured).timestamp() * 1_000_000) // 60_000_000) * 60_000,
+            "generated_at": snapshot.get("generated_at"),
+            "source_mode": snapshot.get("feed_source_mode"),
+            "baseline_blockers": (baseline.get("data_quality") or {}).get("blockers"),
+            "shadow_blockers": quality.get("blockers"),
+            "shadow_veto": (shadow.get("structure") or {}).get("veto"),
+
             "atr_reference": atr, "snapshot_sha256": snapshot_sha,
             "baseline": {
                 "direction": baseline_side, "decision": baseline.get("decision"),
@@ -216,16 +223,16 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
             "outcomes": {"baseline": {}, "shadow": {}},
         }
         predictions.append(existing)
-    bars_by_close = {bar["_close_ms"]: index for index, bar in enumerate(bars)}
     for prediction in predictions:
         prediction_close = _num(prediction.get("entry_close_ms"))
         prediction_entry = _num(prediction.get("entry_reference"))
         if prediction_close is None or prediction_entry is None:
             continue
-        prediction_index = bars_by_close.get(int(prediction_close))
-        if prediction_index is None:
-            continue
-        prediction_atr = _atr(bars, prediction_index)
+        prediction_atr = _num(prediction.get("atr_reference"))
+        anchor = prediction.get("forward_anchor_ms")
+        if anchor is None:
+            continue  # Keep legacy labels intact; their first minute can precede capture.
+
         for engine in ("baseline", "shadow"):
             side = (prediction.get(engine) or {}).get("direction")
             if side not in ("LONG", "SHORT"):
@@ -234,11 +241,11 @@ def update_prediction_tracking(snapshot: dict[str, Any], archive_path: Path = AR
                 key = str(horizon)
                 if (prediction.get("outcomes") or {}).get(engine, {}).get(key, {}).get("status") == "MATURO":
                     continue
-                deadline = int(prediction_close) + horizon * 60000
-                future = [bar for bar in bars if int(prediction_close) < bar["_close_ms"] <= deadline]
+                deadline = anchor + horizon * 60000
+                future = [bar for bar in bars if anchor < bar["_close_ms"] <= deadline]
                 if len(future) != horizon or not future:
                     continue
-                if future[0]["_close_ms"] != int(prediction_close) + 60000 or future[-1]["_close_ms"] != deadline:
+                if future[0]["_close_ms"] != anchor + 60000 or future[-1]["_close_ms"] != deadline:
                     continue
                 outcome = _mature_side(prediction_entry, prediction_atr, side, future, horizon)
                 if outcome.get("status") == "MATURO":

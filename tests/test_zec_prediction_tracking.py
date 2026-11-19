@@ -85,5 +85,15 @@ class PredictionTrackingTests(unittest.TestCase):
         self.assertEqual(update_prediction_tracking(stale, now=T0 + timedelta(minutes=4))["status"], "BLOCCATO")
 
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_45m_excludes_minute_already_open_at_generation(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tracking.json"
+            first = make_snapshot(T0, 60)
+            first["generated_at"] = (T0 + timedelta(seconds=2)).isoformat()
+            update_prediction_tracking(first, path, now=T0)
+            for minute in (45, 46):
+                at = T0 + timedelta(minutes=minute)
+                update_prediction_tracking(make_snapshot(at, 120), path, now=at)
+                row = json.loads(path.read_text())["predictions"][0]
+                self.assertEqual("45" in row["outcomes"]["shadow"], minute == 46)
