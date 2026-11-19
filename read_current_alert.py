@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 
 from render_bridge_publication import ALERT_MAX_AGE, BTC_ID, ZEC_ID, ZEC_SPOT_ID, _positive_price, _timestamp
 
+PRIMARY_URL = "https://p01--btc-zec-radar--db9jws2f6wdk.code.run/radar-alert.json"
 CONTENTS_URL = "https://api.github.com/repos/danyele877-ctrl/btc-market-data/contents/data/radar_alert.json?ref=main"
 TICKER_URL = "https://eea.okx.com/api/v5/market/ticker?instId="
 INSTRUMENTS = (BTC_ID, ZEC_SPOT_ID, ZEC_ID)
@@ -73,17 +74,32 @@ def read_ticker(instrument):
 
 
 def read_current_alert():
-    try:
-        contents = get_json(CONTENTS_URL)
-        if contents["encoding"] != "base64":
-            raise ValueError("unexpected GitHub encoding")
-        document = json.loads(base64.b64decode(contents["content"]))
-        now = datetime.now(timezone.utc)
-        if snapshot_is_current(document, now):
-            return {"blob_sha": contents["sha"], "snapshot": document, "decision": validated_side(document, now)}
-        reason = "github_snapshot_stale_or_invalid"
-    except (OSError, KeyError, TypeError, ValueError, AttributeError):
-        reason = "github_snapshot_unavailable"
+    """Prefer the live compact Northflank document, then the GitHub mirror.
+
+    A stale or invalid primary is never mixed with the fallback document.
+    An intact, fresh NO_SIGNAL is authoritative and must not be replaced.
+    """
+    reason = "snapshot_unavailable"
+    for source in ("NORTHFLANK", "GITHUB"):
+        try:
+            if source == "NORTHFLANK":
+                document = get_json(PRIMARY_URL)
+                blob_sha = None
+            else:
+                contents = get_json(CONTENTS_URL)
+                if contents["encoding"] != "base64":
+                    raise ValueError("unexpected GitHub encoding")
+                document = json.loads(base64.b64decode(contents["content"], validate=True))
+                blob_sha = contents["sha"]
+            now = datetime.now(timezone.utc)
+            if isinstance(document, dict) and snapshot_is_current(document, now):
+                side = validated_side(document, now)
+                return {"source": source, "blob_sha": blob_sha,
+                        "snapshot": document, "decision": side}
+            reason = source.lower() + "_snapshot_stale_or_invalid"
+        except (OSError, KeyError, TypeError, ValueError, AttributeError, IndexError):
+            reason = source.lower() + "_snapshot_unavailable"
+
     with ThreadPoolExecutor(max_workers=len(INSTRUMENTS)) as executor:
         observations = dict(zip(INSTRUMENTS, executor.map(read_ticker, INSTRUMENTS)))
     now = datetime.now(timezone.utc)
@@ -94,7 +110,8 @@ def read_current_alert():
         price, observed = quote
         if now - ALERT_MAX_AGE <= observed <= now:
             prices[instrument] = {"last": price, "observed_at": observed.isoformat()}
-    return {"source": "OKX_EEA_REST_QUOTES", "reason": reason, "prices": prices, "decision": "NO_SIGNAL"}
+    return {"source": "OKX_EEA_REST_QUOTES", "reason": reason,
+            "prices": prices, "decision": "NO_SIGNAL"}
 
 
 if __name__ == "__main__":
