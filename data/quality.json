@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-19T07:59:46.994843+00:00",
-  "snapshot_generated_at": "2026-11-19T07:59:46.826408+00:00",
+  "generated_at": "2026-11-19T08:59:24.608996+00:00",
+  "snapshot_generated_at": "2026-11-19T08:59:24.518392+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -136,7 +136,7 @@
     "fred_macro": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_btc_usdc_ticker": {
