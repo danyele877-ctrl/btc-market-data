@@ -6,40 +6,51 @@ permissions:
 jobs:
   websocket-probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 8
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
         with:
-          node-version: '22'
-      - name: Check public OKX EEA order book and trades
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - name: Run existing regression suite
+        run: python -m unittest discover -s tests
+      - name: Validate a live five-minute window using the existing collector
         run: |
-          node --input-type=module <<'JS'
-          const instrument = 'ZEC-USD_UM_XPERP-310530';
-          const channels = ['books', 'trades'];
-          const ws = new WebSocket('wss://wseea.okx.com/ws/v5/public');
-          const subscribed = new Set();
-          const count = {books: 0, trades: 0};
-          function finish(code, reason) {
-            console.log(JSON.stringify({instrument, subscribed: [...subscribed], count, reason}));
-            process.exit(code);
-          }
-          setTimeout(() => finish(1, 'Timed out waiting for subscriptions and data'), 45000);
-          ws.addEventListener('open', () => {
-            ws.send(JSON.stringify({op: 'subscribe', args: channels.map(channel => ({channel, instId: instrument}))}));
-          });
-          ws.addEventListener('error', event => finish(1, String(event.message || 'WebSocket handshake or transport failed')));
-          ws.addEventListener('close', event => finish(1, 'WebSocket closed: ' + event.code));
-          ws.addEventListener('message', event => {
-            if (event.data === 'pong') return;
-            const message = JSON.parse(event.data);
-            if (message.event === 'error') return finish(1, String(message.code) + ': ' + message.msg);
-            const {channel, instId} = message.arg || {};
-            if (instId !== instrument || !channels.includes(channel)) return;
-            if (message.event === 'subscribe') subscribed.add(channel);
-            if (Array.isArray(message.data)) count[channel] += message.data.length;
-            if (subscribed.size === channels.length && channels.every(item => count[item] > 0)) {
-              finish(0, 'Exact contract received on both public channels');
-            }
-          });
-          setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send('ping'); }, 15000);
-          JS
+          python -u - <<'PY'
+          import asyncio
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from candle_service import CandleFeed
+
+          async def main():
+              with TemporaryDirectory() as directory:
+                  feed = CandleFeed(Path(directory) / 'candles.json')
+                  collector = asyncio.create_task(feed.run_microstructure_websocket())
+                  try:
+                      for _ in range(64):
+                          await asyncio.sleep(5)
+                          health = feed.microstructure_health()
+                          cvd = health['cvd']
+                          keys = ('status', 'last_error', 'connected', 'book_valid', 'book_gap_count', 'trade_gap_count', 'message_age_seconds', 'book_age_seconds', 'trade_age_seconds')
+                          ready = (
+                              health['connected'] and health['book_valid']
+                              and (health.get('book_gap_count') or 0) == 0
+                              and cvd['ready_1m'] and cvd['ready_5m']
+                              and (cvd.get('trade_count_5m') or 0) > 0
+                              and all(health.get(key) is not None and 0 <= health[key] <= limit
+                                      for key, limit in [('message_age_seconds', 120), ('book_age_seconds', 180), ('trade_age_seconds', 180)])
+                          )
+                          if ready or _ % 6 == 0 or _ == 63:
+                              print(json.dumps({'at': datetime.now(timezone.utc).isoformat(), **{key: health.get(key) for key in keys}, 'cvd': cvd, 'ready': ready}))
+                          if ready:
+                              return
+                      raise SystemExit('No valid five-minute window within the test budget')
+                  finally:
+                      collector.cancel()
+                      await asyncio.gather(collector, return_exceptions=True)
+
+          asyncio.run(main())
+          PY
