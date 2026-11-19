@@ -9,6 +9,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: b89830f190486c0df1a6c45e5e85ce8a4079c865
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
