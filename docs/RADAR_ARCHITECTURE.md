@@ -30,6 +30,8 @@ The repository is **not** itself a relational database. At present, operational 
 
 `radar_alert_contract.py` validates that the snapshot contains all required sections and that safety invariants remain intact. The test suite and CI run this check against the published snapshot. A component is not considered integrated merely because its code exists: its output must be represented in the snapshot, the bridge must publish it, and the alert contract must pass.
 
+The bridge publishes `data/radar_alert.json` in the same Git commit as the validated full snapshot. Schema version 1 includes the snapshot's `generated_at` and feed `captured_at`, numeric `prices` keyed by instrument, `feed` provenance and expiry, `quality` gates, and `decision` with `side` and `reason`. Missing prices are null or omitted. A confirmed decision includes `invalidation_price`. Consumers must check UTC expiry on every read and suppress signals at or after `feed.expires_at`, including cached responses. The expiry uses the existing 180-second capture age limit and is capped by the age of the oldest included quote. The bridge accepts a direction only from a matching confirmed early-engine trigger and suppresses it when a published ZEC quote has reached or crossed its invalidation level.
+
 ## Live microstructure and nowcast integrity
 
 - The GitHub-only pipeline captures REST order books and recent trades at each scheduled run. These are sampled snapshots; they cannot prove continuous trade coverage, live CVD or a WebSocket `prevSeqId` chain. They remain labelled REST/BRIDGE and are never promoted to LIVE.

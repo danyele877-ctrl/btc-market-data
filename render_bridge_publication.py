@@ -8,7 +8,7 @@ import math
 import os
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -304,6 +304,112 @@ def _timestamp(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+ALERT_MAX_AGE = timedelta(seconds=180)  # Existing early-signal capture age limit.
+BTC_ID = "BTC-USDC"
+ZEC_ID = "ZEC-USD_UM_XPERP-310530"
+
+
+def _object(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _positive_price(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return None
+    try:
+        price = float(value)
+    except (ValueError, OverflowError):
+        return None
+    return price if math.isfinite(price) and price > 0 else None
+
+
+def _quote(entry: Any, instrument: str, field: str) -> tuple[float | None, datetime | None]:
+    row = _object(entry)
+    first = _object(row.get("first"))
+    if row.get("http_status") != 200 or row.get("api_code") != "0" or row.get("error"):
+        return None, None
+    if first.get("instId") != instrument:
+        return None, None
+    try:
+        observed = datetime.fromtimestamp(int(first["ts"]) / 1000, tz=timezone.utc)
+    except (KeyError, ValueError, TypeError, OverflowError, OSError):
+        observed = None
+    return _positive_price(first.get(field)), observed
+
+
+def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, Any]:
+    """Project the validated snapshot without deriving a trading direction."""
+    captured = _timestamp(snapshot.get("source_captured_at"))
+    generated = _timestamp(snapshot.get("generated_at"))
+    market = _object(snapshot.get("market"))
+    btc, btc_time = _quote(market.get("btc_spot_ticker"), BTC_ID, "last")
+    zec, zec_time = _quote(market.get("zec_xperp_ticker"), ZEC_ID, "last")
+    mark, mark_time = _quote(market.get("zec_xperp_mark"), ZEC_ID, "markPx")
+    observations = [captured, btc_time, zec_time]
+    if mark is not None:
+        observations.append(mark_time)
+    valid_times = (
+        captured is not None and generated is not None and captured <= generated <= now
+        and all(stamp is not None and stamp <= generated for stamp in observations)
+    )
+    expires = min(observations) + ALERT_MAX_AGE if valid_times else None
+    fresh = expires is not None and now < expires
+
+    early = _object(snapshot.get("zec_early_signal"))
+    quality = _object(early.get("data_quality"))
+    health = _object(snapshot.get("feed_health"))
+    feed_ok = (
+        snapshot.get("source_status") == snapshot.get("feed_capture_status") == health.get("status") == "ok"
+        and snapshot.get("feed_source_mode") == health.get("source_mode")
+        and snapshot.get("feed_source_mode") in ("OKX_EEA_REST_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET")
+    )
+    engine_ready = (
+        quality.get("websocket_ready") is True
+        and quality.get("required_groups_ready") is True
+        and quality.get("blockers") == []
+    )
+    direction = early.get("decision")
+    invalidation = _object(early.get("invalidation"))
+    level = _positive_price(invalidation.get("price"))
+    decision = {"side": "NO_SIGNAL", "reason": "invalid_timestamps"}
+    if valid_times:
+        decision["reason"] = "stale_data"
+        if fresh:
+            decision["reason"] = "data_quality_gate"
+            if feed_ok and btc is not None and zec is not None and engine_ready:
+                decision["reason"] = "no_confirmed_trigger"
+                if (
+                    direction in ("LONG", "SHORT") and early.get("status") == "TRIGGER CONFERMATO"
+                    and early.get("candidate_direction") == direction
+                    and _timestamp(early.get("captured_at")) == captured
+                    and _object(early.get("instrument")).get("inst_id") == ZEC_ID
+                ):
+                    decision["reason"] = "invalidated_or_missing_level"
+                    quotes = [price for price in (zec, mark) if price is not None]
+                    if level is not None and invalidation.get("direction") == direction and all(
+                        price > level if direction == "LONG" else price < level for price in quotes
+                    ):
+                        decision = {"side": direction, "reason": "confirmed_trigger", "invalidation_price": level}
+
+    return {
+        "schema_version": 1,
+        "generated_at": snapshot.get("generated_at"),
+        "captured_at": snapshot.get("source_captured_at"),
+        "prices": {BTC_ID: {"last": btc}, ZEC_ID: {"last": zec, "mark": mark}},
+        "feed": {
+            "source": snapshot.get("feed_source_mode"),
+            "status": "ok" if feed_ok else "unavailable",
+            "fresh_at_publication": fresh,
+            "expires_at": expires.isoformat() if expires is not None else None,
+        },
+        "quality": {
+            "engine_ready": engine_ready,
+            "required_prices_available": btc is not None and zec is not None,
+        },
+        "decision": decision,
+    }
+
+
 def publication_decision(
     candidate_feed: dict[str, Any] | None,
     candidate_snapshot: dict[str, Any] | None,
@@ -382,13 +488,22 @@ def _cli() -> int:
     print(reason)
     if publish:
         try:
-            for source, destination in bundle_files:
-                install_json_atomically(source, destination)
+            if bundle_files:
+                compact = build_compact_alert(documents["radar_snapshot.json"], datetime.now(timezone.utc))
+                with tempfile.TemporaryDirectory() as directory:
+                    candidate = Path(directory) / "radar_alert.json"
+                    candidate.write_text(
+                        json.dumps(compact, separators=(",", ":"), allow_nan=False) + "\n",
+                        encoding="utf-8",
+                    )
+                    compact_destination = args.published_snapshot.with_name(candidate.name)
+                    for source, destination in [*bundle_files, (candidate, compact_destination)]:
+                        install_json_atomically(source, destination)
         except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
             print(f"Atomic publication install failed: {exc}", file=sys.stderr)
             return EXIT_INVALID_CANDIDATE
         if bundle_files:
-            print(f"Installed {len(bundle_files)} validated JSON files with atomic replacements.")
+            print(f"Installed {len(bundle_files) + 1} radar JSON files with atomic replacements.")
         return EXIT_PUBLISH
     if "older than" in reason:
         return EXIT_STALE_CANDIDATE
