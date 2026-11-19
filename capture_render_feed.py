@@ -650,7 +650,7 @@ def update_microstructure_history(okx_market, websocket_micro=None, captured_at=
         "newest_trade_at": datetime.fromtimestamp(history["trades"][-1]["ts_ms"] / 1000, timezone.utc).isoformat().replace("+00:00", "Z") if history["trades"] else None,
     }
 
-def collect_rest_snapshot():
+def collect_rest_snapshot(cached_instruments=None):
     source_mode = REST_MODE
     # This is a pull snapshot, not a daemon. Every market and timeframe comes
     # directly from OKX; no historic WebSocket values are relabelled as LIVE.
@@ -661,6 +661,9 @@ def collect_rest_snapshot():
     cached = {}
     if isinstance(previous, dict) and previous.get("source_mode") in (REST_MODE, HYBRID_MODE):
         cached = previous.get("candles", {}).get("payload", {}).get("instruments", {})
+
+    if cached_instruments is not None:
+        cached = cached_instruments
 
     with ThreadPoolExecutor(max_workers=len(HISTORY_MARKETS)) as executor:
         pending = {

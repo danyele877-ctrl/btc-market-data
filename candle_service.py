@@ -937,7 +937,7 @@ async def write_response(
     writer.close()
     await writer.wait_closed()
 
-async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, radar=None) -> None:
     try:
         request_line = await asyncio.wait_for(reader.readline(), timeout=5)
         parts = request_line.decode("ascii", "replace").strip().split()
@@ -958,6 +958,9 @@ async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: as
         if path in ("/", "/candles.json"):
             body, encoding = encode_json_body(feed.state, accept_encoding)
             await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
+        elif path == "/radar-alert.json" and radar is not None:
+            body, encoding = encode_json_body(radar.current(), accept_encoding)
+            await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
         elif path == "/healthz":
             body, encoding = encode_json_body(feed.health(), accept_encoding)
             await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
@@ -971,10 +974,13 @@ async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: as
             pass
 
 async def main() -> None:
+    from live_radar import LiveRadar
+
     feed = CandleFeed()
+    radar = LiveRadar(feed)
     port = int(os.getenv("PORT", "8080"))
     server = await asyncio.start_server(
-        lambda reader, writer: handle_http(feed, reader, writer),
+        lambda reader, writer: handle_http(feed, reader, writer, radar),
         host="0.0.0.0", port=port, limit=8192,
     )
     loop = asyncio.get_running_loop()
@@ -985,6 +991,7 @@ async def main() -> None:
             pass
     ws_task = asyncio.create_task(feed.run_websocket())
     micro_task = asyncio.create_task(feed.run_microstructure_websocket())
+    radar_task = asyncio.create_task(radar.run())
     print(f"Read-only OKX candle feed listening on 0.0.0.0:{port}", flush=True)
     try:
         async with server:
@@ -995,7 +1002,8 @@ async def main() -> None:
         feed.stop_event.set()
         ws_task.cancel()
         micro_task.cancel()
-        await asyncio.gather(ws_task, micro_task, return_exceptions=True)
+        radar_task.cancel()
+        await asyncio.gather(ws_task, micro_task, radar_task, return_exceptions=True)
 
 def parse_iso(value: str | None) -> datetime | None:
     if not value:

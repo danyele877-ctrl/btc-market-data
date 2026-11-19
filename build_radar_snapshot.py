@@ -367,8 +367,7 @@ def funding_diagnostics(record, now):
     }
 
 
-def main():
-    feed, micro, hist = read(FEED), read(MICRO), read(HISTORY)
+def build_snapshot(feed, micro, hist):
     now = datetime.now(timezone.utc)
     feed_problems = validate_feed(feed, current_time=now)
     if feed_problems:
@@ -585,6 +584,15 @@ def main():
             "regional_api_values_match", "api_face_value_zec_diagnostic_only",
         )
     })
+    return output
+
+
+def main():
+    output = build_snapshot(read(FEED), read(MICRO), read(HISTORY))
+    now = parse_time(output["generated_at"])
+    market_out = output["market"]
+    spot_history = output["spot_history"]
+    xperp_history = output["zec_xperp_history"]
     output["zec_context_archive"] = update_context_archive(output, now=now)
     output["zec_predictive_engine"] = evaluate_predictive_engine(output)
     output["zec_prediction_tracking"] = update_prediction_tracking(output, now=now)
