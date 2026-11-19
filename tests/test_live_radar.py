@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from live_radar import LiveRadar
@@ -38,3 +39,36 @@ class LiveRadarTests(unittest.TestCase):
         broken = rows[:-1]
         record = collector_histories({"BTC-USDC": {"1m": broken}})["BTC-USDC"]["bars"]["1m"]
         self.assertFalse(record["ready_200"])
+
+
+class LiveRadarRefreshTests(unittest.IsolatedAsyncioTestCase):
+    async def test_retries_quality_failure_until_engine_ready_in_same_slot(self):
+        feed = Mock()
+        feed.state = {"instruments": {}}
+        feed.health.return_value = {"websocket_connected": True}
+        radar = LiveRadar(feed)
+        reference = datetime(2026, 11, 19, 23, 10, 30, tzinfo=timezone.utc)
+        snapshot = {
+            "candles_1m_5m": {
+                "ZEC-USD_UM_XPERP": {
+                    "5m": {"latest": {"completed_at": "2026-11-19T23:10:00Z"}}
+                }
+            }
+        }
+        output = {"healthz": {"payload": {}}, "candles": {"payload": {}}}
+        blocked = {"quality": {"engine_ready": False}}
+        ready = {"quality": {"engine_ready": True}, "decision": {"side": "NO_SIGNAL"}}
+        with (
+            patch("live_radar.datetime") as clock,
+            patch("live_radar.websocket_window_ready", return_value=True),
+            patch("live_radar.collect_rest_snapshot", return_value=(output, {})) as collect,
+            patch("live_radar.build_snapshot", return_value=snapshot),
+            patch("live_radar.build_compact_alert", side_effect=[blocked, ready]),
+        ):
+            clock.now.return_value = reference
+            await radar.refresh()
+            self.assertIsNone(radar.completed_slot)
+            await radar.refresh()
+            self.assertEqual(radar.completed_slot, int(reference.timestamp()) // 300)
+            await radar.refresh()
+        self.assertEqual(collect.call_count, 2)

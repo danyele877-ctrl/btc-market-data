@@ -65,9 +65,15 @@ class LiveRadar:
         )
         snapshot = await asyncio.to_thread(build_snapshot, output, {}, history)
         self.snapshot = snapshot
-        reference = datetime.now(timezone.utc)
+        published_at = datetime.now(timezone.utc)
         close = _timestamp(snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["latest"]["completed_at"])
-        if close is not None and int(close.timestamp()) // 300 == slot:
+        # Retry transient quality failures within the same publication window.
+        # A healthy NO_SIGNAL completes the slot just as a confirmed trigger does.
+        if (
+            close is not None
+            and int(close.timestamp()) // 300 == slot
+            and build_compact_alert(snapshot, published_at)["quality"]["engine_ready"]
+        ):
             self.completed_slot = slot
 
     async def run(self):
