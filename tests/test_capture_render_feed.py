@@ -64,7 +64,7 @@ class CandleRolloverTests(unittest.TestCase):
             for market in capture.HISTORY_MARKETS
         }
         output = {"healthz": {"payload": {"streams": streams}}}
-        for current, expected in (("19:28:00", None), ("19:28:20", 105), ("19:30:02", 3)):
+        for current, expected in (("19:27:40", None), ("19:27:55", 130), ("19:28:20", 105), ("19:30:02", 3)):
             reference = datetime.fromisoformat(f"2026-11-19T{current}+00:00")
             self.assertEqual(capture.next_5m_retry_delay(output, reference), expected)
 

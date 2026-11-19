@@ -860,16 +860,19 @@ def next_5m_retry_delay(output, reference):
         stream["last_completed_at"] for key, stream in streams.items()
         if key.endswith(":5m") and stream["last_completed_at"]
     ]
+    # Leave room for build, validation and GitHub publication before the
+    # existing 180s BASELINE deadline. The reader still applies the real expiry.
+    maximum_age_at_capture = 160
     if len(closes) == len(HISTORY_MARKETS) and len(set(closes)) == 1:
         completed = datetime.fromisoformat(closes[0])
-        if 0 <= (reference - completed).total_seconds() <= 180:
+        if 0 <= (reference - completed).total_seconds() <= maximum_age_at_capture:
             return None
     timestamp = reference.timestamp()
     boundary = (int(timestamp) // 300 + 1) * 300
     # If a bar should already be available, retry immediately. Otherwise wait
     # just past the next boundary so REST can return confirm=1.
     expected = int(timestamp) // 300 * 300
-    if not closes or timestamp - expected <= 180:
+    if not closes or timestamp - expected <= maximum_age_at_capture:
         return max(0, expected + 5 - timestamp)
     return boundary + 5 - timestamp
 
