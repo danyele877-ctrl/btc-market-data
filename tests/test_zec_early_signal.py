@@ -87,6 +87,14 @@ def valid_snapshot():
 
 
 class ZecEarlySignalTests(unittest.TestCase):
+    def test_book_delta_uses_recent_window_in_full_websocket_history(self):
+        snapshot = valid_snapshot()
+        history = snapshot["microstructure"]["websocket"]["book_history"]
+        history.insert(0, {"ts_ms": int(NOW.timestamp() * 1000) - 299_000, "imbalance_top10": -0.8})
+        history.append({"ts_ms": int(NOW.timestamp() * 1000) + 1, "imbalance_top10": -1})
+        result = evaluate_signal(snapshot, now=NOW)
+        self.assertIn("dinamica imbalance top10: +0.600 in 5s", result["scores"]["groups"]["order_flow"]["factors"])
+
     def _shift_series(self, snapshot, instrument, bar, offset_ms):
         for row in snapshot["candles_1m_5m"][instrument][bar]["tail"]:
             row["ts_ms"] += offset_ms

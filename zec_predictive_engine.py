@@ -700,7 +700,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
     if snapshot.get("schema_version") != 3 or snapshot.get("source_status") != "ok":
         blockers.append("snapshot schema/status non valido")
     source_mode = snapshot.get("feed_source_mode")
-    if source_mode in ("OKX_EEA_REST_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET"):
+    if source_mode in ("OKX_EEA_REST_SNAPSHOT", "OKX_EEA_REST_WS_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET"):
         if snapshot.get("feed_capture_status") != "ok":
             blockers.append("acquisizione feed non valida")
         health = snapshot.get("feed_health") or {}
@@ -716,7 +716,7 @@ def evaluate_predictive_engine(snapshot: dict[str, Any], archive_path: Path = AR
         health = snapshot.get("render_health") or {}
         if health.get("status") != "ok" or health.get("websocket_connected") is not True:
             blockers.append("feed WebSocket non connesso o health non OK")
-    if age is None or age < -60 or age > 180:
+    if age is None or age < 0 or age > 180:
         blockers.append("snapshot oltre 180 secondi o timestamp non valido")
     if ticker.get("http_status") != 200 or str(ticker.get("api_code")) != "0":
         blockers.append("ticker X-Perp HTTP/API non valido")

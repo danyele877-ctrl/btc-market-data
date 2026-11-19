@@ -306,6 +306,7 @@ def _timestamp(value: Any) -> datetime | None:
 
 ALERT_MAX_AGE = timedelta(seconds=180)  # Existing early-signal capture age limit.
 BTC_ID = "BTC-USDC"
+ZEC_SPOT_ID = "ZEC-USDC"
 ZEC_ID = "ZEC-USD_UM_XPERP-310530"
 
 
@@ -343,9 +344,10 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
     generated = _timestamp(snapshot.get("generated_at"))
     market = _object(snapshot.get("market"))
     btc, btc_time = _quote(market.get("btc_spot_ticker"), BTC_ID, "last")
+    spot, spot_time = _quote(market.get("zec_spot_ticker"), ZEC_SPOT_ID, "last")
     zec, zec_time = _quote(market.get("zec_xperp_ticker"), ZEC_ID, "last")
     mark, mark_time = _quote(market.get("zec_xperp_mark"), ZEC_ID, "markPx")
-    observations = [captured, btc_time, zec_time]
+    observations = [captured, btc_time, spot_time, zec_time]
     if mark is not None:
         observations.append(mark_time)
     valid_times = (
@@ -353,7 +355,6 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
         and all(stamp is not None and stamp <= generated for stamp in observations)
     )
     expires = min(observations) + ALERT_MAX_AGE if valid_times else None
-    fresh = expires is not None and now < expires
 
     early = _object(snapshot.get("zec_early_signal"))
     quality = _object(early.get("data_quality"))
@@ -361,14 +362,25 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
     feed_ok = (
         snapshot.get("source_status") == snapshot.get("feed_capture_status") == health.get("status") == "ok"
         and snapshot.get("feed_source_mode") == health.get("source_mode")
-        and snapshot.get("feed_source_mode") in ("OKX_EEA_REST_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET")
+        and snapshot.get("feed_source_mode") in ("OKX_EEA_REST_SNAPSHOT", "OKX_EEA_REST_WS_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET")
     )
     engine_ready = (
         quality.get("websocket_ready") is True
         and quality.get("required_groups_ready") is True
         and quality.get("blockers") == []
     )
+    prices_available = all(price is not None for price in (btc, spot, zec))
     direction = early.get("decision")
+    trigger_expiry = _timestamp(early.get("valid_until"))
+    confirmed = (
+        direction in ("LONG", "SHORT") and early.get("status") == "TRIGGER CONFERMATO"
+        and early.get("candidate_direction") == direction
+        and _timestamp(early.get("captured_at")) == captured
+        and _object(early.get("instrument")).get("inst_id") == ZEC_ID
+    )
+    if expires is not None and engine_ready and confirmed and trigger_expiry is not None:
+        expires = min(expires, trigger_expiry)
+    fresh = expires is not None and now < expires
     invalidation = _object(early.get("invalidation"))
     level = _positive_price(invalidation.get("price"))
     decision = {"side": "NO_SIGNAL", "reason": "invalid_timestamps"}
@@ -376,14 +388,9 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
         decision["reason"] = "stale_data"
         if fresh:
             decision["reason"] = "data_quality_gate"
-            if feed_ok and btc is not None and zec is not None and engine_ready:
+            if feed_ok and prices_available and engine_ready:
                 decision["reason"] = "no_confirmed_trigger"
-                if (
-                    direction in ("LONG", "SHORT") and early.get("status") == "TRIGGER CONFERMATO"
-                    and early.get("candidate_direction") == direction
-                    and _timestamp(early.get("captured_at")) == captured
-                    and _object(early.get("instrument")).get("inst_id") == ZEC_ID
-                ):
+                if confirmed and trigger_expiry is not None:
                     decision["reason"] = "invalidated_or_missing_level"
                     quotes = [price for price in (zec, mark) if price is not None]
                     if level is not None and invalidation.get("direction") == direction and all(
@@ -395,7 +402,7 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
         "schema_version": 1,
         "generated_at": snapshot.get("generated_at"),
         "captured_at": snapshot.get("source_captured_at"),
-        "prices": {BTC_ID: {"last": btc}, ZEC_ID: {"last": zec, "mark": mark}},
+        "prices": {BTC_ID: {"last": btc}, ZEC_SPOT_ID: {"last": spot}, ZEC_ID: {"last": zec, "mark": mark}},
         "feed": {
             "source": snapshot.get("feed_source_mode"),
             "status": "ok" if feed_ok else "unavailable",
@@ -404,7 +411,8 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
         },
         "quality": {
             "engine_ready": engine_ready,
-            "required_prices_available": btc is not None and zec is not None,
+            "required_prices_available": prices_available,
+            "blockers": quality.get("blockers", []) if not engine_ready else [],
         },
         "decision": decision,
     }

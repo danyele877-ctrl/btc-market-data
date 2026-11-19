@@ -2,7 +2,7 @@
 """Explainable, simulation-only ZEC early-signal engine for OKX EEA data."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from zec_contract_config import build_contract_safety
@@ -400,12 +400,12 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         blockers.append("snapshot non schema v3")
     if snapshot.get("source_status") != "ok":
         blockers.append("source_status diverso da ok")
-    if captured_at is None or source_age is None or source_age < -60 or source_age > 180:
+    if captured_at is None or source_age is None or source_age < 0 or source_age > 180:
         blockers.append("snapshot oltre 180 secondi o timestamp non valido")
     if any(value for value in (snapshot.get("read_errors") or {}).values()):
         blockers.append("errori di lettura nel radar snapshot")
     source_mode = snapshot.get("feed_source_mode")
-    if source_mode in ("OKX_EEA_REST_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET"):
+    if source_mode in ("OKX_EEA_REST_SNAPSHOT", "OKX_EEA_REST_WS_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET"):
         if snapshot.get("feed_capture_status") != "ok":
             blockers.append("acquisizione feed non valida")
         health = snapshot.get("feed_health") or {}
@@ -466,11 +466,11 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         websocket.get("connected") is True
         and websocket.get("book_valid") is True
         and _number(websocket.get("message_age_seconds")) is not None
-        and _number(websocket.get("message_age_seconds")) <= 120
+        and 0 <= _number(websocket.get("message_age_seconds")) <= 120
         and _number(websocket.get("trade_age_seconds")) is not None
-        and _number(websocket.get("trade_age_seconds")) <= 180
+        and 0 <= _number(websocket.get("trade_age_seconds")) <= 180
         and _number(websocket.get("book_age_seconds")) is not None
-        and _number(websocket.get("book_age_seconds")) <= 180
+        and 0 <= _number(websocket.get("book_age_seconds")) <= 180
         and cvd.get("ready_1m") is True
         and cvd.get("ready_5m") is True
         and _number(cvd.get("1m")) is not None
@@ -489,15 +489,22 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         cvd_score = (cvd1 + cvd5) / 2
         imbalance = _number(book.get("imbalance_top10"))
         book_score = _clamp(imbalance / 0.35) if imbalance is not None else 0.0
-        book_history = websocket.get("book_history") or []
-        book_history = [item for item in book_history if isinstance(item, dict) and _number(item.get("imbalance_top10")) is not None]
+        capture_ms = captured_at.timestamp() * 1000
+        book_history = []
+        for item in websocket.get("book_history") or []:
+            if not isinstance(item, dict):
+                continue
+            timestamp = _number(item.get("ts_ms"))
+            imbalance_at = _number(item.get("imbalance_top10"))
+            if timestamp is not None and imbalance_at is not None and 0 <= capture_ms - timestamp <= 180_000:
+                book_history.append((timestamp, imbalance_at))
         book_delta_score = 0.0
         book_delta_text = "dinamica imbalance book: storico breve non disponibile"
         if len(book_history) >= 2:
-            first, last = book_history[0], book_history[-1]
-            elapsed = (_number(last.get("ts_ms")) - _number(first.get("ts_ms"))) / 1000
-            if elapsed >= 1 and elapsed <= 180:
-                delta = _number(last.get("imbalance_top10")) - _number(first.get("imbalance_top10"))
+            first, last = min(book_history), max(book_history)
+            elapsed = (last[0] - first[0]) / 1000
+            if elapsed >= 1:
+                delta = last[1] - first[1]
                 book_delta_score = _clamp(delta / 0.30)
                 book_delta_text = f"dinamica imbalance top10: {delta:+.3f} in {elapsed:.0f}s"
         return1 = _price_change(x1m)
@@ -607,6 +614,20 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         stage = "ATTENDERE"
     decision = direction if stage == "TRIGGER CONFERMATO" else "ATTENDERE"
 
+    valid_until = None
+    if confirmed:
+        # Anchor expiry to the underlying observations, not to publication time.
+        # Book/trade ages are measured at capture and cannot be reset by GitHub.
+        candle_deadlines = [
+            _time(rows[-1]["completed_at"]) + timedelta(seconds=180)
+            for rows in (x1m, x5m, btc1m, btc5m, zec1m, zec5m)
+        ]
+        websocket_deadlines = [
+            captured_at + timedelta(seconds=limit - _number(websocket[key]))
+            for key, limit in (("message_age_seconds", 120), ("trade_age_seconds", 180), ("book_age_seconds", 180))
+        ]
+        valid_until = min(candle_deadlines + websocket_deadlines).isoformat()
+
     if direction_sign:
         for name, group in groups.items():
             if _sign(group["score"]) == direction_sign and group["score"] != 0:
@@ -643,6 +664,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         "captured_at": snapshot.get("source_captured_at"),
         "status": stage,
         "decision": decision,
+        "valid_until": valid_until,
         "candidate_direction": direction,
         "exploratory_direction": exploratory_direction,
         "scores": {

@@ -41,7 +41,7 @@ The existing BTC + ZEC radar workflow fetches completed candles directly from OK
 
 Important limitations:
 - The BTC + ZEC radar bridge is a GitHub Actions snapshot on its existing 5-minute schedule. GitHub may delay scheduled starts; this is not a continuous or guaranteed real-time feed.
-- Candle, order-book and trade observations are REST snapshots from OKX EEA. Sampled trades cannot establish continuous CVD, and sampled books cannot establish a live sequence chain. The snapshot explicitly reports WebSocket microstructure as unavailable; nowcasts requiring it are blocked.
+- Candles and quotes come from OKX EEA REST. The workflow uses a separate public WebSocket session for ZEC X-Perp trades and sequenced order-book updates. Nowcasts that require continuous microstructure remain blocked when this session cannot verify a fresh five-minute window.
 - The separate BTC context collector retains its existing 15-minute schedule. It continues to collect broader derivatives, ETF-flow and macro sources; the two existing workflows serve different datasets.
 - Funding interval and contract-value discrepancies are deliberately not auto-resolved by code. The raw current API metadata and timestamps are preserved for manual reconciliation.
 - A successful REST request is not proof that a field is semantically comparable; inspect each endpoint's instrument ID, timestamp, venue and payload.
@@ -51,11 +51,9 @@ Important limitations:
 
 The existing `Render Candle Feed Bridge` workflow retains its 5-minute schedule and reads OKX EEA public REST endpoints directly. It fetches up to 500 completed 1m, 5m, 15m, 1H and 4H candles for BTC-USDC, ZEC-USDC and the exact ZEC X-Perp. Each candle keeps exchange timestamps and string-valued OHLCV fields. It also stores timestamped REST order-book and recent-trade samples from the exact X-Perp.
 
-The workflow preserves the existing `data/render_feed.json` path for consumers during migration, but its `source_mode` is `OKX_EEA_REST_SNAPSHOT`; it contains no Render response. The historical filename is compatibility only. `data/zec_microstructure_history.json` preserves each sample's source and exchange timestamp. A REST sample is never promoted to LIVE: continuous WebSocket CVD and book sequence state are N/D, so the relevant BASELINE/SHADOW nowcast gates remain in force.
+The existing `data/render_feed.json` keeps the compatibility filename. A snapshot with a verified five-minute WebSocket window uses `OKX_EEA_REST_WS_SNAPSHOT`. With REST alone, publication uses `OKX_EEA_REST_SNAPSHOT` and the trading decision remains blocked. The microstructure archive records the acquisition source for every sample.
 
-GitHub Actions schedule starts can be delayed, and the 5-minute task is not an always-on process. This design removes Render from acquisition and avoids Render egress charges; it cannot provide uninterrupted WebSocket microstructure. If continuous LIVE microstructure is required, it needs an always-on host. Do not deploy or sync the legacy Render Blueprint as part of this workflow.
-
-`candle_service.py`, `Dockerfile` and `render.yaml` are retained as legacy source/configuration for now; the GitHub-only workflow does not run them. If a Render service still exists, suspend it in the Render dashboard; do not delete it as part of the code migration.
+Each job opens its own WebSocket session and warms up for five minutes before it can verify CVD and book continuity. GitHub may coalesce or delay runs, so the compact alert expires at the earliest deadline among its quotes and the evidence supporting a confirmed trigger. Render is outside the collection path.
 
 ## ZEC Early Signal Engine (simulation only)
 
@@ -108,7 +106,7 @@ The event study describes co-occurring factors and subsequent price paths. It do
 
 ## Queue-aware LIMIT execution research
 
-The legacy archive may contain bounded 15-minute WebSocket tape and sequenced book-depth observations from earlier continuous capture. New no-Render runs do not generate WebSocket events; they add only directly sampled REST trades/books, tagged `source=rest`. REST polling gaps are not treated as live WS gaps. Historical WebSocket sequence records remain historical and cannot satisfy current live-data gates.
+The legacy archive may contain bounded 15-minute WebSocket tape and sequenced book-depth observations from earlier continuous capture. GitHub runs with a verified public WebSocket window also archive trades and sequenced depth. Direct REST samples are tagged `source=rest`. REST polling gaps are not treated as live WS gaps. Historical WebSocket sequence records remain historical and cannot satisfy current live-data gates.
 
 The separate zec_queue_model.py evaluates a hypothetical passive LIMIT by reading the displayed queue at the candidate price and summing aggressive trades at or through that price during the five-minute validity window. It only labels a historical sample when the entry book, book sequence coverage, capture checks and trade tape pass quality gates. If the limit is marketable, book depth is missing, the tape is truncated, or a sequence gap occurs, it returns no estimate. The engine trains separate scalp queue families at 0.10, 0.20, 0.30 and 0.40 ATR offsets, and exposes queue-depletion frequency separately from OHLC touch frequency. Where each offset has sufficient mature analogs, it compares the experimental joint queue-depletion/TP1-before-SL frequency; this is only a candidate offset ranking, not a calibrated optimum.
 

@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from render_bridge_publication import BTC_ID, ZEC_ID, build_compact_alert
+from render_bridge_publication import BTC_ID, ZEC_ID, ZEC_SPOT_ID, build_compact_alert
 
 
 class CompactAlertTests(unittest.TestCase):
@@ -18,6 +18,7 @@ class CompactAlertTests(unittest.TestCase):
         self.assertEqual(alert["captured_at"], self.snapshot["source_captured_at"])
         for instrument, field, key, source in (
             (BTC_ID, "last", "btc_spot_ticker", "last"),
+            (ZEC_SPOT_ID, "last", "zec_spot_ticker", "last"),
             (ZEC_ID, "last", "zec_xperp_ticker", "last"),
             (ZEC_ID, "mark", "zec_xperp_mark", "markPx"),
         ):
@@ -36,9 +37,15 @@ class CompactAlertTests(unittest.TestCase):
                 early.update(
                     decision=direction, candidate_direction=direction, status="TRIGGER CONFERMATO",
                     captured_at=self.snapshot["source_captured_at"],
+                    valid_until=(self.now + timedelta(seconds=15)).isoformat(),
                     invalidation={"direction": direction, "price": valid},
                 )
-                self.assertEqual(build_compact_alert(self.snapshot, self.now)["decision"]["side"], direction)
+                alert = build_compact_alert(self.snapshot, self.now)
+                self.assertEqual(alert["decision"]["side"], direction)
+                self.assertEqual(alert["feed"]["expires_at"], early["valid_until"])
+                deadline = early.pop("valid_until")
+                self.assertEqual(build_compact_alert(self.snapshot, self.now)["decision"]["side"], "NO_SIGNAL")
+                early["valid_until"] = deadline
                 early["invalidation"]["price"] = crossed
                 self.assertEqual(build_compact_alert(self.snapshot, self.now)["decision"]["side"], "NO_SIGNAL")
                 early["invalidation"]["price"] = valid

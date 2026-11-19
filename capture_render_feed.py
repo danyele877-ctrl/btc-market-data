@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-"""Capture an OKX EEA REST radar snapshot for the GitHub bridge.
-
-This workflow is deliberately stateless: candles and market observations are
-fetched from OKX on each run. REST-polled book/trades are samples, never LIVE
-WebSocket microstructure.
-"""
+"""Capture OKX EEA REST market data and a bounded public WebSocket window."""
+import asyncio
 import json
 import math
 import os
@@ -13,6 +9,7 @@ import tempfile
 import time
 import urllib.request
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,6 +19,8 @@ MICRO_OUT = Path("data/zec_microstructure_history.json")
 MICRO_MAX_MINUTES = 1440
 MICRO_MAX_TRADES = 30000
 MICRO_MAX_BOOK_SNAPSHOTS = 15000
+REST_MODE = "OKX_EEA_REST_SNAPSHOT"
+HYBRID_MODE = "OKX_EEA_REST_WS_SNAPSHOT"
 MAX_FEED_AGE_SECONDS = 20 * 60
 HISTORY_MAX_AGE_SECONDS = {"1m": 180, "5m": 360, "15m": 30 * 60, "1H": 3 * 3600, "4H": 12 * 3600}
 
@@ -48,7 +47,8 @@ def validate_feed(feed, current_time=None):
 
     if not isinstance(feed, dict):
         return ["Radar feed payload is not a JSON object"]
-    rest_snapshot = feed.get("source_mode") == "OKX_EEA_REST_SNAPSHOT"
+    source_mode = feed.get("source_mode")
+    rest_snapshot = source_mode in (REST_MODE, HYBRID_MODE)
     captured = parse_time(feed.get("captured_at"))
     if captured is None or (current_time - captured).total_seconds() > MAX_FEED_AGE_SECONDS or captured > current_time:
         problems.append("captured_at missing, in the future, or older than 20 minutes")
@@ -77,10 +77,15 @@ def validate_feed(feed, current_time=None):
     if health_payload.get("status") != "ok":
         problems.append("Radar source health is not ok")
     if rest_snapshot:
-        if health_payload.get("source_mode") != "OKX_EEA_REST_SNAPSHOT":
+        if health_payload.get("source_mode") != source_mode:
             problems.append("Radar health source mode does not match the feed")
-        if health_payload.get("websocket_connected") is not False:
+        if source_mode == REST_MODE and health_payload.get("websocket_connected") is not False:
             problems.append("REST snapshot must not claim a live WebSocket connection")
+        if source_mode == HYBRID_MODE and (
+            health_payload.get("websocket_connected") is not True
+            or not websocket_window_ready(health_payload.get("microstructure"))
+        ):
+            problems.append("Hybrid snapshot lacks a verified continuous WebSocket window")
     else:
         if health_payload.get("websocket_connected") is not True:
             problems.append("Legacy candle WebSocket is not healthy")
@@ -381,7 +386,7 @@ def get_okx_history(inst_id, bar, limit=300):
             "candles": [],
         }
 
-def get_okx_xperp_history(inst_id, bars=("1m", "5m", "15m", "1H", "4H"), target=500):
+def get_okx_xperp_history(inst_id, bars=("1m", "5m", "15m", "1H", "4H"), target=500, previous=None):
     """Fetch completed OKX EEA candles, paginating older rows for any exact instrument."""
     seconds = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}
     output = {
@@ -432,6 +437,22 @@ def get_okx_xperp_history(inst_id, bars=("1m", "5m", "15m", "1H", "4H"), target=
                 cursor = oldest
                 if len(collected) >= target:
                     break
+                cached = (previous or {}).get(bar, [])
+                if collected and isinstance(cached, list):
+                    newest = max(collected)
+                    older = {
+                        row["ts_ms"]: row for row in cached
+                        if isinstance(row, dict) and type(row.get("ts_ms")) is int
+                        and isinstance(row.get("completed_at"), str) and row["ts_ms"] <= newest
+                    }
+                    if older.keys() & collected.keys():
+                        merged = older | collected
+                        keys = sorted(merged)[-target:]
+                        if len(keys) == target and all(
+                            b - a == seconds[bar] * 1000 for a, b in zip(keys, keys[1:])
+                        ):
+                            collected = merged
+                            break
                 time.sleep(0.12)
             except Exception as exc:
                 errors.append(f"{type(exc).__name__}: {exc}"[:250])
@@ -450,6 +471,24 @@ def get_okx_xperp_history(inst_id, bars=("1m", "5m", "15m", "1H", "4H"), target=
         }
     return output
 
+def align_intraday_histories(histories):
+    """Use the newest common closed bar when requests straddle a close."""
+    for bar, interval_ms in (("1m", 60_000), ("5m", 300_000)):
+        records = [history["bars"][bar] for history in histories.values()]
+        if not all(record["ready_200"] and record["count"] > 200 for record in records):
+            continue
+        latest = [record["candles"][-1]["ts_ms"] for record in records]
+        cutoff = min(latest)
+        if max(latest) - cutoff != interval_ms:
+            continue
+        for record in records:
+            candles = record["candles"]
+            if candles[-1]["ts_ms"] > cutoff:
+                record["candles"] = candles[:-1]
+                record["count"] = len(candles) - 1
+                record["newest_completed_at"] = candles[-2]["completed_at"]
+
+
 def load_microstructure_history():
     try:
         value = json.loads(MICRO_OUT.read_text(encoding="utf-8"))
@@ -459,7 +498,7 @@ def load_microstructure_history():
         pass
     return {"schema_version": 1, "instrument": "ZEC-USD_UM_XPERP-310530", "book_snapshots": [], "trades": [], "open_interest_history": [], "capture_status": []}
 
-def update_microstructure_history(okx_market, websocket_micro=None, captured_at=None):
+def update_microstructure_history(okx_market, websocket_micro=None, captured_at=None, source_mode=REST_MODE):
     websocket_micro = websocket_micro or {}
     history = load_microstructure_history()
     history.setdefault("open_interest_history", [])
@@ -587,8 +626,8 @@ def update_microstructure_history(okx_market, websocket_micro=None, captured_at=
     history["trades"] = [x for x in history["trades"] if x["ts_ms"] >= cutoff][-MICRO_MAX_TRADES:]
     history["open_interest_history"] = [x for x in history["open_interest_history"] if x["ts_ms"] >= cutoff]
     history["capture_status"].append({
-        "source_mode": "OKX_EEA_REST_SNAPSHOT",
-        "websocket_connected": False,
+        "source_mode": source_mode,
+        "websocket_connected": source_mode == HYBRID_MODE,
         "captured_at": captured_at or websocket_micro.get("last_message_at") or now(),
         "trade_events_returned": int(websocket_micro.get("trade_events_returned") or 0),
         "trade_events_truncated": bool(websocket_micro.get("trade_events_truncated")),
@@ -611,27 +650,77 @@ def update_microstructure_history(okx_market, websocket_micro=None, captured_at=
         "newest_trade_at": datetime.fromtimestamp(history["trades"][-1]["ts_ms"] / 1000, timezone.utc).isoformat().replace("+00:00", "Z") if history["trades"] else None,
     }
 
-def main():
-    if sys.argv[1:] == ["--validate-existing"]:
-        try:
-            current = json.loads(OUT.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise SystemExit(f"Invalid radar feed file: {exc}")
-        problems = validate_feed(current)
-        if problems:
-            raise SystemExit("Radar feed validation failed: " + "; ".join(problems))
-        print(f"Radar feed validation passed: {OUT}")
-        return
-    if sys.argv[1:]:
-        raise SystemExit("Usage: python capture_render_feed.py [--validate-existing]")
-
-    source_mode = "OKX_EEA_REST_SNAPSHOT"
+def collect_rest_snapshot():
+    source_mode = REST_MODE
     # This is a pull snapshot, not a daemon. Every market and timeframe comes
     # directly from OKX; no historic WebSocket values are relabelled as LIVE.
-    histories = {
-        market: get_okx_xperp_history(inst_id)
-        for market, inst_id in HISTORY_MARKETS.items()
+    try:
+        previous = json.loads(OUT.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        previous = {}
+    cached = {}
+    if isinstance(previous, dict) and previous.get("source_mode") in (REST_MODE, HYBRID_MODE):
+        cached = previous.get("candles", {}).get("payload", {}).get("instruments", {})
+
+    with ThreadPoolExecutor(max_workers=len(HISTORY_MARKETS)) as executor:
+        pending = {
+            market: executor.submit(
+                get_okx_xperp_history, inst_id, bars=("1H", "4H", "15m", "5m", "1m"),
+                previous=cached.get(market),
+            )
+            for market, inst_id in HISTORY_MARKETS.items()
+        }
+        histories = {market: future.result() for market, future in pending.items()}
+    # Capture short-lived derivatives context in the same fast bridge snapshot.
+    # These are independent public OKX EEA requests, each with its own retrieval time.
+    market_paths = {
+        "btc_spot_ticker": "/market/ticker?instId=BTC-USDC",
+        "zec_spot_ticker": "/market/ticker?instId=ZEC-USDC",
+        "zec_xperp_ticker": "/market/ticker?instId=ZEC-USD_UM_XPERP-310530",
+        "zec_xperp_book": "/market/books?instId=ZEC-USD_UM_XPERP-310530&sz=50",
+        "zec_xperp_trades": "/market/trades?instId=ZEC-USD_UM_XPERP-310530&limit=100",
+        "zec_xperp_mark": "/public/mark-price?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
+        "zec_index": "/market/index-tickers?quoteCcy=USD",
+        "zec_xperp_funding": "/public/funding-rate?instId=ZEC-USD_UM_XPERP-310530",
+        "zec_xperp_open_interest": "/public/open-interest?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
+        "zec_xperp_instrument": "/public/instruments?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
     }
+    urls = {name: f"{OKX_EEA}{path}" for name, path in market_paths.items()}
+    # Global metadata is diagnostic only and cannot override EEA data.
+    urls["zec_xperp_instrument_global"] = (
+        "https://www.okx.com/api/v5/public/instruments?"
+        "instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530"
+    )
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        okx_market = dict(zip(urls, executor.map(get_url, urls.values())))
+
+    check_time = datetime.now(timezone.utc)
+    refresh = []
+    for bar, interval_seconds in (("1m", 60), ("5m", 300)):
+        latest_expected = (int(check_time.timestamp()) - 5) // interval_seconds * interval_seconds
+        if any(
+            history["bars"][bar]["candles"]
+            and history["bars"][bar]["candles"][-1]["ts_ms"] // 1000 + interval_seconds < latest_expected
+            for history in histories.values()
+        ):
+            refresh.append(bar)
+    if refresh:
+        with ThreadPoolExecutor(max_workers=len(HISTORY_MARKETS)) as executor:
+            pending = {
+                market: executor.submit(
+                    get_okx_xperp_history, inst_id, bars=refresh,
+                    previous={bar: histories[market]["bars"][bar]["candles"] for bar in refresh},
+                )
+                for market, inst_id in HISTORY_MARKETS.items()
+            }
+            for market, future in pending.items():
+                for bar, record in future.result()["bars"].items():
+                    original = histories[market]["bars"][bar]
+                    if record["ready_200"] and (
+                        not original["ready_200"] or record["newest_completed_at"] >= original["newest_completed_at"]
+                    ):
+                        histories[market]["bars"][bar] = record
+    align_intraday_histories(histories)
     okx_history = {
         market: {
             bar: {
@@ -712,30 +801,6 @@ def main():
         "payload": {"instruments": instruments, "source_mode": source_mode},
     }
     status = "ok"
-    # Capture short-lived derivatives context in the same fast bridge snapshot.
-    # These are independent public OKX EEA requests, each with its own retrieval time.
-    market_paths = {
-        "btc_spot_ticker": "/market/ticker?instId=BTC-USDC",
-        "zec_spot_ticker": "/market/ticker?instId=ZEC-USDC",
-        "zec_xperp_ticker": "/market/ticker?instId=ZEC-USD_UM_XPERP-310530",
-        "zec_xperp_book": "/market/books?instId=ZEC-USD_UM_XPERP-310530&sz=50",
-        "zec_xperp_trades": "/market/trades?instId=ZEC-USD_UM_XPERP-310530&limit=100",
-        "zec_xperp_mark": "/public/mark-price?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
-        "zec_index": "/market/index-tickers?quoteCcy=USD",
-        "zec_xperp_funding": "/public/funding-rate?instId=ZEC-USD_UM_XPERP-310530",
-        "zec_xperp_open_interest": "/public/open-interest?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
-        "zec_xperp_instrument": "/public/instruments?instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530",
-    }
-    okx_market = {
-        name: get_url(f"{OKX_EEA}{path}")
-        for name, path in market_paths.items()
-    }
-    # Independent cross-region check for the exact same dated instrument.
-    # This is diagnostic only: global metadata must never override EEA trading rules.
-    okx_market["zec_xperp_instrument_global"] = get_url(
-        "https://www.okx.com/api/v5/public/instruments?"
-        "instType=FUTURES&instId=ZEC-USD_UM_XPERP-310530"
-    )
     # Keep only the ZEC USD index row; never mix unrelated index instruments.
     index_payload = okx_market.get("zec_index", {}).get("payload")
     if isinstance(index_payload, dict) and isinstance(index_payload.get("data"), list):
@@ -763,21 +828,97 @@ def main():
         "healthz": health,
         "candles": candles,
     }
+    return output, zec_xperp_history
+
+
+def websocket_window_ready(micro):
+    if not isinstance(micro, dict):
+        return False
+    cvd = micro.get("cvd")
+    if not isinstance(cvd, dict):
+        return False
+    trade_count = cvd.get("trade_count_5m")
+    return (
+        micro.get("connected") is True
+        and micro.get("book_valid") is True
+        and micro.get("book_gap_count") == 0
+        and micro.get("trade_events_truncated") is False
+        and all(cvd.get(f"ready_{bar}") is True and cvd.get(f"gap_count_{bar}") == 0
+                and isinstance(cvd.get(bar), (float, int)) and math.isfinite(cvd[bar])
+                for bar in ("1m", "5m"))
+        and type(trade_count) is int and trade_count > 0
+        and all(isinstance(micro.get(key), (float, int)) and 0 <= micro[key] <= maximum
+                for key, maximum in (("message_age_seconds", 120), ("book_age_seconds", 180),
+                                     ("trade_age_seconds", 180)))
+    )
+
+
+async def collect_snapshot():
+    from candle_service import CandleFeed
+
+    with tempfile.TemporaryDirectory() as directory:
+        feed = CandleFeed(Path(directory) / "websocket.json")
+        task = asyncio.create_task(feed.run_microstructure_websocket())
+        try:
+            # Fetch candles and quotes towards the end of the rolling 5m window.
+            # A deadline bounds warm-up when the public WebSocket is degraded.
+            started = time.monotonic()
+            await asyncio.sleep(285)
+            output, history = await asyncio.to_thread(collect_rest_snapshot)
+            micro = feed.microstructure_health()
+            while not websocket_window_ready(micro) and time.monotonic() - started < 325:
+                await asyncio.sleep(1)
+                micro = feed.microstructure_health()
+            if websocket_window_ready(micro):
+                captured_at = now()
+                output.update(source_mode=HYBRID_MODE, captured_at=captured_at)
+                output["candles"]["payload"]["source_mode"] = HYBRID_MODE
+                for key in ("healthz", "candles"):
+                    output[key]["retrieved_at"] = captured_at
+                output["healthz"]["payload"].update(
+                    source_mode=HYBRID_MODE,
+                    websocket_connected=True,
+                    last_message_at=micro.get("last_message_at"),
+                    last_message_age_seconds=micro.get("message_age_seconds"),
+                    microstructure=micro,
+                )
+            return output, history
+        finally:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+
+def main():
+    if sys.argv[1:] == ["--validate-existing"]:
+        try:
+            current = json.loads(OUT.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SystemExit(f"Invalid radar feed file: {exc}")
+        problems = validate_feed(current)
+        if problems:
+            raise SystemExit("Radar feed validation failed: " + "; ".join(problems))
+        print(f"Radar feed validation passed: {OUT}")
+        return
+    if sys.argv[1:]:
+        raise SystemExit("Usage: python capture_render_feed.py [--validate-existing]")
+
+    output, zec_xperp_history = asyncio.run(collect_snapshot())
+    health = output["healthz"]["payload"]
     problems = validate_feed(output)
     if problems:
         raise SystemExit("Refusing to replace the last known radar feed: " + "; ".join(problems))
     # Only persist auxiliary histories after every candle stream passed checks.
     microstructure_status = update_microstructure_history(
-        okx_market, health["payload"]["microstructure"], captured_at
+        output["okx_market"], health["microstructure"], output["captured_at"], output["source_mode"]
     )
     output["microstructure_history"] = microstructure_status
     write_json_atomically(Path("data/zec_xperp_history.json"), zec_xperp_history)
     write_feed_atomically(output)
     print(json.dumps({
-        "status": status,
-        "source_mode": source_mode,
-        "websocket_connected": False,
-        "markets": list(instruments),
+        "status": output["status"],
+        "source_mode": output["source_mode"],
+        "websocket_connected": health["websocket_connected"],
+        "markets": list(output["candles"]["payload"]["instruments"]),
         "timeframes": ["1m", "5m", "15m", "1H", "4H"],
         "output": str(OUT),
     }, ensure_ascii=False))
