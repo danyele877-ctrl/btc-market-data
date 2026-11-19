@@ -1,3 +1,8 @@
 *
 !candle_service.py
 !requirements.txt
+!live_radar.py
+!build_radar_snapshot.py
+!capture_render_feed.py
+!render_bridge_publication.py
+!zec_*.py
