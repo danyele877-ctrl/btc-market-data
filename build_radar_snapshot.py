@@ -11,7 +11,7 @@ from zec_predictive_engine import evaluate_predictive_engine
 from zec_context_archive import update_context_archive
 from zec_prediction_tracking import update_prediction_tracking
 from zec_contract_config import build_contract_safety
-from capture_render_feed import validate_feed
+from capture_render_feed import history_available, validate_feed
 
 ROOT = Path("data")
 FEED = ROOT / "render_feed.json"
@@ -160,7 +160,7 @@ def indicator_pack(candles):
     }
 
 
-def summarize_history(record, bar, now):
+def summarize_history(record, bar, now, source_mode=None):
     candles = record.get("candles", []) if isinstance(record, dict) else []
     candles = sorted(
         [item for item in candles if isinstance(item, dict) and item.get("ts_ms") is not None],
@@ -176,7 +176,7 @@ def summarize_history(record, bar, now):
     age = (now - completed).total_seconds() if completed else None
     # Historical inputs are usable only when the request explicitly returned
     # HTTP 200. Missing status metadata must never be treated as success.
-    http_ok = record.get("http_status") == 200 and not record.get("error")
+    http_ok = history_available(record, source_mode) and not record.get("error")
     ready = (
         http_ok and len(candles) >= 200 and gaps == 0
         and age is not None and -60 <= age <= (interval * 3 if interval else 0)
@@ -391,7 +391,7 @@ def build_snapshot(feed, micro, hist):
         newest = candles[-1].get("completed_at") if candles and isinstance(candles[-1], dict) else None
         if (
             not isinstance(record, dict)
-            or record.get("http_status") != 200
+            or not history_available(record, feed.get("source_mode"))
             or len(candles) < 200
             or record.get("instrument") not in (None, "ZEC-USD_UM_XPERP-310530")
             or summary.get("ready_200") is not True
@@ -448,7 +448,7 @@ def build_snapshot(feed, micro, hist):
         }
 
     xperp_history = {
-        bar: summarize_history(item, bar, now)
+        bar: summarize_history(item, bar, now, feed.get("source_mode"))
         for bar, item in hist_bars.items()
     }
     spot_history = {}
@@ -456,7 +456,7 @@ def build_snapshot(feed, micro, hist):
     for instrument in ("BTC-USDC", "ZEC-USDC"):
         source = okx_history.get(instrument, {})
         spot_history[instrument] = {
-            bar: summarize_history(source.get(bar, {}), bar, now)
+            bar: summarize_history(source.get(bar, {}), bar, now, feed.get("source_mode"))
             for bar in ("1H", "4H")
         }
 

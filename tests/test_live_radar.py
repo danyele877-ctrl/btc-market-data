@@ -25,3 +25,16 @@ class LiveRadarTests(unittest.TestCase):
             radar.current()
         self.assertIs(build.call_args.args[0], radar.snapshot)
         self.assertIsNotNone(build.call_args.args[1].tzinfo)
+
+    def test_collector_history_uses_only_contiguous_suffix_with_minimum_coverage(self):
+        from capture_render_feed import collector_histories
+
+        rows = [{"ts_ms": i * 60_000, "completed_at": str(i)} for i in range(211) if i != 10]
+        record = collector_histories({"BTC-USDC": {"1m": rows}})["BTC-USDC"]["bars"]["1m"]
+        self.assertTrue(record["ready_200"])
+        self.assertEqual(record["count"], 200)
+        self.assertEqual(record["gap_count"], 0)
+
+        broken = rows[:-1]
+        record = collector_histories({"BTC-USDC": {"1m": broken}})["BTC-USDC"]["bars"]["1m"]
+        self.assertFalse(record["ready_200"])

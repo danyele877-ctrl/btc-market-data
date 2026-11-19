@@ -40,13 +40,13 @@ class LiveRadar:
         slot = int(reference.timestamp()) // 300
         if slot == self.completed_slot or reference.timestamp() % 300 > 150:
             return
-        # Copy the candle lists on the event loop; REST confirms their current
-        # tails and fills any gaps without blocking the collector.
+        # Copy the candle lists on the event loop; the builder validates them
+        # and REST supplies independent ticker and derivatives context.
         cache = {
             key: {bar: list(rows) for bar, rows in bars.items()}
             for key, bars in self.feed.state["instruments"].items()
         }
-        output, history = await asyncio.to_thread(collect_rest_snapshot, cache)
+        output, history = await asyncio.to_thread(collect_rest_snapshot, live_instruments=cache)
         health = self.feed.microstructure_health()
         if not self.feed.health()["websocket_connected"] or not websocket_window_ready(health):
             self.snapshot = None

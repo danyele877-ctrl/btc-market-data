@@ -200,7 +200,7 @@ def validate_feed(feed, current_time=None):
                 continue
             series = record.get("candles", [])
             label = f"{market} {bar}"
-            if record.get("http_status") != 200 or not isinstance(series, list) or len(series) < 200:
+            if not history_available(record, feed.get("source_mode")) or not isinstance(series, list) or len(series) < 200:
                 problems.append(f"{label} history has fewer than 200 candles or HTTP status is not 200")
                 continue
             interval_ms = {"1H": 3_600_000, "4H": 14_400_000}[bar]
@@ -254,7 +254,7 @@ def validate_feed(feed, current_time=None):
         except (TypeError, ValueError):
             count, gaps = 0, -1
         if (
-            record.get("http_status") != 200 or record.get("ready_200") is not True
+            not history_available(record, feed.get("source_mode")) or record.get("ready_200") is not True
             or count < 200 or gaps != 0 or record.get("error")
         ):
             problems.append(f"{label} is not ready (HTTP 200, 200 bars, zero gaps required)")
@@ -650,7 +650,36 @@ def update_microstructure_history(okx_market, websocket_micro=None, captured_at=
         "newest_trade_at": datetime.fromtimestamp(history["trades"][-1]["ts_ms"] / 1000, timezone.utc).isoformat().replace("+00:00", "Z") if history["trades"] else None,
     }
 
-def collect_rest_snapshot(cached_instruments=None):
+COLLECTOR_HISTORY = "OKX_EEA_COLLECTOR"
+
+
+def history_available(record, source_mode):
+    return record.get("http_status") == 200 or (
+        source_mode == HYBRID_MODE and record.get("source") == COLLECTOR_HISTORY
+    )
+
+
+def collector_histories(instruments):
+    histories = {}
+    for market, inst_id in HISTORY_MARKETS.items():
+        records = {}
+        for bar, seconds in (("1m", 60), ("5m", 300), ("15m", 900), ("1H", 3600), ("4H", 14400)):
+            rows = instruments.get(market, {}).get(bar, [])[-500:]
+            gaps = [i for i in range(1, len(rows)) if rows[i]["ts_ms"] - rows[i-1]["ts_ms"] != seconds * 1000]
+            if gaps and len(rows) - gaps[-1] >= 200:
+                rows = rows[gaps[-1]:]
+                gaps = []
+            records[bar] = {
+                "source": COLLECTOR_HISTORY, "candles": rows, "count": len(rows),
+                "gap_count": len(gaps), "ready_200": len(rows) >= 200 and not gaps,
+                "oldest_completed_at": rows[0]["completed_at"] if rows else None,
+                "newest_completed_at": rows[-1]["completed_at"] if rows else None,
+            }
+        histories[market] = {"instrument": inst_id, "retrieved_at": now(), "bars": records}
+    return histories
+
+
+def collect_rest_snapshot(cached_instruments=None, *, live_instruments=None):
     source_mode = REST_MODE
     # This is a pull snapshot, not a daemon. Every market and timeframe comes
     # directly from OKX; no historic WebSocket values are relabelled as LIVE.
@@ -665,15 +694,30 @@ def collect_rest_snapshot(cached_instruments=None):
     if cached_instruments is not None:
         cached = cached_instruments
 
-    with ThreadPoolExecutor(max_workers=len(HISTORY_MARKETS)) as executor:
-        pending = {
-            market: executor.submit(
-                get_okx_xperp_history, inst_id, bars=("1H", "4H", "15m", "5m", "1m"),
-                previous=cached.get(market),
-            )
-            for market, inst_id in HISTORY_MARKETS.items()
-        }
-        histories = {market: future.result() for market, future in pending.items()}
+    if live_instruments is not None:
+        histories = collector_histories(live_instruments)
+        for market, history in histories.items():
+            records = history["bars"]
+            for bar, record in records.items():
+                if record["ready_200"]:
+                    continue
+                # Fill gaps only in the affected stream. The original live
+                # series remains subject to the same gate if REST cannot fix it.
+                repair = get_okx_xperp_history(
+                    history["instrument"], bars=(bar,), previous={bar: record["candles"]}
+                )["bars"][bar]
+                if repair["ready_200"]:
+                    records[bar] = repair
+    else:
+        with ThreadPoolExecutor(max_workers=len(HISTORY_MARKETS)) as executor:
+            pending = {
+                market: executor.submit(
+                    get_okx_xperp_history, inst_id, bars=("1H", "4H", "15m", "5m", "1m"),
+                    previous=cached.get(market),
+                )
+                for market, inst_id in HISTORY_MARKETS.items()
+            }
+            histories = {market: future.result() for market, future in pending.items()}
     # Capture short-lived derivatives context in the same fast bridge snapshot.
     # These are independent public OKX EEA requests, each with its own retrieval time.
     market_paths = {
@@ -707,7 +751,7 @@ def collect_rest_snapshot(cached_instruments=None):
             for history in histories.values()
         ):
             refresh.append(bar)
-    if refresh:
+    if refresh and live_instruments is None:
         with ThreadPoolExecutor(max_workers=len(HISTORY_MARKETS)) as executor:
             pending = {
                 market: executor.submit(
@@ -729,7 +773,7 @@ def collect_rest_snapshot(cached_instruments=None):
             bar: {
                 **histories[market]["bars"][bar],
                 "instId": HISTORY_MARKETS[market],
-                "source": "OKX_EEA_REST",
+                "source": histories[market]["bars"][bar].get("source", "OKX_EEA_REST"),
             }
             for bar in ("1H", "4H")
         }
