@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from build_radar_snapshot import build_snapshot
 from capture_render_feed import HYBRID_MODE, collect_rest_snapshot, now, websocket_window_ready
 from render_bridge_publication import _timestamp, build_compact_alert
+from telegram_alert import TelegramAlert
 
 
 def unavailable(reason):
@@ -23,6 +24,7 @@ class LiveRadar:
         self.feed = feed
         self.snapshot = None
         self.completed_slot = None
+        self.telegram = TelegramAlert()
 
     def current(self):
         if self.snapshot is None:
@@ -75,6 +77,8 @@ class LiveRadar:
             and build_compact_alert(snapshot, published_at)["quality"]["engine_ready"]
         ):
             self.completed_slot = slot
+            if self.telegram.token and self.telegram.chat_id:
+                await asyncio.to_thread(self.telegram.publish, self.current(), slot)
 
     async def run(self):
         while not self.feed.stop_event.is_set():
