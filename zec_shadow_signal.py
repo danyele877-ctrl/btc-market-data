@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any
 
 from zec_early_signal import (
-    FEED_KEY, _candlestick_direction, _clamp, _number, _price_change, _series,
+    FEED_KEY, _aligned_pair, _candlestick_direction, _clamp, _number, _price_change, _series,
     evaluate_signal,
 )
 
@@ -200,21 +200,21 @@ def evaluate_shadow_signal(snapshot: dict[str, Any], baseline: dict[str, Any] | 
         if error and error not in blockers:
             blockers.append(error)
     for bar, streams in (("1m", (x1m, btc1m, zec1m)), ("5m", (x5m, btc5m, zec5m))):
-        if all(streams) and len({rows[-1].get("ts_ms") for rows in streams}) != 1:
+        if all(streams) and not _aligned_pair(*streams):
             blockers.append(f"coerenza temporale {bar} BTC/ZEC/X-Perp non valida per SHADOW")
-    if btc5m and zec5m and btc5m[-1].get("ts_ms") == zec5m[-1].get("ts_ms"):
+    if _aligned_pair(btc5m, zec5m, x5m):
         # The baseline's relative-strength blocker can be a consequence of
         # its stricter 180s freshness gate. Re-evaluate alignment on SHADOW's
         # own validated series before deciding whether that blocker applies.
         blockers = [item for item in blockers if item != "forza relativa 5m ZEC/BTC non allineata o non disponibile"]
-    elif btc5m and zec5m:
+    elif btc5m and zec5m and x5m:
         blockers.append("coerenza temporale 5m BTC/ZEC non valida per SHADOW")
 
     d1 = _candlestick_direction(x1m) if x1m else 0
     d5 = _candlestick_direction(x5m) if x5m else 0
     price_score = (d1 + d5) / 2 if x1m and x5m else 0.0
     relative = None
-    if btc5m and zec5m and btc5m[-1].get("ts_ms") == zec5m[-1].get("ts_ms"):
+    if _aligned_pair(btc5m, zec5m, x5m):
         zec_return, btc_return = _price_change(zec5m), _price_change(btc5m)
         if zec_return is not None and btc_return is not None:
             relative = zec_return - btc_return

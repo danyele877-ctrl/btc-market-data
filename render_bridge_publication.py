@@ -364,7 +364,7 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
         and snapshot.get("feed_source_mode") == health.get("source_mode")
         and snapshot.get("feed_source_mode") in ("OKX_EEA_REST_SNAPSHOT", "OKX_EEA_REST_WS_SNAPSHOT", "LEGACY_RENDER_WEBSOCKET")
     )
-    engine_ready = (
+    inputs_ready = (
         quality.get("websocket_ready") is True
         and quality.get("required_groups_ready") is True
         and quality.get("blockers") == []
@@ -378,9 +378,20 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
         and _timestamp(early.get("captured_at")) == captured
         and _object(early.get("instrument")).get("inst_id") == ZEC_ID
     )
-    if expires is not None and engine_ready and confirmed and trigger_expiry is not None:
+    if expires is not None and inputs_ready and confirmed and trigger_expiry is not None:
         expires = min(expires, trigger_expiry)
     fresh = expires is not None and now < expires
+    evidence_current = trigger_expiry is not None and now < trigger_expiry
+    engine_ready = inputs_ready and feed_ok and prices_available and fresh and evidence_current
+    blockers = list(quality.get("blockers") or [])
+    if inputs_ready and not evidence_current:
+        blockers.append("engine_evidence_expired_or_missing")
+    if not feed_ok:
+        blockers.append("feed_unavailable")
+    if not prices_available:
+        blockers.append("required_prices_missing")
+    if not fresh:
+        blockers.append("stale_data" if valid_times else "invalid_timestamps")
     invalidation = _object(early.get("invalidation"))
     level = _positive_price(invalidation.get("price"))
     decision = {"side": "NO_SIGNAL", "reason": "invalid_timestamps"}
@@ -388,7 +399,7 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
         decision["reason"] = "stale_data"
         if fresh:
             decision["reason"] = "data_quality_gate"
-            if feed_ok and prices_available and engine_ready:
+            if engine_ready:
                 decision["reason"] = "no_confirmed_trigger"
                 if confirmed and trigger_expiry is not None:
                     decision["reason"] = "invalidated_or_missing_level"
@@ -412,7 +423,7 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
         "quality": {
             "engine_ready": engine_ready,
             "required_prices_available": prices_available,
-            "blockers": quality.get("blockers", []) if not engine_ready else [],
+            "blockers": blockers if not engine_ready else [],
         },
         "decision": decision,
     }

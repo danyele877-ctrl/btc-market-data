@@ -54,7 +54,7 @@ def _pct_change(current: float | None, previous: float | None) -> float | None:
 
 
 def _series(snapshot: dict[str, Any], instrument: str, bar: str,
-            max_age_seconds: int | None = None) -> tuple[list[dict[str, Any]], str | None]:
+            max_age_seconds: int | None = None, reference: datetime | None = None) -> tuple[list[dict[str, Any]], str | None]:
     rows = (((snapshot.get("candles_1m_5m") or {}).get(instrument) or {}).get(bar) or {}).get("tail")
     if not isinstance(rows, list):
         series = (((snapshot.get("candles_1m_5m") or {}).get(instrument) or {}).get(bar) or {})
@@ -83,7 +83,7 @@ def _series(snapshot: dict[str, Any], instrument: str, bar: str,
         return [], f"candele {instrument} {bar}: intervallo mancante"
 
     latest_completed = _time(rows[-1].get("completed_at"))
-    age = (captured_at - latest_completed).total_seconds() if captured_at and latest_completed else None
+    age = ((reference or captured_at) - latest_completed).total_seconds() if captured_at and latest_completed else None
     # A nowcast may only use a recent completed candle. The same 180 second
     # ceiling applies to 5m as well as 1m; a longer lookback is history, not
     # verified current-state evidence.
@@ -96,6 +96,12 @@ def _series(snapshot: dict[str, Any], instrument: str, bar: str,
         if any(_number(row.get(field)) is None for field in ("open", "high", "low", "close")):
             return [], f"candele {instrument} {bar}: OHLC non valido"
     return rows, None
+
+
+def _aligned_pair(*series: list[dict[str, Any]]) -> bool:
+    return all(len(rows) >= 2 for rows in series) and len({
+        tuple(int(row["ts_ms"]) for row in rows[-2:]) for rows in series
+    }) == 1
 
 
 def _price_change(candles: list[dict[str, Any]]) -> float | None:
@@ -298,7 +304,7 @@ def _breakout_early_warning(snapshot: dict[str, Any], x1m: list[dict[str, Any]],
     btc5m, _ = _series(snapshot, "BTC-USDC", "5m")
     zec5m, _ = _series(snapshot, "ZEC-USDC", "5m")
     relative_strength = None
-    if btc5m and zec5m and btc5m[-1].get("ts_ms") == zec5m[-1].get("ts_ms"):
+    if _aligned_pair(btc5m, zec5m, x5m):
         zec_return = _price_change(zec5m)
         btc_return = _price_change(btc5m)
         if zec_return is not None and btc_return is not None:
@@ -439,12 +445,12 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     if funding_interval["status"] in ("API_TIMESTAMP_NON_CONFORMI_SPECIFICA_4H", "TIMESTAMP_API_NON_ALLINEATI"):
         limitations.append("Funding: OKX support conferma settlement ogni 4h; timestamp API discordanti (riportati grezzi, non usati per sostituire la specifica 4h)")
 
-    x1m, x1m_error = _series(snapshot, FEED_KEY, "1m")
-    x5m, x5m_error = _series(snapshot, FEED_KEY, "5m")
-    btc1m, btc1m_error = _series(snapshot, "BTC-USDC", "1m")
-    zec1m, zec1m_error = _series(snapshot, "ZEC-USDC", "1m")
-    btc5m, btc5m_error = _series(snapshot, "BTC-USDC", "5m")
-    zec5m, zec5m_error = _series(snapshot, "ZEC-USDC", "5m")
+    x1m, x1m_error = _series(snapshot, FEED_KEY, "1m", reference=now)
+    x5m, x5m_error = _series(snapshot, FEED_KEY, "5m", reference=now)
+    btc1m, btc1m_error = _series(snapshot, "BTC-USDC", "1m", reference=now)
+    zec1m, zec1m_error = _series(snapshot, "ZEC-USDC", "1m", reference=now)
+    btc5m, btc5m_error = _series(snapshot, "BTC-USDC", "5m", reference=now)
+    zec5m, zec5m_error = _series(snapshot, "ZEC-USDC", "5m", reference=now)
     for error in (x1m_error, x5m_error, btc1m_error, zec1m_error, btc5m_error, zec5m_error):
         if error:
             blockers.append(error)
@@ -454,8 +460,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         ("5m", (x5m, btc5m, zec5m)),
     ):
         if all(rows_by_market):
-            candle_starts = [rows[-1].get("ts_ms") for rows in rows_by_market]
-            if len(set(candle_starts)) != 1:
+            if not _aligned_pair(*rows_by_market):
                 blockers.append(f"coerenza temporale {bar} non valida tra BTC spot, ZEC spot e ZEC X-Perp")
 
     micro = snapshot.get("microstructure") or {}
@@ -552,7 +557,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         if direction1 != direction5:
             contrary.append("direzione delle chiusure 1m e 5m non allineata")
 
-    if btc5m and zec5m and btc5m[-1].get("ts_ms") == zec5m[-1].get("ts_ms"):
+    if _aligned_pair(btc5m, zec5m, x5m):
         zec_return = _price_change(zec5m)
         btc_return = _price_change(btc5m)
         relative = zec_return - btc_return if zec_return is not None and btc_return is not None else None
@@ -562,7 +567,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
             relative_factor = f"forza relativa ZEC/BTC 5m: {relative * 100:+.3f}% ({label})"
             groups["relative_strength"] = {"score": round(relative_score, 4), "weight": WEIGHTS["relative_strength"], "factors": [relative_factor]}
             factors.append(relative_factor)
-    else:
+    elif btc5m and zec5m and x5m:
         blockers.append("forza relativa 5m ZEC/BTC non allineata o non disponibile")
 
     oi, oi_error = _open_interest_signal(snapshot)
@@ -615,7 +620,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
     decision = direction if stage == "TRIGGER CONFERMATO" else "ATTENDERE"
 
     valid_until = None
-    if confirmed:
+    if not blockers and groups_ready and ws_ready:
         # Anchor expiry to the underlying observations, not to publication time.
         # Book/trade ages are measured at capture and cannot be reset by GitHub.
         candle_deadlines = [

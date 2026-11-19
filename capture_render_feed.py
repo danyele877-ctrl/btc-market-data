@@ -853,6 +853,27 @@ def websocket_window_ready(micro):
     )
 
 
+def next_5m_retry_delay(output, reference):
+    """Allow one refresh at the next close when the common 5m bar is unusable."""
+    streams = output["healthz"]["payload"]["streams"]
+    closes = [
+        stream["last_completed_at"] for key, stream in streams.items()
+        if key.endswith(":5m") and stream["last_completed_at"]
+    ]
+    if len(closes) == len(HISTORY_MARKETS) and len(set(closes)) == 1:
+        completed = datetime.fromisoformat(closes[0])
+        if 0 <= (reference - completed).total_seconds() <= 180:
+            return None
+    timestamp = reference.timestamp()
+    boundary = (int(timestamp) // 300 + 1) * 300
+    # If a bar should already be available, retry immediately. Otherwise wait
+    # just past the next boundary so REST can return confirm=1.
+    expected = int(timestamp) // 300 * 300
+    if not closes or timestamp - expected <= 180:
+        return max(0, expected + 5 - timestamp)
+    return boundary + 5 - timestamp
+
+
 async def collect_snapshot():
     from candle_service import CandleFeed
 
@@ -869,6 +890,14 @@ async def collect_snapshot():
             while not websocket_window_ready(micro) and time.monotonic() - started < 325:
                 await asyncio.sleep(1)
                 micro = feed.microstructure_health()
+            if websocket_window_ready(micro):
+                delay = next_5m_retry_delay(output, datetime.now(timezone.utc))
+                if delay is not None:
+                    await asyncio.sleep(delay)
+                    retry_output, retry_history = await asyncio.to_thread(collect_rest_snapshot)
+                    if not validate_feed(retry_output):
+                        output, history = retry_output, retry_history
+                    micro = feed.microstructure_health()
             if websocket_window_ready(micro):
                 captured_at = now()
                 output.update(source_mode=HYBRID_MODE, captured_at=captured_at)

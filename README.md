@@ -123,3 +123,7 @@ The durable architecture and operating rules are documented in [docs/RADAR_ARCHI
 The current alert payload is `data/radar_snapshot.json`. Historical prediction/context records remain in the JSON archives under `data/`; these are the current operational store, **not a separately provisioned database**. A managed time-series database is a future migration requiring configured hosting, secrets, backups, and replay/parity tests.
 
 CI runs `radar_alert_contract.py` against the published snapshot. This checks that BASELINE, SHADOW, CTVAL safety, prediction tracking, and predictive-engine sections are present and that orders/sizing remain disabled. A passing contract is required for alert integration; scores remain diagnostic unless independently calibrated.
+
+### Reading the current compact alert
+
+Run `python read_current_alert.py` to read the compact file through the GitHub Contents API. Trading decisions remain tied to the snapshot's own timestamps, validation and invalidation price. If GitHub has no current snapshot, the reader queries the three exact public OKX Europe tickers, checks their exchange timestamps and returns quotes with `NO_SIGNAL`. A quote by itself cannot establish WebSocket continuity or a trading trigger. Scheduled GitHub Actions can run later than their cron expression, so a fresh operational snapshot is opportunistic.

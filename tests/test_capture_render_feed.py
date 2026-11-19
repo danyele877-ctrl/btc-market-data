@@ -57,6 +57,18 @@ class CandleAlignmentTests(unittest.TestCase):
                     self.assertEqual(record["newest_completed_at"] == spot["newest_completed_at"], lag == 1)
 
 
+class CandleRolloverTests(unittest.TestCase):
+    def test_retry_targets_next_real_close_without_extending_candle_freshness(self):
+        streams = {
+            f"{market}:5m": {"last_completed_at": "2026-11-19T19:25:00+00:00"}
+            for market in capture.HISTORY_MARKETS
+        }
+        output = {"healthz": {"payload": {"streams": streams}}}
+        for current, expected in (("19:28:00", None), ("19:28:20", 105), ("19:30:02", 3)):
+            reference = datetime.fromisoformat(f"2026-11-19T{current}+00:00")
+            self.assertEqual(capture.next_5m_retry_delay(output, reference), expected)
+
+
 class WebSocketWindowTests(unittest.TestCase):
     def test_hybrid_requires_fresh_complete_sequence(self):
         micro = {

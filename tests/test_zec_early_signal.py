@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from zec_early_signal import INSTRUMENT_ID, _series, evaluate_signal
 
@@ -94,6 +94,19 @@ class ZecEarlySignalTests(unittest.TestCase):
         history.append({"ts_ms": int(NOW.timestamp() * 1000) + 1, "imbalance_top10": -1})
         result = evaluate_signal(snapshot, now=NOW)
         self.assertIn("dinamica imbalance top10: +0.600 in 5s", result["scores"]["groups"]["order_flow"]["factors"])
+
+    def test_relative_strength_requires_all_three_markets_on_same_interval(self):
+        snapshot = valid_snapshot()
+        self._shift_series(snapshot, "ZEC-USD_UM_XPERP", "5m", -300_000)
+        result = evaluate_signal(snapshot, now=NOW)
+        self.assertNotIn("relative_strength", result["scores"]["groups"])
+        self.assertFalse(result["data_quality"]["required_groups_ready"])
+
+    def test_candle_age_includes_time_between_capture_and_evaluation(self):
+        snapshot = valid_snapshot()
+        self._shift_series(snapshot, "ZEC-USD_UM_XPERP", "5m", -179_000)
+        result = evaluate_signal(snapshot, now=NOW + timedelta(seconds=2))
+        self.assertTrue(any("181.0s" in item for item in result["data_quality"]["blockers"]))
 
     def _shift_series(self, snapshot, instrument, bar, offset_ms):
         for row in snapshot["candles_1m_5m"][instrument][bar]["tail"]:
