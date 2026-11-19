@@ -1,122 +1,45 @@
 name: Render Candle Feed Bridge
-# Existing 5-minute workflow, repurposed to collect public OKX EEA REST snapshots.
-
 on:
-  push:
-    branches: [main]
-    paths:
-      - "capture_render_feed.py"
-      - "build_radar_snapshot.py"
-      - "zec_early_signal.py"
-      - "zec_predictive_engine.py"
-      - "zec_queue_model.py"
-      - "zec_context_archive.py"
-      - "zec_prediction_tracking.py"
-      - "analyze_zec_prediction_tracking.py"
-      - "zec_contract_config.py"
-      - "render_bridge_publication.py"
-      - "replay_zec_signals.py"
-      - "tests/**"
-      - "requirements.txt"
-      - ".github/workflows/render-bridge.yml"
   workflow_dispatch:
-  schedule:
-    - cron: "2-57/5 * * * *"
-
 permissions:
-  contents: write
-
-concurrency:
-  # Keep one capture in flight and coalesce pending schedule events.
-  group: render-candle-feed-bridge
-  cancel-in-progress: false
-
+  contents: read
 jobs:
-  publish-render-feed:
+  websocket-probe:
     runs-on: ubuntu-latest
-    # Capture performs several independent public API reads and paginated
-    # history requests; leave enough time for bounded per-request timeouts.
-    timeout-minutes: 15
+    timeout-minutes: 3
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 1
-
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install radar dependencies
-        run: python -m pip install -r requirements.txt
-
-      # Full historical backfill is a maintenance action; ordinary candle refreshes
-      # append incrementally through build_radar_snapshot.py and must stay fast.
-      - name: Replay recent ZEC signal snapshots
-        if: github.event_name == 'workflow_dispatch'
-        run: python replay_zec_signals.py --limit 600
-
-      - name: Capture public OKX EEA REST snapshot
-        run: python capture_render_feed.py
-
-      - name: Validate feed before building or publishing
-        run: python capture_render_feed.py --validate-existing
-
-      - name: Build compact radar snapshot
-        run: python build_radar_snapshot.py
-
-      - name: Analyze BASELINE and SHADOW prediction tracking
-        run: python analyze_zec_prediction_tracking.py --archive data/zec_prediction_tracking.json
-
-      - name: Publish only the validated radar bundle
+          node-version: '22'
+      - name: Check public OKX EEA order book and trades
         run: |
-          set -e
-          cp data/render_feed.json /tmp/render-feed.json
-          cp data/zec_microstructure_history.json /tmp/zec-microstructure-history.json
-          cp data/zec_xperp_history.json /tmp/zec-xperp-history.json
-          cp data/radar_snapshot.json /tmp/radar-snapshot.json
-          cp data/zec_prediction_tracking.json /tmp/zec-prediction-tracking.json
-          cp data/zec_predictive_archive.json /tmp/zec-predictive-archive.json
-          cp data/zec_context_archive.json /tmp/zec-context-archive.json
-          for attempt in 1 2 3; do
-            git fetch origin "${GITHUB_REF_NAME}"
-            git reset --hard "origin/${GITHUB_REF_NAME}"
-            set +e
-            python render_bridge_publication.py \
-              --candidate-feed /tmp/render-feed.json \
-              --candidate-snapshot /tmp/radar-snapshot.json \
-              --published-feed data/render_feed.json \
-              --published-snapshot data/radar_snapshot.json \
-              --bundle-file /tmp/render-feed.json data/render_feed.json \
-              --bundle-file /tmp/zec-microstructure-history.json data/zec_microstructure_history.json \
-              --bundle-file /tmp/zec-xperp-history.json data/zec_xperp_history.json \
-              --bundle-file /tmp/radar-snapshot.json data/radar_snapshot.json \
-              --bundle-file /tmp/zec-prediction-tracking.json data/zec_prediction_tracking.json \
-              --bundle-file /tmp/zec-predictive-archive.json data/zec_predictive_archive.json \
-              --bundle-file /tmp/zec-context-archive.json data/zec_context_archive.json
-            decision=$?
-            set -e
-            if [ "$decision" -eq 10 ]; then
-              echo "Skipping stale radar candidate."
-              exit 0
-            fi
-            if [ "$decision" -ne 0 ]; then
-              exit "$decision"
-            fi
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/render_feed.json data/zec_microstructure_history.json data/zec_xperp_history.json data/radar_snapshot.json data/radar_alert.json data/zec_prediction_tracking.json data/zec_predictive_archive.json data/zec_context_archive.json
-            if git diff --cached --quiet; then
-              echo "Radar snapshot unchanged."
-              exit 0
-            fi
-            git commit -m "Refresh BTC ZEC radar snapshot"
-            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
-              exit 0
-            fi
-            echo "Push attempt ${attempt} failed; refreshing branch."
-            sleep 2
-          done
-          echo "Unable to publish radar snapshot after 3 attempts."
-          exit 1
+          node --input-type=module <<'JS'
+          const instrument = 'ZEC-USD_UM_XPERP-310530';
+          const channels = ['books', 'trades'];
+          const ws = new WebSocket('wss://wseea.okx.com/ws/v5/public');
+          const subscribed = new Set();
+          const count = {books: 0, trades: 0};
+          function finish(code, reason) {
+            console.log(JSON.stringify({instrument, subscribed: [...subscribed], count, reason}));
+            process.exit(code);
+          }
+          setTimeout(() => finish(1, 'Timed out waiting for subscriptions and data'), 45000);
+          ws.addEventListener('open', () => {
+            ws.send(JSON.stringify({op: 'subscribe', args: channels.map(channel => ({channel, instId: instrument}))}));
+          });
+          ws.addEventListener('error', event => finish(1, String(event.message || 'WebSocket handshake or transport failed')));
+          ws.addEventListener('close', event => finish(1, 'WebSocket closed: ' + event.code));
+          ws.addEventListener('message', event => {
+            if (event.data === 'pong') return;
+            const message = JSON.parse(event.data);
+            if (message.event === 'error') return finish(1, String(message.code) + ': ' + message.msg);
+            const {channel, instId} = message.arg || {};
+            if (instId !== instrument || !channels.includes(channel)) return;
+            if (message.event === 'subscribe') subscribed.add(channel);
+            if (Array.isArray(message.data)) count[channel] += message.data.length;
+            if (subscribed.size === channels.length && channels.every(item => count[item] > 0)) {
+              finish(0, 'Exact contract received on both public channels');
+            }
+          });
+          setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send('ping'); }, 15000);
+          JS
