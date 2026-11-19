@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-19T22:17:06.427187+00:00",
-  "snapshot_generated_at": "2026-11-19T22:17:06.363834+00:00",
+  "generated_at": "2026-11-19T22:32:11.151685+00:00",
+  "snapshot_generated_at": "2026-11-19T22:32:11.094649+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -34,7 +34,7 @@
     "binance_spot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_spot": {
@@ -100,31 +100,31 @@
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "bitcoin_etf_flows_tftc": {
