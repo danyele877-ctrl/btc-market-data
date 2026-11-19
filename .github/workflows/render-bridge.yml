@@ -21,7 +21,7 @@ on:
       - ".github/workflows/render-bridge.yml"
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "2-57/5 * * * *"
 
 permissions:
   contents: write
