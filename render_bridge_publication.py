@@ -518,6 +518,8 @@ def _cli() -> int:
                     compact_destination = args.published_snapshot.with_name(candidate.name)
                     for source, destination in [*bundle_files, (candidate, compact_destination)]:
                         install_json_atomically(source, destination)
+                    from radar_trigger_registry import record_trigger
+                    record_trigger(compact, compact_destination.with_name("radar_trigger_registry.json"))
         except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
             print(f"Atomic publication install failed: {exc}", file=sys.stderr)
             return EXIT_INVALID_CANDIDATE
