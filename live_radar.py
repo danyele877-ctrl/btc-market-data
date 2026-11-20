@@ -24,6 +24,7 @@ class LiveRadar:
         self.feed = feed
         self.snapshot = None
         self.completed_slot = None
+        self.completed_snapshot = None
         self.telegram = TelegramAlert()
 
     def current(self):
@@ -77,13 +78,17 @@ class LiveRadar:
             and build_compact_alert(snapshot, published_at)["quality"]["engine_ready"]
         ):
             self.completed_slot = slot
-            if self.telegram.token and self.telegram.chat_id:
-                await asyncio.to_thread(self.telegram.publish, self.current(), slot)
+            self.completed_snapshot = snapshot
 
     async def run(self):
         while not self.feed.stop_event.is_set():
             try:
                 await self.refresh()
+                if (
+                    self.snapshot is not None and self.snapshot is self.completed_snapshot
+                    and self.telegram.token and self.telegram.chat_id
+                ):
+                    await asyncio.to_thread(self.telegram.publish, self.current(), self.completed_slot)
             except (Exception, SystemExit) as exc:
                 self.snapshot = None
                 print(f"Live radar refresh blocked: {exc}", flush=True)

@@ -56,7 +56,7 @@ class CurrentAlertReaderTests(unittest.TestCase):
             "prices": {instrument: {"last": 11} for instrument in INSTRUMENTS},
         }
         contents = {"encoding": "base64", "sha": "test-sha",
-                    "content": base64.b64encode(json.dumps(document).encode()).decode()}
+                    "content": base64.encodebytes(json.dumps(document).encode()).decode()}
         with patch("read_current_alert.get_json", side_effect=[OSError(), contents]) as fetch:
             result = read_current_alert()
         self.assertEqual(fetch.call_count, 2)

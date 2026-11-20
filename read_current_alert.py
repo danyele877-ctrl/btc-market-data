@@ -89,7 +89,7 @@ def read_current_alert():
                 contents = get_json(CONTENTS_URL)
                 if contents["encoding"] != "base64":
                     raise ValueError("unexpected GitHub encoding")
-                document = json.loads(base64.b64decode(contents["content"], validate=True))
+                document = json.loads(base64.b64decode("".join(contents["content"].splitlines()), validate=True))
                 blob_sha = contents["sha"]
             now = datetime.now(timezone.utc)
             if isinstance(document, dict) and snapshot_is_current(document, now):
