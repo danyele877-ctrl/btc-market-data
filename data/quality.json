@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-20T09:05:10.660254+00:00",
-  "snapshot_generated_at": "2026-11-20T09:05:10.586261+00:00",
+  "generated_at": "2026-11-20T09:49:50.406912+00:00",
+  "snapshot_generated_at": "2026-11-20T09:49:50.313258+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -88,7 +88,7 @@
     "swole_liquidations_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "swole_btc_snapshot": {
@@ -160,7 +160,7 @@
     "okx_eea_zec_xperp_book": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_trades": {
@@ -172,7 +172,7 @@
     "okx_eea_zec_xperp_mark": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_index": {
