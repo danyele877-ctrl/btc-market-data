@@ -7,6 +7,7 @@ from build_radar_snapshot import build_snapshot, candle_tail
 from capture_render_feed import HYBRID_MODE, collect_rest_snapshot, now, websocket_window_ready
 from render_bridge_publication import _timestamp, build_compact_alert
 from telegram_alert import TelegramAlert
+from zec_limit_tracking import LimitTracker
 
 
 def unavailable(reason):
@@ -27,6 +28,7 @@ class LiveRadar:
         self.completed_snapshot = None
         self.completed_limit_candles = ()
         self.telegram = TelegramAlert()
+        self.limit_tracker = LimitTracker(self.telegram.connection) if self.telegram.postgres_dsn else None
 
     def current(self):
         if self.snapshot is None:
@@ -92,6 +94,14 @@ class LiveRadar:
                 ):
                     await asyncio.to_thread(
                         self.telegram.publish, self.current(), self.completed_slot, self.completed_limit_candles
+                    )
+                if self.limit_tracker:
+                    await asyncio.to_thread(
+                        self.limit_tracker.update, self.current() if self.snapshot is self.completed_snapshot else {},
+                        self.completed_slot,
+                        self.completed_limit_candles,
+                        list(self.feed.state["instruments"].get("ZEC-USD_UM_XPERP", {}).get("1m", [])),
+                        datetime.now(timezone.utc),
                     )
             except (Exception, SystemExit) as exc:
                 self.snapshot = None
