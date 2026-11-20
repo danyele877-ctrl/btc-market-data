@@ -6,3 +6,5 @@
 !capture_render_feed.py
 !render_bridge_publication.py
 !zec_*.py
+!read_current_alert.py
+!telegram_alert.py
