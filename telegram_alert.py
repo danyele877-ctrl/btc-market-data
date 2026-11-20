@@ -5,13 +5,48 @@ import os
 import sqlite3
 import time
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from math import isfinite
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from read_current_alert import validated_side
 from render_bridge_publication import ZEC_ID, _timestamp
+
+
+def limit_suggestion(side, last, invalidation, candles, signal_time, expires):
+    unavailable = "📋 <b>LIMIT NON ATTIVABILE</b>"
+    try:
+        closes = [_timestamp(row["completed_at"]) for row in candles]
+        if (len(closes) != 9 or closes[-1] > signal_time
+                or signal_time - closes[-1] >= timedelta(minutes=5)
+                or any(b - a != timedelta(minutes=5) for a, b in zip(closes, closes[1:]))):
+            return f"{unavailable} · serie 5m incompleta."
+        prices = [tuple(float(row[key]) for key in ("low", "close", "high")) for row in candles]
+        if any(not (0 < low <= close <= high and isfinite(high)) for low, close, high in prices):
+            return f"{unavailable} · prezzi 5m non validi."
+        mean_range = sum(high - low for low, _, high in prices) / 9
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return f"{unavailable} · serie 5m non disponibile."
+
+    direction = 1 if side == "LONG" else -1
+    entry = round(prices[-1][1] - direction * mean_range / 4, 2)
+    stop = round(entry - direction * 1.5 * mean_range, 2)
+    tp1 = round(entry + direction * 1.5 * mean_range, 2)
+    tp2 = round(entry + direction * 2.5 * mean_range, 2)
+    if (min(entry, stop, tp1, tp2) <= 0
+            or not all(isfinite(level) for level in (entry, stop, tp1, tp2))
+            or not direction * stop < direction * entry < direction * tp1 < direction * tp2
+            or not direction * invalidation < direction * entry < direction * last):
+        return f"{unavailable} · ingresso incompatibile con prezzo o invalidazione."
+
+    deadline = min(signal_time + timedelta(minutes=5), expires)
+    return (
+        f"📋 <b>LIMIT {side} · {entry:.2f} USD</b>\n"
+        f"SL <b>{stop:.2f}</b> · TP1 <b>{tp1:.2f}</b> · TP2 <b>{tp2:.2f} USD</b>\n"
+        f"Valido fino alle <b>{deadline:%H:%M:%S %Z}</b> o fino all’invalidazione."
+    )
 
 
 class TelegramAlert:
@@ -51,7 +86,7 @@ class TelegramAlert:
                 WHERE delivery.status='rate_limited' AND delivery.retry_at <= {param} AND delivery.attempts=1
             """, (slot, now.timestamp())).rowcount == 1
 
-    def publish(self, compact, slot):
+    def publish(self, compact, slot, candles=()):
         if not self.token or not self.chat_id.isdecimal() or self.last_slot == slot:
             return
         try:
@@ -68,12 +103,14 @@ class TelegramAlert:
         last = compact["prices"][ZEC_ID]["last"]
         invalidation = compact["decision"]["invalidation_price"]
         icon = "🟢" if side == "LONG" else "🔴"
+        limit = limit_suggestion(side, float(last), float(invalidation), candles, captured, expires)
         text = (
             f"{icon} <b>{side} confermato · ZEC X-Perp</b>\n"
             f"💵 Prezzo rilevato <b>{float(last):.2f} USD</b>\n"
             f"🕒 Ora del segnale <b>{captured:%H:%M:%S}</b> · {captured:%d/%m/%Y %Z}\n\n"
             f"⏳ Valido fino alle <b>{expires:%H:%M:%S %Z}</b>\n"
             f"🚫 Invalidazione <b>{float(invalidation):.2f} USD</b>\n"
+            f"\n{limit}\n\n"
             f"<code>{ZEC_ID}</code> · OKX Europe"
         )
         body = json.dumps({"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}).encode()
