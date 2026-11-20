@@ -15,23 +15,22 @@ from read_current_alert import validated_side
 from render_bridge_publication import ZEC_ID, _timestamp
 
 
-def limit_suggestion(side, last, invalidation, candles, signal_time, expires):
-    unavailable = "📋 <b>LIMIT NON ATTIVABILE</b>"
+def limit_levels(side, last, invalidation, candles, signal_time, entry_fraction=0.25):
     try:
         closes = [_timestamp(row["completed_at"]) for row in candles]
         if (len(closes) != 9 or closes[-1] > signal_time
                 or signal_time - closes[-1] >= timedelta(minutes=5)
                 or any(b - a != timedelta(minutes=5) for a, b in zip(closes, closes[1:]))):
-            return f"{unavailable} · serie 5m incompleta."
+            return None, "serie 5m incompleta."
         prices = [tuple(float(row[key]) for key in ("low", "close", "high")) for row in candles]
         if any(not (0 < low <= close <= high and isfinite(high)) for low, close, high in prices):
-            return f"{unavailable} · prezzi 5m non validi."
+            return None, "prezzi 5m non validi."
         mean_range = sum(high - low for low, _, high in prices) / 9
     except (KeyError, TypeError, ValueError, OverflowError):
-        return f"{unavailable} · serie 5m non disponibile."
+        return None, "serie 5m non disponibile."
 
     direction = 1 if side == "LONG" else -1
-    entry = round(prices[-1][1] - direction * mean_range / 4, 2)
+    entry = round(prices[-1][1] - direction * mean_range * entry_fraction, 2)
     stop = round(entry - direction * 1.5 * mean_range, 2)
     tp1 = round(entry + direction * 1.5 * mean_range, 2)
     tp2 = round(entry + direction * 2.5 * mean_range, 2)
@@ -39,8 +38,16 @@ def limit_suggestion(side, last, invalidation, candles, signal_time, expires):
             or not all(isfinite(level) for level in (entry, stop, tp1, tp2))
             or not direction * stop < direction * entry < direction * tp1 < direction * tp2
             or not direction * invalidation < direction * entry < direction * last):
-        return f"{unavailable} · ingresso incompatibile con prezzo o invalidazione."
+        return None, "ingresso incompatibile con prezzo o invalidazione."
 
+    return {"entry": entry, "stop": stop, "tp1": tp1, "tp2": tp2}, None
+
+
+def limit_suggestion(side, last, invalidation, candles, signal_time, expires):
+    levels, reason = limit_levels(side, last, invalidation, candles, signal_time)
+    if levels is None:
+        return f"📋 <b>LIMIT NON ATTIVABILE</b> · {reason}"
+    entry, stop, tp1, tp2 = (levels[key] for key in ("entry", "stop", "tp1", "tp2"))
     deadline = min(signal_time + timedelta(minutes=5), expires)
     return (
         f"📋 <b>LIMIT {side} · {entry:.2f} USD</b>\n"

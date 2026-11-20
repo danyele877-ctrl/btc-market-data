@@ -961,6 +961,10 @@ async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: as
         elif path == "/radar-alert.json" and radar is not None:
             body, encoding = encode_json_body(radar.current(), accept_encoding)
             await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
+        elif path == "/limit-tracking.json" and radar is not None:
+            state = radar.limit_tracker.state if radar.limit_tracker else {"status": "disabled", "records": []}
+            body, encoding = encode_json_body(state, accept_encoding)
+            await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
         elif path == "/healthz":
             body, encoding = encode_json_body(feed.health(), accept_encoding)
             await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
