@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-20T19:06:59.269282+00:00",
-  "snapshot_generated_at": "2026-11-20T19:06:59.191008+00:00",
+  "generated_at": "2026-11-20T20:07:12.709793+00:00",
+  "snapshot_generated_at": "2026-11-20T20:07:12.624272+00:00",
   "snapshot_age_seconds": 0,
-  "overall_status": "ok",
-  "successful_sources": 28,
+  "overall_status": "degraded",
+  "successful_sources": 27,
   "total_sources": 28,
   "required_sources": [
     "okx_spot",
@@ -29,7 +29,9 @@
     "okx_eea_zec_xperp_oi",
     "okx_eea_zec_xperp_spec"
   ],
-  "required_failed": [],
+  "required_failed": [
+    "deribit_btc_perpetual"
+  ],
   "checks": {
     "binance_spot": {
       "status": "ok",
@@ -62,10 +64,10 @@
       "reason": null
     },
     "deribit_btc_perpetual": {
-      "status": "ok",
+      "status": "warning",
       "required": true,
       "age_seconds": 1,
-      "reason": null
+      "reason": "source_error"
     },
     "edge_funding_all_exchanges": {
       "status": "ok",
@@ -184,13 +186,13 @@
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_zec_xperp_spec": {
