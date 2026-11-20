@@ -1,4 +1,5 @@
 import io
+import json
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -16,6 +17,7 @@ class TelegramDeliveryTests(unittest.TestCase):
             "captured_at": now.isoformat(),
             "generated_at": now.isoformat(),
             "feed": {"expires_at": (now + timedelta(seconds=60)).isoformat()},
+            "prices": {"ZEC-USD_UM_XPERP-310530": {"last": 851.2}},
             "decision": {"invalidation_price": 800},
         }
         rate_limit = HTTPError("https://api.telegram.org", 429, "", {},
@@ -36,3 +38,8 @@ class TelegramDeliveryTests(unittest.TestCase):
             TelegramAlert().publish(alert, 101)
             TelegramAlert().publish(alert, 101)
             self.assertEqual(send.call_count, 3)
+            payload = json.loads(send.call_args.args[0].data)
+            self.assertEqual(payload["parse_mode"], "HTML")
+            self.assertIn("LONG confermato · ZEC X-Perp", payload["text"])
+            self.assertIn("Prezzo rilevato <b>851.20 USD</b>", payload["text"])
+            self.assertIn("Invalidazione <b>800.00 USD</b>", payload["text"])

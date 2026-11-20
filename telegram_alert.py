@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 from read_current_alert import validated_side
 from render_bridge_publication import ZEC_ID, _timestamp
@@ -61,13 +62,21 @@ class TelegramAlert:
         if side not in ("LONG", "SHORT"):
             return
 
+        rome = ZoneInfo("Europe/Rome")
+        captured = _timestamp(compact["captured_at"]).astimezone(rome)
+        expires = _timestamp(compact["feed"]["expires_at"]).astimezone(rome)
+        last = compact["prices"][ZEC_ID]["last"]
+        invalidation = compact["decision"]["invalidation_price"]
+        icon = "🟢" if side == "LONG" else "🔴"
         text = (
-            f"Radar BTC + ZEC | {side}\n{ZEC_ID}\n"
-            f"Acquisizione UTC: {compact['captured_at']}\n"
-            f"Scadenza UTC: {compact['feed']['expires_at']}\n"
-            f"Invalidazione: {compact['decision']['invalidation_price']}"
+            f"{icon} <b>{side} confermato · ZEC X-Perp</b>\n"
+            f"💵 Prezzo rilevato <b>{float(last):.2f} USD</b>\n"
+            f"🕒 Ora del segnale <b>{captured:%H:%M:%S}</b> · {captured:%d/%m/%Y %Z}\n\n"
+            f"⏳ Valido fino alle <b>{expires:%H:%M:%S %Z}</b>\n"
+            f"🚫 Invalidazione <b>{float(invalidation):.2f} USD</b>\n"
+            f"<code>{ZEC_ID}</code> · OKX Europe"
         )
-        body = json.dumps({"chat_id": self.chat_id, "text": text}).encode()
+        body = json.dumps({"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}).encode()
         request = Request(
             f"https://api.telegram.org/bot{self.token}/sendMessage",
             data=body,
