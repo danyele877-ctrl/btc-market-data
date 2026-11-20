@@ -47,7 +47,7 @@ class TelegramAlert:
         return db.execute(f"""
                 INSERT INTO delivery VALUES ({param}, 'pending', NULL, 1)
                 ON CONFLICT(slot) DO UPDATE SET status='pending', retry_at=NULL, attempts=2
-                WHERE status='rate_limited' AND retry_at <= {param} AND attempts=1
+                WHERE delivery.status='rate_limited' AND delivery.retry_at <= {param} AND delivery.attempts=1
             """, (slot, now.timestamp())).rowcount == 1
 
     def publish(self, compact, slot):
