@@ -8,8 +8,9 @@ import statistics
 from pathlib import Path
 from typing import Any
 
+from zec_prediction_tracking import HORIZONS
+
 DEFAULT_ARCHIVE = Path("data/zec_prediction_tracking.json")
-HORIZONS = (5, 15, 30, 40)
 DIRECTIONS = ("LONG", "SHORT")
 
 

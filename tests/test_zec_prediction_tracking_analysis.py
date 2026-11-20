@@ -41,6 +41,7 @@ class PredictionTrackingAnalysisTests(unittest.TestCase):
         }
         report = analyze_archive(archive)
         baseline = report["engines"]["baseline"]
+        self.assertIn("45", baseline["confirmed_triggers_by_direction"]["LONG"])
         self.assertEqual(baseline["predictions_with_direction"], 2)
         self.assertEqual(baseline["confirmed_directional_triggers"], 1)
         self.assertEqual(baseline["by_direction"]["LONG"]["5"]["all_observations"]["matured"], 1)
