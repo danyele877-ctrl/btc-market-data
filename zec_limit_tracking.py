@@ -68,7 +68,10 @@ class LimitTracker:
             db.execute("""CREATE TABLE IF NOT EXISTS zec_limit_trials (
                 slot BIGINT PRIMARY KEY, due BIGINT NOT NULL, plans TEXT NOT NULL, outcomes TEXT
             )""")
-            side = validated_side(compact, now)
+            try:
+                side = validated_side(compact, now) if slot is not None else None
+            except (KeyError, TypeError, ValueError):
+                side = None
             if side in ("LONG", "SHORT") and slot is not None:
                 signal = _timestamp(compact["generated_at"]).astimezone(timezone.utc)
                 capture = _timestamp(compact["captured_at"])
