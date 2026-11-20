@@ -3,7 +3,7 @@
 import asyncio
 from datetime import datetime, timezone
 
-from build_radar_snapshot import build_snapshot
+from build_radar_snapshot import build_snapshot, candle_tail
 from capture_render_feed import HYBRID_MODE, collect_rest_snapshot, now, websocket_window_ready
 from render_bridge_publication import _timestamp, build_compact_alert
 from telegram_alert import TelegramAlert
@@ -25,6 +25,7 @@ class LiveRadar:
         self.snapshot = None
         self.completed_slot = None
         self.completed_snapshot = None
+        self.completed_limit_candles = ()
         self.telegram = TelegramAlert()
 
     def current(self):
@@ -79,6 +80,7 @@ class LiveRadar:
         ):
             self.completed_slot = slot
             self.completed_snapshot = snapshot
+            self.completed_limit_candles = candle_tail(output, "ZEC-USD_UM_XPERP", "5m", count=9)
 
     async def run(self):
         while not self.feed.stop_event.is_set():
@@ -88,7 +90,9 @@ class LiveRadar:
                     self.snapshot is not None and self.snapshot is self.completed_snapshot
                     and self.telegram.token and self.telegram.chat_id
                 ):
-                    await asyncio.to_thread(self.telegram.publish, self.current(), self.completed_slot)
+                    await asyncio.to_thread(
+                        self.telegram.publish, self.current(), self.completed_slot, self.completed_limit_candles
+                    )
             except (Exception, SystemExit) as exc:
                 self.snapshot = None
                 print(f"Live radar refresh blocked: {exc}", flush=True)
