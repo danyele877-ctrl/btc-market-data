@@ -7,7 +7,7 @@ from build_radar_snapshot import build_snapshot, candle_tail
 from capture_render_feed import HYBRID_MODE, collect_rest_snapshot, now, websocket_window_ready
 from render_bridge_publication import _timestamp, build_compact_alert
 from telegram_alert import TelegramAlert
-from zec_limit_tracking import LimitTracker
+from zec_limit_tracking import LimitTracker, build_limit_plans
 
 
 def unavailable(reason):
@@ -20,6 +20,21 @@ def unavailable(reason):
     }
 
 
+def relative_move(btc, zec):
+    if len(btc) != 4 or len(zec) != 4 or any(a["completed_at"] != b["completed_at"] for a, b in zip(btc, zec)):
+        return None
+    return round(100 * (float(zec[-1]["close"]) / float(zec[0]["close"])
+                       / (float(btc[-1]["close"]) / float(btc[0]["close"])) - 1), 4)
+
+
+def btc_regime(bars):
+    if len(bars) != 4:
+        return "N/D"
+    change = float(bars[-1]["close"]) - float(bars[0]["close"])
+    mean_range = sum(float(bar["high"]) - float(bar["low"]) for bar in bars) / 4
+    return "Rialzista" if change > mean_range else "Ribassista" if change < -mean_range else "Laterale"
+
+
 class LiveRadar:
     def __init__(self, feed):
         self.feed = feed
@@ -27,6 +42,7 @@ class LiveRadar:
         self.completed_slot = None
         self.completed_snapshot = None
         self.completed_limit_candles = ()
+        self.completed_limit_plans = []
         self.telegram = TelegramAlert()
         self.limit_tracker = LimitTracker(self.telegram.connection) if self.telegram.postgres_dsn else None
 
@@ -35,7 +51,11 @@ class LiveRadar:
             return unavailable("live_snapshot_pending")
         if not websocket_window_ready(self.feed.microstructure_health()):
             return unavailable("live_websocket_not_ready")
-        return build_compact_alert(self.snapshot, datetime.now(timezone.utc))
+        alert = build_compact_alert(self.snapshot, datetime.now(timezone.utc))
+        if self.snapshot is self.completed_snapshot and self.completed_limit_plans and alert["decision"]["side"] in ("LONG", "SHORT"):
+            plans = self.completed_limit_plans
+            alert.update(limit_plan=plans[0], limit_plans=plans)
+        return alert
 
     async def refresh(self):
         health = self.feed.microstructure_health()
@@ -78,11 +98,26 @@ class LiveRadar:
         if (
             close is not None
             and int(close.timestamp()) // 300 == slot
-            and build_compact_alert(snapshot, published_at)["quality"]["engine_ready"]
+            and (alert := build_compact_alert(snapshot, published_at))["quality"]["engine_ready"]
         ):
             self.completed_slot = slot
             self.completed_snapshot = snapshot
             self.completed_limit_candles = candle_tail(output, "ZEC-USD_UM_XPERP", "5m", count=9)
+            self.completed_limit_plans = []
+            if alert.get("decision", {}).get("side") in ("LONG", "SHORT"):
+                plans = build_limit_plans(alert, slot, self.completed_limit_candles)
+                btc = candle_tail(output, "BTC-USDC", "5m", count=4)
+                zec = candle_tail(output, "ZEC-USDC", "5m", count=4)
+                sign = 1 if plans[0]["side"] == "LONG" else -1
+                imbalance = (health.get("book") or {}).get("imbalance_top10")
+                cvd = (health.get("cvd") or {}).get("1m")
+                for plan in plans:
+                    plan.update(regime=btc_regime(btc), relative_zec_btc=relative_move(btc, zec))
+                    if plan["variant"] == "SHADOW_RETEST" and not plan["reason"]:
+                        if not all(isinstance(value, (int, float)) and value * sign > 0
+                                   for value in (imbalance, cvd)):
+                            plan["reason"] = "retest senza conferma di book e CVD."
+                self.completed_limit_plans = plans
 
     async def run(self):
         while not self.feed.stop_event.is_set():
