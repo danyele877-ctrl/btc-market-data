@@ -15,7 +15,7 @@ from read_current_alert import validated_side
 from render_bridge_publication import ZEC_ID, _timestamp
 
 
-def limit_levels(side, last, invalidation, candles, signal_time, entry_fraction=0.25):
+def limit_levels(side, last, invalidation, candles, signal_time, entry_fraction=0.25, retest=False):
     try:
         closes = [_timestamp(row["completed_at"]) for row in candles]
         if (len(closes) != 9 or closes[-1] > signal_time
@@ -31,6 +31,14 @@ def limit_levels(side, last, invalidation, candles, signal_time, entry_fraction=
 
     direction = 1 if side == "LONG" else -1
     entry = round(prices[-1][1] - direction * mean_range * entry_fraction, 2)
+    if retest:
+        level = (max(row[2] for row in prices[:-2]) if direction > 0
+                 else min(row[0] for row in prices[:-2]))
+        low, close, high = prices[-1]
+        if (direction * (prices[-2][1] - level) <= 0 or not low <= level <= high
+                or direction * (close - level) <= 0):
+            return None, "retest 5m non confermato."
+        entry = round(level, 2)
     stop = round(entry - direction * 1.5 * mean_range, 2)
     tp1 = round(entry + direction * 1.5 * mean_range, 2)
     tp2 = round(entry + direction * 2.5 * mean_range, 2)
@@ -47,8 +55,13 @@ def limit_suggestion(side, last, invalidation, candles, signal_time, expires):
     levels, reason = limit_levels(side, last, invalidation, candles, signal_time)
     if levels is None:
         return f"📋 <b>LIMIT NON ATTIVABILE</b> · {reason}"
-    entry, stop, tp1, tp2 = (levels[key] for key in ("entry", "stop", "tp1", "tp2"))
-    deadline = min(signal_time + timedelta(minutes=5), expires)
+    return format_limit({**levels, "side": side}, min(signal_time + timedelta(minutes=5), expires))
+
+
+def format_limit(plan, deadline):
+    if plan.get("reason"):
+        return f"📋 <b>LIMIT NON ATTIVABILE</b> · {plan['reason']}"
+    side, entry, stop, tp1, tp2 = (plan[key] for key in ("side", "entry", "stop", "tp1", "tp2"))
     return (
         f"📋 <b>LIMIT {side} · {entry:.2f} USD</b>\n"
         f"SL <b>{stop:.2f}</b> · TP1 <b>{tp1:.2f}</b> · TP2 <b>{tp2:.2f} USD</b>\n"
@@ -110,7 +123,12 @@ class TelegramAlert:
         last = compact["prices"][ZEC_ID]["last"]
         invalidation = compact["decision"]["invalidation_price"]
         icon = "🟢" if side == "LONG" else "🔴"
-        limit = limit_suggestion(side, float(last), float(invalidation), candles, captured, expires)
+        shared = compact.get("limit_plan")
+        if shared:
+            deadline = datetime.fromtimestamp(shared["fill_by"], rome)
+            limit = format_limit(shared, deadline) + f"\nPiano <code>{shared['id']}</code>"
+        else:
+            limit = limit_suggestion(side, float(last), float(invalidation), candles, captured, expires)
         text = (
             f"{icon} <b>{side} confermato · ZEC X-Perp</b>\n"
             f"💵 Prezzo rilevato <b>{float(last):.2f} USD</b>\n"
