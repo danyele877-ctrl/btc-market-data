@@ -1,6 +1,7 @@
 """Persist prospective, paired LIMIT simulations using closed OKX Europe 1m bars."""
 
 import json
+from decimal import Decimal, ROUND_HALF_UP
 from math import ceil, floor, isfinite
 
 from read_current_alert import validated_side
@@ -58,20 +59,57 @@ def simulate(plan, bars, *, strict=False):
             "gross_r": round(sign * (exit_price - plan["entry"]) / abs(plan["entry"] - plan["stop"]), 4)}
 
 
+def shadow_live_plan(now, closed, trades):
+    """Freeze the first sampled candidate using eight closes and the open 5m bar."""
+    signal = now.timestamp()
+    start = int(signal) // 300 * 300
+    try:
+        window = [row for row in closed if _timestamp(row["completed_at"]).timestamp() <= start][-8:]
+        if len(window) != 8 or any(_timestamp(row["completed_at"]).timestamp() != start - (7-i)*300
+                                   for i, row in enumerate(window)):
+            return None
+        prices = sorted((row["ts_ms"], row["trade_id"], float(row["price"])) for row in trades
+                        if start*1000 <= row["ts_ms"] <= signal*1000)
+        if not prices or signal - prices[-1][0]/1000 > 30:
+            return None
+        quotes = [price for _, _, price in prices]
+        if not all(isfinite(price) and price > 0 for price in quotes):
+            return None
+        movement = quotes[-1] - float(window[0]["close"])
+        average = (sum(float(row["high"]) - float(row["low"]) for row in window)
+                   + max(quotes) - min(quotes)) / 9
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return None
+    if not movement or not isfinite(movement) or not isfinite(average) or average <= 0:
+        return None
+    sign = 1 if movement > 0 else -1
+    def tick(value):
+        return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    entry = tick(quotes[-1] - sign * average / 4)
+    unit = tick(average)
+    if unit <= 0 or entry <= 2.5 * unit or (quotes[-1] - entry) * sign <= 0:
+        return None
+    return {"slot": start // 300, "side": "LONG" if sign > 0 else "SHORT",
+            "entry": entry, "stop": tick(entry - sign*tick(unit*1.5)),
+            "tp1": tick(entry + sign*unit*1.5), "tp2": tick(entry + sign*unit*2.5),
+            "quote": quotes[-1], "signal_at": signal, "fill_by": signal + 300,
+            "outcome_by": signal + 2700}
+
+
 class LimitTracker:
     def __init__(self, connect):
         self.connect = connect
         self.state = {"status": "starting", "records": []}
 
-    def update(self, compact, slot, candles, rows, now):
+    def update(self, compact, slot, candles, rows, now, shadow=None):
         try:
-            self._update(compact, slot, candles, rows, now)
+            self._update(compact, slot, candles, rows, now, shadow)
         except Exception:
             # Database errors may contain connection details. Do not affect live signals.
             self.state = {**self.state, "status": "unavailable"}
             print("ZEC LIMIT simulation storage unavailable", flush=True)
 
-    def _update(self, compact, slot, candles, rows, now):
+    def _update(self, compact, slot, candles, rows, now, shadow=None):
         bars = {}
         for row in rows:
             try:
@@ -102,7 +140,34 @@ class LimitTracker:
                                 for plan in json.loads(payload)]
                     db.execute(f"UPDATE zec_limit_trials SET outcomes={p} WHERE slot={p} AND outcomes IS NULL",
                                (json.dumps(outcomes), key))
+            db.execute("""CREATE TABLE IF NOT EXISTS zec_shadow_live_trials (
+                slot BIGINT PRIMARY KEY, due BIGINT NOT NULL, plan TEXT NOT NULL,
+                outcomes TEXT, baseline_at DOUBLE PRECISION
+            )""")
+            if shadow:
+                db.execute(f"""INSERT INTO zec_shadow_live_trials (slot, due, plan)
+                    VALUES ({p},{p},{p}) ON CONFLICT DO NOTHING""",
+                           (shadow["slot"], ceil(shadow["outcome_by"]), json.dumps(shadow)))
+            if side in ("LONG", "SHORT") and slot is not None:
+                confirmed_at = _timestamp(compact["generated_at"]).timestamp()
+                candidate = db.execute(f"SELECT plan FROM zec_shadow_live_trials WHERE slot={p}",
+                                       (slot-1,)).fetchone()
+                if candidate and json.loads(candidate[0])["side"] == side:
+                    db.execute(f"""UPDATE zec_shadow_live_trials SET baseline_at={p}
+                        WHERE slot={p} AND baseline_at IS NULL""", (confirmed_at, slot-1))
+            if bars:
+                due_shadow = db.execute(f"""SELECT slot, plan FROM zec_shadow_live_trials
+                    WHERE outcomes IS NULL AND due <= {p}""", (int(max(bars)),)).fetchall()
+                for key, payload in due_shadow:
+                    plan = json.loads(payload)
+                    outcome = {**simulate(plan, bars), "strict_status": simulate(plan, bars, strict=True)["status"]}
+                    db.execute(f"UPDATE zec_shadow_live_trials SET outcomes={p} WHERE slot={p} AND outcomes IS NULL",
+                               (json.dumps(outcome), key))
+            recent_shadow = db.execute("""SELECT plan, outcomes, baseline_at
+                FROM zec_shadow_live_trials ORDER BY slot DESC LIMIT 100""").fetchall()
             recent = db.execute("SELECT plans, outcomes FROM zec_limit_trials ORDER BY slot DESC LIMIT 100").fetchall()
         self.state = {"status": "ok", "records": [
             {"plans": json.loads(plans), "outcomes": json.loads(outcomes) if outcomes else None}
-            for plans, outcomes in recent]}
+            for plans, outcomes in recent], "shadow_records": [
+            {"plan": json.loads(plan), "outcome": json.loads(outcomes) if outcomes else None,
+             "baseline_at": baseline_at} for plan, outcomes, baseline_at in recent_shadow]}
