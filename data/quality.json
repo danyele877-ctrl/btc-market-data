@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-21T01:23:14.025786+00:00",
-  "snapshot_generated_at": "2026-11-21T01:23:13.970911+00:00",
+  "generated_at": "2026-11-21T02:24:44.559763+00:00",
+  "snapshot_generated_at": "2026-11-21T02:24:44.487198+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -88,7 +88,7 @@
     "swole_liquidations_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "swole_btc_snapshot": {
