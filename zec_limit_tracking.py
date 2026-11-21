@@ -1,7 +1,6 @@
 """Persist prospective, paired LIMIT simulations using closed OKX Europe 1m bars."""
 
 import json
-from datetime import timezone
 from math import ceil, floor, isfinite
 
 from read_current_alert import validated_side
@@ -9,7 +8,24 @@ from render_bridge_publication import ZEC_ID, _timestamp
 from telegram_alert import limit_levels
 
 
-def simulate(plan, bars):
+def build_limit_plans(compact, slot, candles):
+    side = compact["decision"]["side"]
+    signal = _timestamp(compact["generated_at"]).timestamp()
+    capture = _timestamp(compact["captured_at"])
+    expiry = _timestamp(compact["feed"]["expires_at"]).timestamp()
+    quote = compact["prices"][ZEC_ID]["last"]
+    invalidation = compact["decision"]["invalidation_price"]
+    return [
+        {**(levels or {}), "id": f"ZEC-{slot}-{variant}", "variant": variant, "side": side,
+         "reason": reason, "quote": quote, "invalidation": invalidation, "signal_at": signal,
+         "fill_by": min(capture.timestamp()+300, expiry), "outcome_by": signal+2700}
+        for variant, fraction, retest in (("BASELINE", .25, False), ("SHADOW_NEAR", .125, False),
+                                         ("SHADOW_FAR", .5, False), ("SHADOW_RETEST", .25, True))
+        for levels, reason in [limit_levels(side, quote, invalidation, candles, capture, fraction, retest)]
+    ]
+
+
+def simulate(plan, bars, *, strict=False):
     # Only full post-signal minutes count. Never infer a fill from an overlapping bar.
     start = ceil(plan["signal_at"] / 60) * 60
     fill_by = floor(plan["fill_by"] / 60) * 60
@@ -25,7 +41,8 @@ def simulate(plan, bars):
         low, high, close = bar
         adverse, favorable = (low, high) if sign > 0 else (-high, -low)
         already_filled = filled
-        filled = filled or adverse <= sign * plan["entry"]
+        entry = sign * plan["entry"]
+        filled = filled or (adverse < entry if strict else adverse <= entry)
         if filled:
             if adverse <= sign * plan["stop"]:
                 return {"status": "stop", "filled": True, "gross_r": -1}
@@ -73,26 +90,15 @@ class LimitTracker:
             except (KeyError, TypeError, ValueError):
                 side = None
             if side in ("LONG", "SHORT") and slot is not None:
-                signal = _timestamp(compact["generated_at"]).astimezone(timezone.utc)
-                capture = _timestamp(compact["captured_at"])
-                expiry = _timestamp(compact["feed"]["expires_at"])
-                quote = compact["prices"][ZEC_ID]["last"]
-                invalidation = compact["decision"]["invalidation_price"]
-                plans = []
-                for variant, fraction in (("BASELINE", 0.25), ("SHADOW_NEAR", 0.125), ("SHADOW_FAR", 0.5)):
-                    levels, reason = limit_levels(side, quote, invalidation, candles, capture, fraction)
-                    plans.append({**(levels or {}), "variant": variant, "side": side, "reason": reason,
-                                  "quote": quote, "invalidation": invalidation,
-                                  "signal_at": signal.timestamp(),
-                                  "fill_by": min(signal.timestamp() + 300, expiry.timestamp()),
-                                  "outcome_by": signal.timestamp() + 2700})
+                plans = compact.get("limit_plans") or build_limit_plans(compact, slot, candles)
                 db.execute(f"INSERT INTO zec_limit_trials VALUES ({p},{p},{p},NULL) ON CONFLICT DO NOTHING",
-                           (slot, ceil(signal.timestamp()) + 2760, json.dumps(plans)))
+                           (slot, ceil(plans[0]["outcome_by"]) + 60, json.dumps(plans)))
             if bars:
                 due = db.execute(f"SELECT slot, plans FROM zec_limit_trials WHERE outcomes IS NULL AND due <= {p}",
                                  (int(max(bars)),)).fetchall()
                 for key, payload in due:
-                    outcomes = [simulate(plan, bars) if not plan["reason"] else {"status": "blocked"}
+                    outcomes = [{**simulate(plan, bars), "strict_status": simulate(plan, bars, strict=True)["status"]}
+                                if not plan["reason"] else {"status": "blocked"}
                                 for plan in json.loads(payload)]
                     db.execute(f"UPDATE zec_limit_trials SET outcomes={p} WHERE slot={p} AND outcomes IS NULL",
                                (json.dumps(outcomes), key))
