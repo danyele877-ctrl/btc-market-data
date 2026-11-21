@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 import gzip
 import json
 from collections import deque
@@ -12,7 +13,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -937,6 +938,57 @@ async def write_response(
     writer.close()
     await writer.wait_closed()
 
+FRED_INDICATORS = {"NASDAQ:NDX": "NASDAQ100", "CBOE:VIX": "VIXCLS", "TVC:US02Y": "DGS2"}
+_indicator_lock = threading.Lock()
+_indicator_cache = None
+_indicator_retry_at = 0.0
+
+
+def read_fred_indicator(series, now):
+    start = (now.date() - timedelta(days=21)).isoformat()
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?" + urllib.parse.urlencode(
+        {"id": series, "cosd": start}
+    )
+    with urllib.request.urlopen(url, timeout=5) as response:
+        payload = response.read(32_768).decode("utf-8-sig")
+    observations = {}
+    for row in csv.DictReader(payload.splitlines()):
+        date = row.get("observation_date")
+        try:
+            day = datetime.fromisoformat(date).date()
+            value = float(row[series])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if day <= now.date() and float("-inf") < value < float("inf"):
+            observations[day] = value
+    if len(observations) < 2:
+        raise ValueError("Two valid daily closes are required")
+    previous, current = sorted(observations)[-2:]
+    return {
+        "source": "FRED", "frequency": "daily", "date": current.isoformat(),
+        "previous_date": previous.isoformat(), "value": observations[current],
+        "change": observations[current] - observations[previous],
+    }
+
+
+def market_indicators():
+    global _indicator_cache, _indicator_retry_at
+    with _indicator_lock:
+        if _indicator_cache is not None and time.monotonic() < _indicator_retry_at:
+            return _indicator_cache
+        prior = (_indicator_cache or {}).get("indicators", {})
+        now = datetime.now(timezone.utc)
+        indicators = {}
+        for symbol, series in FRED_INDICATORS.items():
+            try:
+                indicators[symbol] = read_fred_indicator(series, now)
+            except (OSError, ValueError):
+                indicators[symbol] = {**prior.get(symbol, {}), "error": "source_unavailable"}
+        _indicator_cache = {"checked_at": now.isoformat(), "indicators": indicators}
+        _indicator_retry_at = time.monotonic() + 900
+        return _indicator_cache
+
+
 async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, radar=None) -> None:
     try:
         request_line = await asyncio.wait_for(reader.readline(), timeout=5)
@@ -960,6 +1012,10 @@ async def handle_http(feed: CandleFeed, reader: asyncio.StreamReader, writer: as
             await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
         elif path == "/radar-alert.json" and radar is not None:
             body, encoding = encode_json_body(radar.current(), accept_encoding)
+            await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
+        elif path == "/market-indicators.json":
+            indicators = await asyncio.to_thread(market_indicators)
+            body, encoding = encode_json_body(indicators, accept_encoding)
             await write_response(writer, "200 OK", body, "application/json; charset=utf-8", encoding)
         elif path == "/limit-tracking.json" and radar is not None:
             state = radar.limit_tracker.state if radar.limit_tracker else {"status": "disabled", "records": []}
