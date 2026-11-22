@@ -96,6 +96,53 @@ def shadow_live_plan(now, closed, trades):
             "outcome_by": signal + 2700}
 
 
+def shadow_microstructure(health, side):
+    """Record the diagnostic inputs available at the first candidate, before any outcome."""
+    book = health.get("book") or {}
+    cvd = health.get("cvd") or {}
+    book_age = health.get("book_age_seconds")
+    trade_age = health.get("trade_age_seconds")
+    imbalance = book.get("imbalance_top10")
+    delta = cvd.get("1m")
+
+    def finite_number(value):
+        return type(value) in (int, float) and isfinite(value)
+
+    ready = (
+        health.get("connected") is True and health.get("book_valid") is True
+        and health.get("book_gap_count") == 0
+        and health.get("trade_events_truncated") is False
+        and cvd.get("ready_1m") is True and cvd.get("gap_count_1m") == 0
+        and all(finite_number(age) and 0 <= age <= 30 for age in (book_age, trade_age))
+        and finite_number(imbalance) and -1 <= imbalance <= 1 and finite_number(delta)
+    )
+    sign = 1 if side == "LONG" else -1
+    return {
+        "book_age_s": book_age if finite_number(book_age) else None,
+        "trade_age_s": trade_age if finite_number(trade_age) else None,
+        "book_imbalance_top10": imbalance if finite_number(imbalance) else None,
+        "cvd_1m_contracts": delta if finite_number(delta) else None,
+        "aligned": (sign * imbalance > 0 and sign * delta > 0) if ready else None,
+    }
+
+
+def shadow_directional_moves(plan, bars):
+    """Use only contiguous closed 1m observations around the captured trade."""
+    anchor = floor(plan["signal_at"] / 60) * 60
+    quote = plan["quote"]
+    sign = 1 if plan["side"] == "LONG" else -1
+    moves = {}
+    for label, offset in (("prior_5m", -5), ("after_5m", 5), ("after_15m", 15)):
+        start, end = sorted((0, offset))
+        if not all(anchor + index * 60 in bars for index in range(start, end + 1)):
+            moves[label] = None
+            continue
+        close = bars[anchor + offset * 60][2]
+        change = quote / close - 1 if offset < 0 else close / quote - 1
+        moves[label] = round(sign * change * 100, 6)
+    return moves
+
+
 class LimitTracker:
     def __init__(self, connect):
         self.connect = connect
@@ -160,7 +207,8 @@ class LimitTracker:
                     WHERE outcomes IS NULL AND due <= {p}""", (int(max(bars)),)).fetchall()
                 for key, payload in due_shadow:
                     plan = json.loads(payload)
-                    outcome = {**simulate(plan, bars), "strict_status": simulate(plan, bars, strict=True)["status"]}
+                    outcome = {**simulate(plan, bars), "strict_status": simulate(plan, bars, strict=True)["status"],
+                               "directional_move_pct": shadow_directional_moves(plan, bars)}
                     db.execute(f"UPDATE zec_shadow_live_trials SET outcomes={p} WHERE slot={p} AND outcomes IS NULL",
                                (json.dumps(outcome), key))
             recent_shadow = db.execute("""SELECT plan, outcomes, baseline_at
