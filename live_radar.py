@@ -7,7 +7,7 @@ from build_radar_snapshot import build_snapshot, candle_tail
 from capture_render_feed import HYBRID_MODE, collect_rest_snapshot, now, websocket_window_ready
 from render_bridge_publication import _timestamp, build_compact_alert
 from telegram_alert import TelegramAlert
-from zec_limit_tracking import LimitTracker, build_limit_plans, shadow_live_plan, shadow_microstructure
+from zec_limit_tracking import LimitTracker, build_limit_plans, shadow_live_plan, shadow_microstructure, shadow_prebreakout
 
 
 def unavailable(reason):
@@ -157,6 +157,9 @@ class LiveRadar:
                         shadow = shadow_live_plan(now, zec.get("5m", []), self.feed.micro_trade_events)
                         if shadow:
                             shadow["microstructure"] = shadow_microstructure(microstructure, shadow["side"])
+                            shadow["prebreakout"] = shadow_prebreakout(
+                                shadow, zec.get("5m", []), zec.get("1m", []), microstructure
+                            )
                     await asyncio.to_thread(
                         self.limit_tracker.update, self.current() if self.snapshot is self.completed_snapshot else {},
                         self.completed_slot,

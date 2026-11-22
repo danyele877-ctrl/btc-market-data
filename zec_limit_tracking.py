@@ -126,6 +126,48 @@ def shadow_microstructure(health, side):
     }
 
 
+def shadow_prebreakout(plan, closed, minutes, health):
+    """Classify the same first SHADOW candidate using only pre-candidate data."""
+    signal = plan["signal_at"]
+    slot_start = plan["slot"] * 300
+    anchor = floor(signal / 60) * 60
+    sign = 1 if plan["side"] == "LONG" else -1
+    result = {"version": 1, "qualified": None}
+    try:
+        window = [row for row in closed if _timestamp(row["completed_at"]).timestamp() <= slot_start][-8:]
+        reference = next(row for row in reversed(minutes)
+                         if _timestamp(row["completed_at"]).timestamp() == anchor-300)
+        highs = [float(row["high"]) for row in window]
+        lows = [float(row["low"]) for row in window]
+        typical = sum(high-low for high, low in zip(highs, lows)) / len(window)
+        level = max(highs) if sign > 0 else min(lows)
+        distance = sign * (level-plan["quote"]) / typical
+        prior_move = sign * (plan["quote"]-float(reference["close"])) / typical
+        previous_book = next(row for row in reversed(health.get("book_history", ()))
+                             if 15 <= signal-row["ts_ms"]/1000 <= 30)
+        book_change = sign * (plan["microstructure"]["book_imbalance_top10"]-previous_book["imbalance_top10"])
+        previous, recent = [], []
+        for row in health.get("trade_events", ()):
+            age = signal-row["ts_ms"]/1000
+            if 0 <= age < 60:
+                (recent if age < 30 else previous).append(sign * row["delta_contracts"])
+    except (ValueError, TypeError, KeyError, AttributeError, StopIteration, ZeroDivisionError):
+        return result
+
+    if not all(isfinite(value) for value in (distance, prior_move, book_change)):
+        return result
+    result.update(level=level, distance_in_ranges=round(distance, 4),
+                  prior_move_in_ranges=round(prior_move, 4), book_change=round(book_change, 6))
+    aligned = plan["microstructure"]["aligned"]
+    if aligned is None or not previous or not recent:
+        return result
+    flow_change = sum(recent)-sum(previous)
+    result.update(flow_change_contracts=round(flow_change, 4),
+                  qualified=bool(aligned and book_change > 0 and sum(recent) > 0 and flow_change > 0
+                                 and 0 <= distance <= 0.5 and prior_move <= 0.5))
+    return result
+
+
 def shadow_directional_moves(plan, bars):
     """Use only contiguous closed 1m observations around the captured trade."""
     anchor = floor(plan["signal_at"] / 60) * 60
