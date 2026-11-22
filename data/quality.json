@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-22T23:10:51.086044+00:00",
-  "snapshot_generated_at": "2026-11-22T23:10:51.010519+00:00",
+  "generated_at": "2026-11-22T23:51:17.929257+00:00",
+  "snapshot_generated_at": "2026-11-22T23:51:17.838668+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -100,7 +100,7 @@
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "coinboss_open_interest_btc": {
