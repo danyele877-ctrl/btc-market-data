@@ -8,6 +8,7 @@ from capture_render_feed import HYBRID_MODE, collect_rest_snapshot, now, websock
 from render_bridge_publication import _timestamp, build_compact_alert
 from telegram_alert import TelegramAlert
 from zec_limit_tracking import LimitTracker, build_limit_plans, shadow_live_plan, shadow_microstructure, shadow_prebreakout
+from zec_macro_shadow import live_macro_context
 
 
 def unavailable(reason):
@@ -49,11 +50,13 @@ class LiveRadar:
         self.limit_tracker = LimitTracker(self.telegram.connection) if self.telegram.postgres_dsn else None
 
     def current(self):
+        now = datetime.now(timezone.utc)
         if self.snapshot is None:
-            return unavailable("live_snapshot_pending")
+            return {**unavailable("live_snapshot_pending"), "macro_shadow": live_macro_context({}, now)}
         if not websocket_window_ready(self.feed.microstructure_health()):
-            return unavailable("live_websocket_not_ready")
-        alert = build_compact_alert(self.snapshot, datetime.now(timezone.utc))
+            return {**unavailable("live_websocket_not_ready"), "macro_shadow": live_macro_context({}, now)}
+        alert = build_compact_alert(self.snapshot, now)
+        alert["macro_shadow"] = live_macro_context(self.feed.state["instruments"], now)
         if self.snapshot is self.diagnostic_snapshot:
             alert["quality"]["engine_ready"] = False
             alert["quality"]["blockers"].append("awaiting_fresh_5m_evidence")
@@ -152,8 +155,9 @@ class LiveRadar:
                     microstructure = self.feed.microstructure_health()
                     now = datetime.now(timezone.utc)
                     zec = self.feed.state["instruments"].get("ZEC-USD_UM_XPERP", {})
-                    shadow = None
+                    shadow = macro = None
                     if microstructure.get("connected") and self.feed.health()["websocket_connected"]:
+                        macro = live_macro_context(self.feed.state["instruments"], now)
                         shadow = shadow_live_plan(now, zec.get("5m", []), self.feed.micro_trade_events)
                         if shadow:
                             shadow["microstructure"] = shadow_microstructure(microstructure, shadow["side"])
@@ -165,7 +169,7 @@ class LiveRadar:
                         self.completed_slot,
                         self.completed_limit_candles,
                         list(zec.get("1m", [])),
-                        now, shadow,
+                        now, shadow, macro,
                     )
             except (Exception, SystemExit) as exc:
                 self.snapshot = None

@@ -59,7 +59,7 @@ def simulate(plan, bars, *, strict=False):
         if exit_price is None:
             outcome = {"status": status, "gross_r": 0}
             if comparison and status in ("unfilled", "invalidated"):
-                outcome["net_reference_r"] = 0
+                outcome.update(net_reference_r=0, net_equal_risk_r=0)
             return outcome
         pnl = sign * (exit_price - plan["entry"])
         outcome = {"status": status, "filled": True,
@@ -68,6 +68,7 @@ def simulate(plan, bars, *, strict=False):
             # Illustrative fees: 5 bps on each leg, no funding or slippage.
             fees = (plan["entry"] + exit_price) * 0.0005
             outcome["net_reference_r"] = round((pnl-fees) / plan["reference_risk"], 4)
+            outcome["net_equal_risk_r"] = round((pnl-fees) / abs(plan["entry"]-plan["stop"]), 4)
         return outcome
 
     for opened in range(start, end, 60):
@@ -235,15 +236,15 @@ class LimitTracker:
         self.connect = connect
         self.state = {"status": "starting", "records": []}
 
-    def update(self, compact, slot, candles, rows, now, shadow=None):
+    def update(self, compact, slot, candles, rows, now, shadow=None, macro=None):
         try:
-            self._update(compact, slot, candles, rows, now, shadow)
+            self._update(compact, slot, candles, rows, now, shadow, macro)
         except Exception:
             # Database errors may contain connection details. Do not affect live signals.
             self.state = {**self.state, "status": "unavailable"}
             print("ZEC LIMIT simulation storage unavailable", flush=True)
 
-    def _update(self, compact, slot, candles, rows, now, shadow=None):
+    def _update(self, compact, slot, candles, rows, now, shadow=None, macro=None):
         bars = {}
         for row in rows:
             try:
@@ -302,6 +303,26 @@ class LimitTracker:
                                "directional_move_pct": shadow_directional_moves(plan, bars)}
                     db.execute(f"UPDATE zec_shadow_live_trials SET outcomes={p} WHERE slot={p} AND outcomes IS NULL",
                                (json.dumps(outcome), key))
+            db.execute("""CREATE TABLE IF NOT EXISTS zec_macro_observations (
+                event_id TEXT NOT NULL, phase TEXT NOT NULL,
+                observed_at DOUBLE PRECISION NOT NULL, payload TEXT NOT NULL,
+                PRIMARY KEY (event_id, phase)
+            )""")
+            if macro and macro.get("event"):
+                event_id = macro["event"]["id"]
+                phase = macro["status"]
+                observations = [(event_id, phase, macro["observed_at"], json.dumps(macro))]
+                if side in ("LONG", "SHORT"):
+                    signal_at = _timestamp(compact["generated_at"]).timestamp()
+                    if macro["pause_from"] <= signal_at < macro["watch_until"]:
+                        observation = {"side": side, "signal_at": signal_at,
+                                       "in_macro_pause": signal_at < macro["pause_until"]}
+                        observations.append((event_id, f"baseline_{slot}", signal_at, json.dumps(observation)))
+                for observation in observations:
+                    db.execute(f"INSERT INTO zec_macro_observations VALUES ({p},{p},{p},{p}) ON CONFLICT DO NOTHING",
+                               observation)
+            recent_macro = db.execute("""SELECT event_id, phase, payload FROM zec_macro_observations
+                ORDER BY observed_at DESC LIMIT 100""").fetchall()
             recent_shadow = db.execute("""SELECT plan, outcomes, baseline_at
                 FROM zec_shadow_live_trials ORDER BY slot DESC LIMIT 100""").fetchall()
             recent = db.execute("SELECT plans, outcomes FROM zec_limit_trials ORDER BY slot DESC LIMIT 100").fetchall()
@@ -309,4 +330,6 @@ class LimitTracker:
             {"plans": json.loads(plans), "outcomes": json.loads(outcomes) if outcomes else None}
             for plans, outcomes in recent], "shadow_records": [
             {"plan": json.loads(plan), "outcome": json.loads(outcomes) if outcomes else None,
-             "baseline_at": baseline_at} for plan, outcomes, baseline_at in recent_shadow]}
+             "baseline_at": baseline_at} for plan, outcomes, baseline_at in recent_shadow],
+            "macro_records": [{"event_id": event_id, "phase": phase, "observation": json.loads(payload)}
+                              for event_id, phase, payload in recent_macro]}
