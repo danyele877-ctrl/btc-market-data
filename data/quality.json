@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-22T05:25:27.082638+00:00",
-  "snapshot_generated_at": "2026-11-22T05:25:27.017733+00:00",
+  "generated_at": "2026-11-22T06:21:21.431589+00:00",
+  "snapshot_generated_at": "2026-11-22T06:21:21.363235+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -142,25 +142,25 @@
     "okx_eea_btc_usdc_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_zec_usdc_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_zec_xperp_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_zec_xperp_book": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_zec_xperp_trades": {
