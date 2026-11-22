@@ -16,7 +16,7 @@ def build_limit_plans(compact, slot, candles):
     expiry = _timestamp(compact["feed"]["expires_at"]).timestamp()
     quote = compact["prices"][ZEC_ID]["last"]
     invalidation = compact["decision"]["invalidation_price"]
-    return [
+    plans = [
         {**(levels or {}), "id": f"ZEC-{slot}-{variant}", "variant": variant, "side": side,
          "reason": reason, "quote": quote, "invalidation": invalidation, "signal_at": signal,
          "fill_by": min(capture.timestamp()+300, expiry), "outcome_by": signal+2700}
@@ -24,6 +24,26 @@ def build_limit_plans(compact, slot, candles):
                                          ("SHADOW_FAR", .5, False), ("SHADOW_RETEST", .25, True))
         for levels, reason in [limit_levels(side, quote, invalidation, candles, capture, fraction, retest)]
     ]
+
+    reference = plans[0]
+    if reference["reason"]:
+        return plans
+    sign = 1 if side == "LONG" else -1
+    entry, stop, tp1 = (reference[key] for key in ("entry", "stop", "tp1"))
+    risk = abs(entry-stop)
+    buffer = max(0.01, round(risk/3, 2))
+    wide_stop = round(sign * min(sign*stop-0.01, sign*invalidation-buffer), 2)
+    wide_tp1 = round(entry + 1.5*(tp1-entry), 2)
+    for variant, trial_stop, trial_tp1 in (
+        ("SHADOW_EXIT_CONTROL", stop, tp1),
+        ("SHADOW_STOP_BUFFER", wide_stop, tp1),
+        ("SHADOW_STOP_TARGET", wide_stop, wide_tp1),
+    ):
+        if not 0 < min(trial_stop, trial_tp1) or sign*trial_tp1 >= sign*reference["tp2"]:
+            continue
+        plans.append({**reference, "id": f"ZEC-{slot}-{variant}", "variant": variant,
+                      "stop": trial_stop, "tp1": trial_tp1, "reference_risk": risk})
+    return plans
 
 
 def simulate(plan, bars, *, strict=False):
@@ -33,30 +53,55 @@ def simulate(plan, bars, *, strict=False):
     end = floor(plan["outcome_by"] / 60) * 60
     filled = False
     sign = 1 if plan["side"] == "LONG" else -1
+    comparison = "reference_risk" in plan
+
+    def result(status, exit_price=None):
+        if exit_price is None:
+            outcome = {"status": status, "gross_r": 0}
+            if comparison and status in ("unfilled", "invalidated"):
+                outcome["net_reference_r"] = 0
+            return outcome
+        pnl = sign * (exit_price - plan["entry"])
+        outcome = {"status": status, "filled": True,
+                   "gross_r": round(pnl / abs(plan["entry"]-plan["stop"]), 4)}
+        if comparison:
+            # Illustrative fees: 5 bps on each leg, no funding or slippage.
+            fees = (plan["entry"] + exit_price) * 0.0005
+            outcome["net_reference_r"] = round((pnl-fees) / plan["reference_risk"], 4)
+        return outcome
+
     for opened in range(start, end, 60):
         if not filled and opened >= fill_by:
-            return {"status": "unfilled", "gross_r": 0}
+            return result("unfilled")
         bar = bars.get(opened + 60)
         if bar is None:
             return {"status": "missing_data", "filled": filled}
-        low, high, close = bar
+        low, high, close = bar[:3]
         adverse, favorable = (low, high) if sign > 0 else (-high, -low)
         already_filled = filled
         entry = sign * plan["entry"]
-        filled = filled or (adverse < entry if strict else adverse <= entry)
+        touched = adverse < entry if strict else adverse <= entry
+        if comparison and not filled and adverse <= sign * plan["invalidation"]:
+            opening = bar[3] if len(bar) > 3 else None
+            if not touched or (opening is not None and sign*opening <= sign*plan["invalidation"]):
+                return result("invalidated")
+            opening_touches = opening is not None and (sign*opening < entry if strict else sign*opening <= entry)
+            if not opening_touches:
+                # OHLC cannot order intraminute entry and invalidation.
+                return {"status": "ambiguous_entry"}
+        filled = filled or touched
         if filled:
             if adverse <= sign * plan["stop"]:
-                return {"status": "stop", "filled": True, "gross_r": -1}
+                return result("stop", plan["stop"])
             if already_filled and favorable >= sign * plan["tp1"]:
                 exit_price = plan["tp1"]
                 status = "tp1"
                 break
     else:
         if not filled:
-            return {"status": "unfilled", "gross_r": 0}
+            return result("unfilled")
         exit_price, status = close, "time_exit"
-    return {"status": status, "filled": True,
-            "gross_r": round(sign * (exit_price - plan["entry"]) / abs(plan["entry"] - plan["stop"]), 4)}
+    return result(status, exit_price)
 
 
 def shadow_live_plan(now, closed, trades):
@@ -205,7 +250,11 @@ class LimitTracker:
                 end = _timestamp(row["completed_at"]).timestamp()
                 low, high, close = (float(row[key]) for key in ("low", "high", "close"))
                 if end <= now.timestamp() and 0 < low <= close <= high and isfinite(high):
-                    bars[end] = low, high, close
+                    try:
+                        opening = float(row.get("open"))
+                    except (TypeError, ValueError):
+                        opening = float("nan")
+                    bars[end] = low, high, close, opening if low <= opening <= high else None
             except (KeyError, TypeError, ValueError, AttributeError):
                 continue
         with self.connect() as (db, p):
