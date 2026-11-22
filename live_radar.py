@@ -40,6 +40,8 @@ class LiveRadar:
         self.feed = feed
         self.snapshot = None
         self.completed_slot = None
+        self.diagnostic_slot = None
+        self.diagnostic_snapshot = None
         self.completed_snapshot = None
         self.completed_limit_candles = ()
         self.completed_limit_plans = []
@@ -52,6 +54,11 @@ class LiveRadar:
         if not websocket_window_ready(self.feed.microstructure_health()):
             return unavailable("live_websocket_not_ready")
         alert = build_compact_alert(self.snapshot, datetime.now(timezone.utc))
+        if self.snapshot is self.diagnostic_snapshot:
+            alert["quality"]["engine_ready"] = False
+            alert["quality"]["blockers"].append("awaiting_fresh_5m_evidence")
+            alert["decision"] = {"side": "NO_SIGNAL", "reason": "awaiting_fresh_5m_evidence"}
+            return alert
         if self.snapshot is self.completed_snapshot and self.completed_limit_plans and alert["decision"]["side"] in ("LONG", "SHORT"):
             plans = self.completed_limit_plans
             alert.update(limit_plan=plans[0], limit_plans=plans)
@@ -64,7 +71,12 @@ class LiveRadar:
             return
         reference = datetime.now(timezone.utc)
         slot = int(reference.timestamp()) // 300
-        if slot == self.completed_slot or reference.timestamp() % 300 > 150:
+        offset = reference.timestamp() % 300
+        diagnostic = offset >= 180
+        if diagnostic:
+            if slot == self.diagnostic_slot and self.snapshot is self.diagnostic_snapshot:
+                return
+        elif slot == self.completed_slot or offset > 150:
             return
         # Copy the candle lists on the event loop; the builder validates them
         # and REST supplies independent ticker and derivatives context.
@@ -91,6 +103,12 @@ class LiveRadar:
         )
         snapshot = await asyncio.to_thread(build_snapshot, output, {}, history)
         self.snapshot = snapshot
+        if diagnostic:
+            # Refresh quotes and diagnostics without reopening a 5m trigger window.
+            self.diagnostic_slot = slot
+            self.diagnostic_snapshot = snapshot
+            return
+        self.diagnostic_snapshot = None
         published_at = datetime.now(timezone.utc)
         close = _timestamp(snapshot["candles_1m_5m"]["ZEC-USD_UM_XPERP"]["5m"]["latest"]["completed_at"])
         # Retry transient quality failures within the same publication window.
