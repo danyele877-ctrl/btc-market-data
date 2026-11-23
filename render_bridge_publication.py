@@ -408,6 +408,14 @@ def build_compact_alert(snapshot: dict[str, Any], now: datetime) -> dict[str, An
                         price > level if direction == "LONG" else price < level for price in quotes
                     ):
                         decision = {"side": direction, "reason": "confirmed_trigger", "invalidation_price": level}
+                        evidence = _object(early.get("confirmation_5m"))
+                        close_price = _positive_price(evidence.get("close_price"))
+                        closed_at = _timestamp(evidence.get("closed_at"))
+                        if close_price is not None and closed_at is not None and timedelta(0) <= captured - closed_at <= ALERT_MAX_AGE:
+                            decision["confirmation_5m"] = {"close_price": close_price, "closed_at": closed_at.isoformat()}
+                            reference = _positive_price(evidence.get("breakout_reference"))
+                            if reference is not None and (close_price > reference if direction == "LONG" else close_price < reference):
+                                decision["confirmation_5m"]["breakout_reference"] = reference
 
     return {
         "schema_version": 1,
