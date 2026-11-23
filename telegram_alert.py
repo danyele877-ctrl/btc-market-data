@@ -82,6 +82,7 @@ class TelegramAlert:
         self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
         self.last_slot = None
         self.last_macro_slot = None
+        self.last_impulse_slot = None
         self.last_macro_reaction_slot = None
         self.last_strategy_slot = None
         self.postgres_dsn = os.getenv("RADAR_TELEGRAM_DATABASE_URL")
@@ -221,6 +222,26 @@ class TelegramAlert:
             return
         if self.deliver_context("macro", slot, text, now, expires):
             self.last_macro_slot = slot
+
+    def publish_impulse_shadow(self, impulse, now):
+        closed_at = impulse["closed_at"]
+        expires = closed_at + 45
+        slot = -(2 * 10**11 + closed_at)
+        if self.last_impulse_slot == slot or not closed_at <= now.timestamp() < expires:
+            return
+        local_time = datetime.fromtimestamp(closed_at, ZoneInfo("Europe/Rome"))
+        lines = [
+            f"⚡ <b>IMPULSO 1m · {impulse['side']} IN OSSERVAZIONE · SHADOW</b>",
+            f"Chiusura · {local_time:%H:%M:%S %Z}",
+            f"BTC {impulse['btc_pct']:+.2f}% · volume {impulse['btc_volume_multiple']:.1f}×",
+            f"ZEC X-Perp {impulse['zec_pct']:+.2f}% · {impulse['zec_close']:.2f} USD "
+            f"· volume {impulse['zec_volume_multiple']:.1f}×",
+            "Volumi rispetto alla mediana dei 30 minuti precedenti.",
+            "Avviso diagnostico · LIMIT non attivabile da questo preavviso.",
+        ]
+        if self.deliver_context("impulse_shadow", slot, "\n".join(lines), now, expires):
+            self.last_impulse_slot = slot
+            print(f"Telegram impulse close age_s={time.time()-closed_at:.3f} slot={slot}", flush=True)
 
     def publish_macro_reaction(self, event, released_at, reactions, now):
         if not self.token or not self.chat_id.isdecimal() or not {1, 5} <= reactions.keys():
