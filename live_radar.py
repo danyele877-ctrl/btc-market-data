@@ -7,6 +7,7 @@ from build_radar_snapshot import build_snapshot, candle_tail
 from capture_render_feed import HYBRID_MODE, collect_rest_snapshot, now, websocket_window_ready
 from render_bridge_publication import _timestamp, build_compact_alert
 from telegram_alert import TelegramAlert
+from zec_impulse_shadow import first_impulse
 from zec_limit_tracking import LimitTracker, build_limit_plans, shadow_live_plan, shadow_microstructure, shadow_prebreakout
 from zec_macro_shadow import live_macro_context
 from zec_sec_news import StrategyNews, market_reactions
@@ -141,6 +142,18 @@ class LiveRadar:
                                    for value in (imbalance, cvd)):
                             plan["reason"] = "retest senza conferma di book e CVD."
                 self.completed_limit_plans = plans
+
+    async def run_impulse_shadow(self):
+        while not self.feed.stop_event.is_set():
+            now = datetime.now(timezone.utc)
+            service = self.feed.state["service"]
+            last_message = service.get("last_message_at")
+            if (service.get("connected") and last_message
+                    and 0 <= (now - _timestamp(last_message)).total_seconds() <= 30):
+                impulse = first_impulse(self.feed.state["instruments"], now)
+                if impulse:
+                    await asyncio.to_thread(self.telegram.publish_impulse_shadow, impulse, now)
+            await asyncio.sleep(3)
 
     async def run_strategy_news(self):
         while not self.feed.stop_event.is_set():

@@ -1052,7 +1052,10 @@ async def main() -> None:
     ws_task = asyncio.create_task(feed.run_websocket())
     micro_task = asyncio.create_task(feed.run_microstructure_websocket())
     radar_task = asyncio.create_task(radar.run())
-    news_task = asyncio.create_task(radar.run_strategy_news()) if radar.telegram.token and radar.telegram.chat_id.isdecimal() else None
+    tasks = [ws_task, micro_task, radar_task]
+    if radar.telegram.token and radar.telegram.chat_id.isdecimal():
+        tasks.append(asyncio.create_task(radar.run_strategy_news()))
+        tasks.append(asyncio.create_task(radar.run_impulse_shadow()))
     print(f"Read-only OKX candle feed listening on 0.0.0.0:{port}", flush=True)
     try:
         async with server:
@@ -1061,9 +1064,6 @@ async def main() -> None:
         server.close()
         await server.wait_closed()
         feed.stop_event.set()
-        tasks = [ws_task, micro_task, radar_task]
-        if news_task is not None:
-            tasks.append(news_task)
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
