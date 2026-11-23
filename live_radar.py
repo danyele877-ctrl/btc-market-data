@@ -9,6 +9,7 @@ from render_bridge_publication import _timestamp, build_compact_alert
 from telegram_alert import TelegramAlert
 from zec_limit_tracking import LimitTracker, build_limit_plans, shadow_live_plan, shadow_microstructure, shadow_prebreakout
 from zec_macro_shadow import live_macro_context
+from zec_sec_news import StrategyNews, market_reactions
 
 
 def unavailable(reason):
@@ -47,6 +48,7 @@ class LiveRadar:
         self.completed_limit_candles = ()
         self.completed_limit_plans = []
         self.telegram = TelegramAlert()
+        self.strategy_news = StrategyNews()
         self.limit_tracker = LimitTracker(self.telegram.connection) if self.telegram.postgres_dsn else None
 
     def current(self):
@@ -139,6 +141,16 @@ class LiveRadar:
                                    for value in (imbalance, cvd)):
                             plan["reason"] = "retest senza conferma di book e CVD."
                 self.completed_limit_plans = plans
+
+    async def run_strategy_news(self):
+        while not self.feed.stop_event.is_set():
+            await asyncio.to_thread(self.strategy_news.poll, datetime.now(timezone.utc))
+            now = datetime.now(timezone.utc)
+            for accession, accepted, url, label in self.strategy_news.events(now):
+                reactions = market_reactions(self.feed.state["instruments"], accepted, now)
+                await asyncio.to_thread(self.telegram.publish_strategy_news, accession, accepted,
+                                        url, label, reactions, now)
+            await asyncio.sleep(15)
 
     async def run(self):
         while not self.feed.stop_event.is_set():

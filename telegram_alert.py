@@ -82,6 +82,7 @@ class TelegramAlert:
         self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
         self.last_slot = None
         self.last_macro_slot = None
+        self.last_strategy_slot = None
         self.postgres_dsn = os.getenv("RADAR_TELEGRAM_DATABASE_URL")
         self.database = os.getenv("RADAR_TELEGRAM_STATE_PATH", "data/telegram-delivery.sqlite3")
 
@@ -216,20 +217,47 @@ class TelegramAlert:
         slot = -(int(event_at.timestamp()) * 2 + phase)
         if self.last_macro_slot == slot:
             return
+        if self.deliver_context("macro", slot, text, now, expires):
+            self.last_macro_slot = slot
+
+    def publish_strategy_news(self, accession, accepted, url, label, reactions, now):
+        if not self.token or not self.chat_id.isdecimal():
+            return
+        # Disjoint from positive BASELINE and negative calendar-event timestamps.
+        slot = -(10**18 + 2 * int(accession.replace("-", "")) + int(5 in reactions))
+        if self.last_strategy_slot == slot:
+            return
+        local_time = accepted.astimezone(ZoneInfo("Europe/Rome"))
+        text = (
+            "📰 <b>Notizia BTC verificata · Strategy</b>\n"
+            f"{escape(label)} · Deposito SEC {local_time:%d/%m/%Y %H:%M:%S %Z}\n"
+        )
+        for minutes in (1, 5):
+            if minutes in reactions:
+                btc, zec = reactions[minutes]
+                text += f"{minutes}m · BTC {btc:+.2f}% · ZEC X-Perp {zec:+.2f}%\n"
+        if not reactions:
+            text += "Reazione di mercato in osservazione.\n"
+        else:
+            text += "Misura dalla prima candela 1m interamente successiva al deposito.\n"
+        text += f'Contesto diagnostico · <a href="{escape(url, quote=True)}">Deposito SEC</a>'
+        if self.deliver_context("strategy", slot, text, now, accepted.timestamp() + 900):
+            self.last_strategy_slot = slot
+
+    def deliver_context(self, kind, slot, text, now, expires):
         deadline = datetime.fromtimestamp(expires, timezone.utc)
         try:
             with self.connection() as (db, param):
-                if not self.reserve(db, param, slot, now):
-                    return
-                status, retry_at = self.send(self.message_request(text), {"feed": {"expires_at": deadline.isoformat()}})
-                db.execute(f"UPDATE delivery SET status={param}, retry_at={param} WHERE slot={param}",
-                           (status, retry_at, slot))
-                if status != "rate_limited":
-                    self.last_macro_slot = slot
-                print(f"Telegram macro {status} slot={slot}", flush=True)
+                if self.reserve(db, param, slot, now):
+                    status, retry_at = self.send(self.message_request(text), {"feed": {"expires_at": deadline.isoformat()}})
+                    db.execute(f"UPDATE delivery SET status={param}, retry_at={param} WHERE slot={param}",
+                               (status, retry_at, slot))
+                    print(f"Telegram {kind} {status} slot={slot}", flush=True)
+                    return status != "rate_limited"
         except Exception:
             # Keep failures isolated from the radar and avoid logging credentials.
-            print("Telegram macro delivery ledger unavailable", flush=True)
+            print(f"Telegram {kind} delivery ledger unavailable", flush=True)
+        return False
 
     def send(self, request, compact):
         try:
