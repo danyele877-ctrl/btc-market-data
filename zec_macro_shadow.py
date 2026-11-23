@@ -13,6 +13,8 @@ WATCH_MINUTES = 25
 PLAN_VERSION = 1
 FED_NOVEMBER = "https://www.federalreserve.gov/newsevents/2026-november.htm"
 FED_DECEMBER = "https://www.federalreserve.gov/newsevents/2026-december.htm"
+BEA_SCHEDULE = "https://www.bea.gov/news/schedule/full"
+BLS_JOBS = "https://www.bls.gov/schedule/news_release/empsit.htm"
 BLS_CPI = "https://www.bls.gov/schedule/news_release/cpi.htm"
 
 
@@ -32,9 +34,12 @@ EVENTS = (
     Event("fed-minutes-2026-11-18", "Verbali FOMC", "2026-11-18T19:00:00+00:00", FED_NOVEMBER),
     Event("fed-waller-2026-11-20", "Intervento Fed · Waller", "2026-11-20T13:25:00+00:00", FED_NOVEMBER),
     Event("fed-cook-2026-11-20", "Intervento Fed · Cook", "2026-11-20T17:15:00+00:00", FED_NOVEMBER),
+    Event("us-pce-gdp-2026-11-25", "Inflazione PCE e PIL USA", "2026-11-25T13:30:00+00:00", BEA_SCHEDULE),
+    Event("us-nfp-2026-12-04", "Mercato del lavoro USA (NFP)", "2026-12-04T13:30:00+00:00", BLS_JOBS),
     Event("fomc-2026-12-09", "Decisione FOMC", "2026-12-09T19:00:00+00:00", FED_DECEMBER),
     Event("fomc-presser-2026-12-09", "Conferenza stampa FOMC", "2026-12-09T19:30:00+00:00", FED_DECEMBER),
     Event("us-cpi-2026-12-10", "Inflazione USA (CPI)", "2026-12-10T13:30:00+00:00", BLS_CPI),
+    Event("us-pce-gdp-2026-12-23", "Inflazione PCE e PIL USA", "2026-12-23T13:30:00+00:00", BEA_SCHEDULE),
     Event("fed-minutes-2026-12-30", "Verbali FOMC", "2026-12-30T19:00:00+00:00", FED_DECEMBER),
 )
 

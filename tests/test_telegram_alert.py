@@ -69,7 +69,8 @@ class TelegramDeliveryTests(unittest.TestCase):
 
     def test_macro_notice_and_fresh_direction_are_deduplicated_separately(self):
         event_at = datetime(2026, 12, 9, 19, tzinfo=timezone.utc)
-        event = {"event": {"title": "Decisione FOMC", "utc": event_at.isoformat()},
+        event = {"event": {"title": "Decisione FOMC", "utc": event_at.isoformat(),
+                           "source": "https://www.federalreserve.gov/newsevents/calendar.htm"},
                  "pause_from": event_at.timestamp()-600, "status": "macro_pause"}
         direction = {**event, "status": "watching", "side": "SHORT", "breakout_level": 800,
                      "watch_at": event_at.timestamp()+120, "watch_until": event_at.timestamp()+1500}
@@ -98,3 +99,25 @@ class TelegramDeliveryTests(unittest.TestCase):
             text = json.loads(send.call_args.args[0].data)["text"]
             self.assertIn("SHORT IN OSSERVAZIONE · SHADOW", text)
             self.assertIn("LIMIT non attivabile", text)
+
+    def test_macro_reaction_waits_for_both_horizons_and_deduplicates(self):
+        released_at = datetime(2026, 11, 25, 13, 30, tzinfo=timezone.utc)
+        event = {"title": "Inflazione PCE e PIL USA", "source": "https://www.bea.gov/news/schedule/full"}
+        with tempfile.TemporaryDirectory() as tmp, patch.dict("os.environ", {
+            "TELEGRAM_BOT_TOKEN": "fixture",
+            "TELEGRAM_CHAT_ID": "123",
+            "RADAR_TELEGRAM_STATE_PATH": str(Path(tmp) / "delivery.db"),
+        }), patch("telegram_alert.urlopen") as send:
+            send.return_value.__enter__.return_value.read.return_value = '{"ok":true}'
+            reactions = {1: (0.2, -0.1), 5: (0.5, 1.0)}
+            after = released_at + timedelta(minutes=5)
+            TelegramAlert().publish_macro_reaction(event, released_at, reactions, after-timedelta(seconds=1))
+            TelegramAlert().publish_macro_reaction(event, released_at, {1: reactions[1]}, after)
+            self.assertEqual(send.call_count, 0)
+            TelegramAlert().publish_macro_reaction(event, released_at, reactions, after)
+            TelegramAlert().publish_macro_reaction(event, released_at, reactions, after)
+            self.assertEqual(send.call_count, 1)
+            payload = json.loads(send.call_args.args[0].data)
+            self.assertIn("14:30 CET", payload["text"])
+            self.assertIn("1m · BTC +0.20% · ZEC X-Perp -0.10%", payload["text"])
+            self.assertIn("5m · BTC +0.50% · ZEC X-Perp +1.00%", payload["text"])
