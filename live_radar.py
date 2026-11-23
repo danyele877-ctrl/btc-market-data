@@ -189,6 +189,15 @@ class LiveRadar:
                     )
                 if macro.get("event") and self.telegram.token and self.telegram.chat_id:
                     await asyncio.to_thread(self.telegram.publish_macro, macro)
+                    event = macro["event"]
+                    if (connected and age is not None and 0 <= age <= 30
+                            and event["id"].startswith(("us-pce-", "us-nfp-", "us-cpi-"))):
+                        released_at = _timestamp(event["utc"])
+                        if 300 <= (now - released_at).total_seconds() < 900:
+                            reactions = market_reactions(self.feed.state["instruments"], released_at, now)
+                            if 5 in reactions:
+                                await asyncio.to_thread(self.telegram.publish_macro_reaction,
+                                                        event, released_at, reactions, now)
             except (Exception, SystemExit) as exc:
                 self.snapshot = None
                 print(f"Live radar refresh blocked: {exc}", flush=True)

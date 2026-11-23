@@ -82,6 +82,7 @@ class TelegramAlert:
         self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
         self.last_slot = None
         self.last_macro_slot = None
+        self.last_macro_reaction_slot = None
         self.last_strategy_slot = None
         self.postgres_dsn = os.getenv("RADAR_TELEGRAM_DATABASE_URL")
         self.database = os.getenv("RADAR_TELEGRAM_STATE_PATH", "data/telegram-delivery.sqlite3")
@@ -196,6 +197,7 @@ class TelegramAlert:
                 f"📅 <b>EVENTO MACRO · {title}</b>\n"
                 f"🕒 <b>{local_time:%H:%M %Z}</b> · {local_time:%d/%m/%Y}\n"
                 "Possibile aumento della volatilità su BTC e ZEC. Direzione in attesa."
+                f'\n<a href="{escape(event["source"], quote=True)}">Calendario ufficiale</a>'
             )
         elif status in ("watching", "retest_observed") and context.get("side") in ("LONG", "SHORT"):
             watch_at = context["watch_at"]
@@ -219,6 +221,25 @@ class TelegramAlert:
             return
         if self.deliver_context("macro", slot, text, now, expires):
             self.last_macro_slot = slot
+
+    def publish_macro_reaction(self, event, released_at, reactions, now):
+        if not self.token or not self.chat_id.isdecimal() or not {1, 5} <= reactions.keys():
+            return
+        expires = released_at.timestamp() + 900
+        if not released_at.timestamp() + 300 <= now.timestamp() < expires:
+            return
+        slot = -(10**11 + int(released_at.timestamp()))
+        if self.last_macro_reaction_slot == slot:
+            return
+        local_time = released_at.astimezone(ZoneInfo("Europe/Rome"))
+        lines = [f"📊 <b>REAZIONE MACRO · {escape(event['title'])}</b>",
+                 f"Orario in calendario · {local_time:%d/%m/%Y %H:%M %Z}"]
+        for minutes in (1, 5):
+            btc, zec = reactions[minutes]
+            lines.append(f"{minutes}m · BTC {btc:+.2f}% · ZEC X-Perp {zec:+.2f}%")
+        lines.append(f'Contesto diagnostico · <a href="{escape(event["source"], quote=True)}">Calendario ufficiale</a>')
+        if self.deliver_context("macro_reaction", slot, "\n".join(lines), now, expires):
+            self.last_macro_reaction_slot = slot
 
     def publish_strategy_news(self, uid, published, url, label, reactions, now):
         if not self.token or not self.chat_id.isdecimal():
