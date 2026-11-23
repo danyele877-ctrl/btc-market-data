@@ -220,17 +220,17 @@ class TelegramAlert:
         if self.deliver_context("macro", slot, text, now, expires):
             self.last_macro_slot = slot
 
-    def publish_strategy_news(self, accession, accepted, url, label, reactions, now):
+    def publish_strategy_news(self, uid, published, url, label, reactions, now):
         if not self.token or not self.chat_id.isdecimal():
             return
         # Disjoint from positive BASELINE and negative calendar-event timestamps.
-        slot = -(10**18 + 2 * int(accession.replace("-", "")) + int(5 in reactions))
+        slot = -(10**18 + 2 * (int(uid[3:], 16) & (2**60-1)) + int(5 in reactions))
         if self.last_strategy_slot == slot:
             return
-        local_time = accepted.astimezone(ZoneInfo("Europe/Rome"))
+        local_time = published.astimezone(ZoneInfo("Europe/Rome"))
         text = (
             "📰 <b>Notizia BTC verificata · Strategy</b>\n"
-            f"{escape(label)} · Deposito SEC {local_time:%d/%m/%Y %H:%M:%S %Z}\n"
+            f"{escape(label)} · Ora indicata da Strategy {local_time:%d/%m/%Y %H:%M:%S %Z}\n"
         )
         for minutes in (1, 5):
             if minutes in reactions:
@@ -239,9 +239,9 @@ class TelegramAlert:
         if not reactions:
             text += "Reazione di mercato in osservazione.\n"
         else:
-            text += "Misura dalla prima candela 1m interamente successiva al deposito.\n"
-        text += f'Contesto diagnostico · <a href="{escape(url, quote=True)}">Deposito SEC</a>'
-        if self.deliver_context("strategy", slot, text, now, accepted.timestamp() + 900):
+            text += "Misura dalla prima candela 1m interamente successiva all’orario indicato da Strategy.\n"
+        text += f'Contesto diagnostico · <a href="{escape(url, quote=True)}">Documento ufficiale Strategy</a>'
+        if self.deliver_context("strategy", slot, text, now, published.timestamp() + 900):
             self.last_strategy_slot = slot
 
     def deliver_context(self, kind, slot, text, now, expires):
