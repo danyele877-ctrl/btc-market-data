@@ -151,13 +151,17 @@ class LiveRadar:
                     await asyncio.to_thread(
                         self.telegram.publish, self.current(), self.completed_slot, self.completed_limit_candles
                     )
+                now = datetime.now(timezone.utc)
+                health = self.feed.health()
+                connected = health["websocket_connected"]
+                age = health.get("last_message_age_seconds")
+                macro = live_macro_context(self.feed.state["instruments"] if connected and age is not None
+                                           and 0 <= age <= 30 else {}, now)
                 if self.limit_tracker:
                     microstructure = self.feed.microstructure_health()
-                    now = datetime.now(timezone.utc)
                     zec = self.feed.state["instruments"].get("ZEC-USD_UM_XPERP", {})
-                    shadow = macro = None
-                    if microstructure.get("connected") and self.feed.health()["websocket_connected"]:
-                        macro = live_macro_context(self.feed.state["instruments"], now)
+                    shadow = None
+                    if microstructure.get("connected") and connected:
                         shadow = shadow_live_plan(now, zec.get("5m", []), self.feed.micro_trade_events)
                         if shadow:
                             shadow["microstructure"] = shadow_microstructure(microstructure, shadow["side"])
@@ -169,8 +173,10 @@ class LiveRadar:
                         self.completed_slot,
                         self.completed_limit_candles,
                         list(zec.get("1m", [])),
-                        now, shadow, macro,
+                        now, shadow, macro if microstructure.get("connected") and connected else None,
                     )
+                if macro.get("event") and self.telegram.token and self.telegram.chat_id:
+                    await asyncio.to_thread(self.telegram.publish_macro, macro)
             except (Exception, SystemExit) as exc:
                 self.snapshot = None
                 print(f"Live radar refresh blocked: {exc}", flush=True)

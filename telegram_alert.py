@@ -6,6 +6,7 @@ import sqlite3
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from html import escape
 from math import isfinite
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -80,6 +81,7 @@ class TelegramAlert:
         self.token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
         self.last_slot = None
+        self.last_macro_slot = None
         self.postgres_dsn = os.getenv("RADAR_TELEGRAM_DATABASE_URL")
         self.database = os.getenv("RADAR_TELEGRAM_STATE_PATH", "data/telegram-delivery.sqlite3")
 
@@ -144,12 +146,7 @@ class TelegramAlert:
             f"\n{limit}\n\n"
             f"<code>{ZEC_ID}</code> · OKX Europe"
         )
-        body = json.dumps({"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}).encode()
-        request = Request(
-            f"https://api.telegram.org/bot{self.token}/sendMessage",
-            data=body,
-            headers={"Content-Type": "application/json"},
-        )
+        request = self.message_request(text)
         try:
             with self.connection() as (db, param):
                 if not self.reserve(db, param, slot, now):
@@ -171,6 +168,68 @@ class TelegramAlert:
                 raise
             # Database errors may contain credentials or connection details.
             print("Telegram radar delivery ledger unavailable", flush=True)
+
+    def message_request(self, text):
+        body = json.dumps({"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}).encode()
+        return Request(
+            f"https://api.telegram.org/bot{self.token}/sendMessage",
+            data=body,
+            headers={"Content-Type": "application/json"},
+        )
+
+    def publish_macro(self, context, *, now=None):
+        if not self.token or not self.chat_id.isdecimal():
+            return
+        now = now or datetime.now(timezone.utc)
+        event = context.get("event")
+        if not event:
+            return
+        timestamp = now.timestamp()
+        event_at = _timestamp(event["utc"])
+        status = context["status"]
+        title = escape(event["title"])
+        local_time = event_at.astimezone(ZoneInfo("Europe/Rome"))
+        if status == "macro_pause" and context["pause_from"] <= timestamp < event_at.timestamp():
+            phase, expires = 0, event_at.timestamp()
+            text = (
+                f"📅 <b>EVENTO MACRO · {title}</b>\n"
+                f"🕒 <b>{local_time:%H:%M %Z}</b> · {local_time:%d/%m/%Y}\n"
+                "Possibile aumento della volatilità su BTC e ZEC. Direzione in attesa."
+            )
+        elif status in ("watching", "retest_observed") and context.get("side") in ("LONG", "SHORT"):
+            watch_at = context["watch_at"]
+            phase, expires = 1, min(context["watch_until"], watch_at + 90)
+            if not watch_at <= timestamp < expires:
+                return
+            observed = datetime.fromtimestamp(watch_at, local_time.tzinfo)
+            text = (
+                f"⚡ <b>EVENTO MACRO · {title}</b>\n"
+                f"<b>{context['side']} IN OSSERVAZIONE · SHADOW</b>\n"
+                f"🕒 {observed:%H:%M:%S %Z} · BTC e ZEC concordi su candele chiuse 1m.\n"
+                f"Rottura ZEC X-Perp <b>{context['breakout_level']:.2f} USD</b>\n"
+                "Avviso diagnostico · LIMIT non attivabile."
+            )
+        else:
+            return
+
+        # Negative keys keep macro phases separate from positive BASELINE slots.
+        slot = -(int(event_at.timestamp()) * 2 + phase)
+        if self.last_macro_slot == slot:
+            return
+        deadline = datetime.fromtimestamp(expires, timezone.utc)
+        try:
+            with self.connection() as (db, param):
+                if not self.reserve(db, param, slot, now):
+                    return
+                status, retry_at = self.send(self.message_request(text), {"feed": {"expires_at": deadline.isoformat()}})
+                db.execute(f"UPDATE delivery SET status={param}, retry_at={param} WHERE slot={param}",
+                           (status, retry_at, slot))
+                if status != "rate_limited":
+                    self.last_macro_slot = slot
+                print(f"Telegram macro {status} slot={slot}", flush=True)
+        except Exception:
+            # Keep failures isolated from the radar and avoid logging credentials.
+            print("Telegram macro delivery ledger unavailable", flush=True)
 
     def send(self, request, compact):
         try:
