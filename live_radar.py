@@ -146,9 +146,9 @@ class LiveRadar:
         while not self.feed.stop_event.is_set():
             await asyncio.to_thread(self.strategy_news.poll, datetime.now(timezone.utc))
             now = datetime.now(timezone.utc)
-            for accession, accepted, url, label in self.strategy_news.events(now):
-                reactions = market_reactions(self.feed.state["instruments"], accepted, now)
-                await asyncio.to_thread(self.telegram.publish_strategy_news, accession, accepted,
+            for uid, published, url, label in self.strategy_news.events(now):
+                reactions = market_reactions(self.feed.state["instruments"], published, now)
+                await asyncio.to_thread(self.telegram.publish_strategy_news, uid, published,
                                         url, label, reactions, now)
             await asyncio.sleep(15)
 

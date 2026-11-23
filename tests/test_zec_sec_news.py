@@ -1,3 +1,4 @@
+import json
 import unittest
 from datetime import datetime, timedelta, timezone
 
@@ -15,12 +16,18 @@ class StrategyNewsTests(unittest.TestCase):
 
     def test_official_filing_links_and_freshness(self):
         now = datetime(2026, 11, 23, 13, 5, tzinfo=timezone.utc)
-        recent = dict(form=["8-K", "8-K"], acceptanceDateTime=[now.isoformat(), (now-timedelta(hours=1)).isoformat()],
-                      accessionNumber=["0001193125-26-470961", "0001193125-26-470960"],
-                      primaryDocument=["strategy.htm", "strategy.htm"], items=["7.01,8.01", "8.01"])
-        filings = list(recent_filings({"filings": {"recent": recent}}, now))
-        self.assertEqual(len(filings), 1)
-        self.assertTrue(filings[0][2].endswith("/000119312526470961/strategy.htm"))
+        url = ("https://assets.contentstack.io/v3/assets/bltf8d808d9b8cebd37/"
+               "blt6abc406d0a4ce9f1/6b038bb11406634ee4c869cc/form-8-k_11-23-2026.pdf")
+        item = dict(title="Form 8-K - November 23, 2026", uid="blt86a9265aa51ee06a",
+                    published_date=now.isoformat(), file_reference={"url": url})
+        old = {**item, "published_date": (now-timedelta(hours=1)).isoformat()}
+        date_only = {**item, "published_date": "2026-11-23"}
+        other_origin = {**item, "file_reference": {"url": "https://example.org/document.pdf"}}
+        data = {"props": {"pageProps": {"taxonomyCardListData": [
+            {"sec_documents": [item, old, date_only, other_origin]}
+        ]}}}
+        html = '<script id="__NEXT_DATA__" type="application/json">'+json.dumps(data)+'</script>'
+        self.assertEqual(list(recent_filings(html, now)), [(item["uid"], now, url)])
 
     def test_reaction_uses_only_full_closed_aligned_minutes(self):
         start = datetime(2026, 11, 23, 13, tzinfo=timezone.utc)

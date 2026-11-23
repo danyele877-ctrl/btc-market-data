@@ -1,36 +1,46 @@
 """Official Strategy filing context for the radar, independent of signal decisions."""
 
 import json
-import os
 import re
 import time
 from datetime import timedelta
 from html import unescape
+from io import BytesIO
 from urllib.request import Request, urlopen
+
+from pypdf import PdfReader
+from pypdf.errors import PyPdfError
 
 from render_bridge_publication import BTC_ID, _timestamp
 from zec_macro_shadow import ZEC_STREAM, minute_bars
 
-SUBMISSIONS = "https://data.sec.gov/submissions/CIK0001050446.json"
-ARCHIVES = "https://www.sec.gov/Archives/edgar/data/1050446"
+INVESTOR_RELATIONS = "https://www.strategy.com/investor-relations"
+PDF_URL = re.compile(r"https://assets\.contentstack\.io/v3/assets/bltf8d808d9b8cebd37/"
+                     r"[a-z0-9]+/[a-z0-9]+/[A-Za-z0-9_.-]+\.pdf")
 POLL_SECONDS = 60
 LOOKBACK = timedelta(minutes=15)
 MAX_RESPONSE = 4_000_000
 
 
-def recent_filings(payload, now):
-    recent = payload["filings"]["recent"]
-    for form, accepted, accession, document, items in zip(
-        recent["form"], recent["acceptanceDateTime"], recent["accessionNumber"],
-        recent["primaryDocument"], recent["items"],
-    ):
-        if (form != "8-K" or not ({"7.01", "8.01"} & set(re.split(r"[,\s]+", items)))
-                or not re.fullmatch(r"[0-9]{10}-[0-9]{2}-[0-9]{6}", accession)
-                or not re.fullmatch(r"[A-Za-z0-9_.-]+\.html?", document)):
-            continue
-        accepted = _timestamp(accepted)
-        if now - LOOKBACK <= accepted <= now:
-            yield accession, accepted, f"{ARCHIVES}/{accession.replace('-', '')}/{document}"
+def recent_filings(page, now):
+    data = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+                     page, re.DOTALL)
+    if not data:
+        raise ValueError("Strategy structured investor-relations data missing")
+    groups = json.loads(data[1])["props"]["pageProps"]["taxonomyCardListData"]
+    for group in groups:
+        for item in group.get("sec_documents", ()):
+            date = item.get("published_date", "")
+            url = item.get("file_reference", {}).get("url", "")
+            uid = item.get("uid", "")
+            if (not re.match(r"Form 8-K(?: |$)", item.get("title", ""))
+                    or not re.fullmatch(r"blt[0-9a-f]{16}", uid)
+                    or not PDF_URL.fullmatch(url)
+                    or not re.search(r"T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$", date)):
+                continue
+            published = _timestamp(date)
+            if now - LOOKBACK <= published <= now:
+                yield uid, published, url
 
 
 def material_change(document):
@@ -63,36 +73,35 @@ def market_reactions(instruments, published_at, now):
 
 class StrategyNews:
     def __init__(self):
-        contact = os.getenv("RADAR_SEC_CONTACT_EMAIL", "").strip()
-        self.user_agent = f"BTC ZEC Radar {contact}" if re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", contact) else ""
         self.next_poll = 0
         self.checked = {}
 
     def download(self, url):
-        request = Request(url, headers={"User-Agent": self.user_agent})
+        request = Request(url, headers={"User-Agent": "BTC-ZEC-Radar/1.0"})
         with urlopen(request, timeout=4) as response:
             data = response.read(MAX_RESPONSE + 1)
         if len(data) > MAX_RESPONSE:
-            raise ValueError("SEC response exceeds size limit")
+            raise ValueError("Strategy response exceeds size limit")
         return data
 
     def poll(self, now):
-        if not self.user_agent or time.monotonic() < self.next_poll:
+        if time.monotonic() < self.next_poll:
             return
         self.next_poll = time.monotonic() + POLL_SECONDS
         self.checked = {key: value for key, value in self.checked.items()
                         if now - value[0] <= LOOKBACK}
         try:
-            payload = json.loads(self.download(SUBMISSIONS))
-            for accession, accepted, url in recent_filings(payload, now):
-                if accession not in self.checked:
-                    label = material_change(self.download(url).decode("utf-8", errors="replace"))
-                    self.checked[accession] = (accepted, url, label)
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+            page = self.download(INVESTOR_RELATIONS).decode("utf-8")
+            for uid, published, url in recent_filings(page, now):
+                if uid not in self.checked:
+                    pdf = PdfReader(BytesIO(self.download(url)))
+                    label = material_change(" ".join(page.extract_text() for page in pdf.pages[:8]))
+                    self.checked[uid] = (published, url, label)
+        except (OSError, ValueError, KeyError, TypeError, PyPdfError) as exc:
             self.next_poll = time.monotonic() + 5 * POLL_SECONDS
-            print(f"SEC Strategy feed unavailable ({type(exc).__name__})", flush=True)
+            print(f"Strategy investor-relations feed unavailable ({type(exc).__name__})", flush=True)
 
     def events(self, now):
-        return [(accession, accepted, url, label)
-                for accession, (accepted, url, label) in self.checked.items()
-                if label and now - LOOKBACK <= accepted <= now]
+        return [(uid, published, url, label)
+                for uid, (published, url, label) in self.checked.items()
+                if label and now - LOOKBACK <= published <= now]
