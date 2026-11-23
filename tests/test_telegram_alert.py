@@ -66,3 +66,35 @@ class TelegramDeliveryTests(unittest.TestCase):
             self.assertIn("Prezzo rilevato <b>851.20 USD</b>", payload["text"])
             self.assertIn("Invalidazione <b>800.00 USD</b>", payload["text"])
             self.assertIn("LIMIT NON ATTIVABILE", payload["text"])
+
+    def test_macro_notice_and_fresh_direction_are_deduplicated_separately(self):
+        event_at = datetime(2026, 12, 9, 19, tzinfo=timezone.utc)
+        event = {"event": {"title": "Decisione FOMC", "utc": event_at.isoformat()},
+                 "pause_from": event_at.timestamp()-600, "status": "macro_pause"}
+        direction = {**event, "status": "watching", "side": "SHORT", "breakout_level": 800,
+                     "watch_at": event_at.timestamp()+120, "watch_until": event_at.timestamp()+1500}
+        with tempfile.TemporaryDirectory() as tmp, patch.dict("os.environ", {
+            "TELEGRAM_BOT_TOKEN": "fixture", "TELEGRAM_CHAT_ID": "123",
+            "RADAR_TELEGRAM_STATE_PATH": str(Path(tmp) / "delivery.db"),
+        }), patch("telegram_alert.urlopen") as send:
+            send.return_value.__enter__.return_value.read.return_value = '{"ok":true}'
+            before = event_at - timedelta(minutes=10)
+            TelegramAlert().publish_macro(event, now=before-timedelta(seconds=1))
+            TelegramAlert().publish_macro(event, now=event_at)
+            self.assertEqual(send.call_count, 0)
+            TelegramAlert().publish_macro(event, now=before)
+            TelegramAlert().publish_macro(event, now=before)
+            self.assertEqual(send.call_count, 1)
+            text = json.loads(send.call_args.args[0].data)["text"]
+            self.assertIn("20:00 CET", text)
+            self.assertIn("Direzione in attesa", text)
+            TelegramAlert().publish_macro(direction, now=event_at+timedelta(minutes=4))
+            TelegramAlert().publish_macro({**direction, "status": "breakout_reabsorbed"},
+                                          now=event_at+timedelta(minutes=2))
+            self.assertEqual(send.call_count, 1)
+            TelegramAlert().publish_macro(direction, now=event_at+timedelta(minutes=2))
+            TelegramAlert().publish_macro(direction, now=event_at+timedelta(minutes=2))
+            self.assertEqual(send.call_count, 2)
+            text = json.loads(send.call_args.args[0].data)["text"]
+            self.assertIn("SHORT IN OSSERVAZIONE · SHADOW", text)
+            self.assertIn("LIMIT non attivabile", text)
