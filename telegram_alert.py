@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from read_current_alert import validated_side
 from render_bridge_publication import ZEC_ID, _timestamp
+from zec_limit_costs import limit_economics
 
 
 def limit_levels(side, last, invalidation, candles, signal_time, entry_fraction=0.25, retest=False):
@@ -62,9 +63,14 @@ def format_limit(plan, deadline):
     if plan.get("reason"):
         return f"📋 <b>LIMIT NON ATTIVABILE</b> · {plan['reason']}"
     side, entry, stop, tp1, tp2 = (plan[key] for key in ("side", "entry", "stop", "tp1", "tp2"))
+    costs = limit_economics(plan)
     return (
         f"📋 <b>LIMIT {side} · {entry:.2f} USD</b>\n"
         f"SL <b>{stop:.2f}</b> · TP1 <b>{tp1:.2f}</b> · TP2 <b>{tp2:.2f} USD</b>\n"
+        f"Netto sul nozionale · TP1 <b>{costs['tp1_net_pct']:+.2f}%</b> · SL "
+        f"<b>{-costs['stop_loss_net_pct']:+.2f}%</b> · R/R <b>{costs['net_reward_risk']:.2f}:1</b>\n"
+        f"Stima · Fee {costs['fee_bps_per_side'] / 100:.2f}% per lato · "
+        f"Slippage SL {costs['exit_slippage_bps'] / 100:.2f}% · Funding escluso\n"
         f"Valido fino alle <b>{deadline:%H:%M:%S %Z}</b> o fino all’invalidazione."
     )
 

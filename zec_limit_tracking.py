@@ -7,6 +7,7 @@ from math import ceil, floor, isfinite
 from read_current_alert import validated_side
 from render_bridge_publication import ZEC_ID, _timestamp
 from telegram_alert import limit_levels
+from zec_limit_costs import ADVERSE_EXIT_SLIPPAGE_BPS, execution_pnl, limit_economics
 
 
 def build_limit_plans(compact, slot, candles):
@@ -26,6 +27,9 @@ def build_limit_plans(compact, slot, candles):
     ]
 
     reference = plans[0]
+    for plan in plans:
+        if not plan["reason"]:
+            plan["economics"] = limit_economics(plan)
     if reference["reason"]:
         return plans
     sign = 1 if side == "LONG" else -1
@@ -37,12 +41,15 @@ def build_limit_plans(compact, slot, candles):
     for variant, trial_stop, trial_tp1 in (
         ("SHADOW_EXIT_CONTROL", stop, tp1),
         ("SHADOW_STOP_BUFFER", wide_stop, tp1),
+        ("SHADOW_TARGET_ONLY", stop, wide_tp1),
         ("SHADOW_STOP_TARGET", wide_stop, wide_tp1),
     ):
         if not 0 < min(trial_stop, trial_tp1) or sign*trial_tp1 >= sign*reference["tp2"]:
             continue
-        plans.append({**reference, "id": f"ZEC-{slot}-{variant}", "variant": variant,
-                      "stop": trial_stop, "tp1": trial_tp1, "reference_risk": risk})
+        trial = {**reference, "id": f"ZEC-{slot}-{variant}", "variant": variant,
+                 "stop": trial_stop, "tp1": trial_tp1, "reference_risk": risk}
+        trial["economics"] = limit_economics(trial)
+        plans.append(trial)
     return plans
 
 
@@ -59,16 +66,21 @@ def simulate(plan, bars, *, strict=False):
         if exit_price is None:
             outcome = {"status": status, "gross_r": 0}
             if comparison and status in ("unfilled", "invalidated"):
-                outcome.update(net_reference_r=0, net_equal_risk_r=0)
+                outcome.update(net_reference_r=0, net_equal_risk_r=0,
+                               net_reference_r_with_slippage=0, net_equal_risk_r_with_slippage=0)
             return outcome
         pnl = sign * (exit_price - plan["entry"])
         outcome = {"status": status, "filled": True,
                    "gross_r": round(pnl / abs(plan["entry"]-plan["stop"]), 4)}
         if comparison:
-            # Illustrative fees: 5 bps on each leg, no funding or slippage.
-            fees = (plan["entry"] + exit_price) * 0.0005
-            outcome["net_reference_r"] = round((pnl-fees) / plan["reference_risk"], 4)
-            outcome["net_equal_risk_r"] = round((pnl-fees) / abs(plan["entry"]-plan["stop"]), 4)
+            net, _ = execution_pnl(plan["side"], plan["entry"], exit_price)
+            slippage = 0 if status == "tp1" else ADVERSE_EXIT_SLIPPAGE_BPS
+            stressed, _ = execution_pnl(plan["side"], plan["entry"], exit_price, exit_slippage_bps=slippage)
+            risk = abs(plan["entry"] - plan["stop"])
+            outcome["net_reference_r"] = round(net / plan["reference_risk"], 4)
+            outcome["net_equal_risk_r"] = round(net / risk, 4)
+            outcome["net_reference_r_with_slippage"] = round(stressed / plan["reference_risk"], 4)
+            outcome["net_equal_risk_r_with_slippage"] = round(stressed / risk, 4)
         return outcome
 
     for opened in range(start, end, 60):

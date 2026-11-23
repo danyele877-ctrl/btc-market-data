@@ -4,6 +4,7 @@ import unittest
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
+from zec_limit_costs import limit_economics
 from zec_limit_tracking import LimitTracker, simulate
 
 
@@ -24,6 +25,26 @@ class LimitTrackingTests(unittest.TestCase):
         plan = {"signal_at": 0, "fill_by": 120, "outcome_by": 180,
                 "side": "SHORT", "entry": 100, "stop": 105, "tp1": 95}
         self.assertEqual(simulate(plan, {60: (94, 102, 98), 120: (94, 99, 97)})["status"], "tp1")
+
+    def test_short_net_economics_includes_round_trip_and_adverse_stop_execution(self):
+        costs = limit_economics({"side": "SHORT", "entry": 786.22, "stop": 787.77, "tp1": 784.67})
+        self.assertAlmostEqual(costs["tp1_fee_share_pct"], 50.67387, places=4)
+        self.assertAlmostEqual(costs["tp1_net_pct"], 0.097245, places=5)
+        self.assertAlmostEqual(costs["net_reward_risk"], 0.3065, places=3)
+
+    def test_exit_simulation_adds_slippage_to_stop_and_preserves_fee_only_measure(self):
+        plan = {"signal_at": 0, "fill_by": 120, "outcome_by": 180,
+                "side": "LONG", "entry": 100, "stop": 95, "tp1": 105,
+                "invalidation": 94, "reference_risk": 5}
+        bars = {60: (99, 103, 101, 100), 120: (94, 105, 96, 100)}
+        outcome = simulate(plan, bars)
+        self.assertEqual(outcome["status"], "stop")
+        self.assertAlmostEqual(outcome["net_reference_r"], -1.0195)
+        self.assertAlmostEqual(outcome["net_reference_r_with_slippage"], -1.0233)
+        bars[120] = (99, 105, 104, 100)
+        outcome = simulate(plan, bars)
+        self.assertEqual(outcome["status"], "tp1")
+        self.assertEqual(outcome["net_reference_r"], outcome["net_reference_r_with_slippage"])
 
     def test_directional_outcomes_persist_without_rewriting_existing_results(self):
         with sqlite3.connect(":memory:") as db:
