@@ -39,9 +39,16 @@ class CompactAlertTests(unittest.TestCase):
                     captured_at=self.snapshot["source_captured_at"],
                     valid_until=(self.now + timedelta(seconds=15)).isoformat(),
                     invalidation={"direction": direction, "price": valid},
+                    confirmation_5m={"close_price": zec,
+                                     "closed_at": self.snapshot["source_captured_at"],
+                                     "breakout_reference": valid},
                 )
                 alert = build_compact_alert(self.snapshot, self.now)
                 self.assertEqual(alert["decision"]["side"], direction)
+                self.assertEqual(alert["decision"]["confirmation_5m"]["close_price"], zec)
+                self.assertEqual(alert["decision"]["confirmation_5m"]["breakout_reference"], valid)
+                early["confirmation_5m"]["closed_at"] = (self.now + timedelta(minutes=1)).isoformat()
+                self.assertNotIn("confirmation_5m", build_compact_alert(self.snapshot, self.now)["decision"])
                 self.assertEqual(alert["feed"]["expires_at"], early["valid_until"])
                 deadline = early.pop("valid_until")
                 self.assertEqual(build_compact_alert(self.snapshot, self.now)["decision"]["side"], "NO_SIGNAL")

@@ -534,6 +534,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         if absorption.startswith("possibile assorbimento"):
             contrary.append(absorption)
 
+    breakout_price = None
     if x1m and x5m:
         direction1, direction5 = _candlestick_direction(x1m), _candlestick_direction(x5m)
         previous = x5m[-4:-1]
@@ -543,8 +544,10 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         breakout = 0.0
         breakout_text = "nessuna rottura del massimo/minimo delle tre barre 5m precedenti"
         if last_close is not None and high_values and all(value is not None for value in high_values) and last_close > max(high_values):
+            breakout_price = max(high_values)
             breakout, breakout_text = 0.8, "chiusura 5m oltre il massimo delle tre barre precedenti"
         elif last_close is not None and low_values and all(value is not None for value in low_values) and last_close < min(low_values):
+            breakout_price = min(low_values)
             breakout, breakout_text = -0.8, "chiusura 5m sotto il minimo delle tre barre precedenti"
         direction_score = (direction1 + direction5) / 2
         micro_score = _clamp(0.55 * direction_score + 0.45 * breakout)
@@ -619,6 +622,13 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         stage = "ATTENDERE"
     decision = direction if stage == "TRIGGER CONFERMATO" else "ATTENDERE"
 
+    confirmation = None
+    if confirmed:
+        candle = x5m[-1]
+        confirmation = {"close_price": _number(candle.get("close")), "closed_at": candle["completed_at"]}
+        if breakout_price is not None and breakout * direction_sign > 0:
+            confirmation["breakout_reference"] = breakout_price
+
     valid_until = None
     if not blockers and groups_ready and ws_ready:
         # Anchor expiry to the underlying observations, not to publication time.
@@ -669,6 +679,7 @@ def evaluate_signal(snapshot: dict[str, Any], now: datetime | None = None) -> di
         "captured_at": snapshot.get("source_captured_at"),
         "status": stage,
         "decision": decision,
+        "confirmation_5m": confirmation,
         "valid_until": valid_until,
         "candidate_direction": direction,
         "exploratory_direction": exploratory_direction,

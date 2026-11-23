@@ -214,13 +214,14 @@ def shadow_prebreakout(plan, closed, minutes, health):
     return result
 
 
-def shadow_directional_moves(plan, bars):
+def directional_moves(plan, bars):
     """Use only contiguous closed 1m observations around the captured trade."""
     anchor = floor(plan["signal_at"] / 60) * 60
     quote = plan["quote"]
     sign = 1 if plan["side"] == "LONG" else -1
     moves = {}
-    for label, offset in (("prior_5m", -5), ("after_5m", 5), ("after_15m", 15)):
+    for label, offset in (("prior_5m", -5), ("after_5m", 5), ("after_15m", 15),
+                          ("after_30m", 30), ("after_45m", 45)):
         start, end = sorted((0, offset))
         if not all(anchor + index * 60 in bars for index in range(start, end + 1)):
             moves[label] = None
@@ -229,6 +230,24 @@ def shadow_directional_moves(plan, bars):
         change = quote / close - 1 if offset < 0 else close / quote - 1
         moves[label] = round(sign * change * 100, 6)
     return moves
+
+
+def snapshot_moves(plan, outcome, bars):
+    """Add newly available horizons without replacing stored measurements."""
+    signal, quote = plan.get("signal_at"), plan.get("quote")
+    if (not bars or not all(type(value) in (int, float) and isfinite(value) and value > 0
+                            for value in (signal, quote)) or plan.get("side") not in ("LONG", "SHORT")
+            or floor(signal / 60) * 60 not in bars):
+        return False
+    stored = outcome.get("directional_move_pct", {})
+    if all(stored.get(key) is not None for key in ("after_5m", "after_15m", "after_30m", "after_45m")):
+        return False
+    new = {key: value for key, value in directional_moves(plan, bars).items()
+           if value is not None and stored.get(key) is None}
+    if not new:
+        return False
+    outcome["directional_move_pct"] = {**stored, **new}
+    return True
 
 
 class LimitTracker:
@@ -274,9 +293,12 @@ class LimitTracker:
                 due = db.execute(f"SELECT slot, plans FROM zec_limit_trials WHERE outcomes IS NULL AND due <= {p}",
                                  (int(max(bars)),)).fetchall()
                 for key, payload in due:
+                    plans = json.loads(payload)
                     outcomes = [{**simulate(plan, bars), "strict_status": simulate(plan, bars, strict=True)["status"]}
-                                if not plan["reason"] else {"status": "blocked"}
-                                for plan in json.loads(payload)]
+                                if not plan["reason"] else {"status": "blocked"} for plan in plans]
+                    for plan, outcome in zip(plans, outcomes):
+                        if plan.get("variant") == "BASELINE":
+                            snapshot_moves(plan, outcome, bars)
                     db.execute(f"UPDATE zec_limit_trials SET outcomes={p} WHERE slot={p} AND outcomes IS NULL",
                                (json.dumps(outcomes), key))
             db.execute("""CREATE TABLE IF NOT EXISTS zec_shadow_live_trials (
@@ -299,8 +321,8 @@ class LimitTracker:
                     WHERE outcomes IS NULL AND due <= {p}""", (int(max(bars)),)).fetchall()
                 for key, payload in due_shadow:
                     plan = json.loads(payload)
-                    outcome = {**simulate(plan, bars), "strict_status": simulate(plan, bars, strict=True)["status"],
-                               "directional_move_pct": shadow_directional_moves(plan, bars)}
+                    outcome = {**simulate(plan, bars), "strict_status": simulate(plan, bars, strict=True)["status"]}
+                    snapshot_moves(plan, outcome, bars)
                     db.execute(f"UPDATE zec_shadow_live_trials SET outcomes={p} WHERE slot={p} AND outcomes IS NULL",
                                (json.dumps(outcome), key))
             db.execute("""CREATE TABLE IF NOT EXISTS zec_macro_observations (
@@ -323,13 +345,26 @@ class LimitTracker:
                                observation)
             recent_macro = db.execute("""SELECT event_id, phase, payload FROM zec_macro_observations
                 ORDER BY observed_at DESC LIMIT 100""").fetchall()
-            recent_shadow = db.execute("""SELECT plan, outcomes, baseline_at
-                FROM zec_shadow_live_trials ORDER BY slot DESC LIMIT 100""").fetchall()
-            recent = db.execute("SELECT plans, outcomes FROM zec_limit_trials ORDER BY slot DESC LIMIT 100").fetchall()
-        self.state = {"status": "ok", "records": [
-            {"plans": json.loads(plans), "outcomes": json.loads(outcomes) if outcomes else None}
-            for plans, outcomes in recent], "shadow_records": [
-            {"plan": json.loads(plan), "outcome": json.loads(outcomes) if outcomes else None,
-             "baseline_at": baseline_at} for plan, outcomes, baseline_at in recent_shadow],
+            recent_shadow = []
+            for key, payload, saved, baseline_at in db.execute("""SELECT slot, plan, outcomes, baseline_at
+                FROM zec_shadow_live_trials ORDER BY slot DESC LIMIT 100""").fetchall():
+                plan = json.loads(payload)
+                outcome = json.loads(saved) if saved else None
+                if outcome is not None and snapshot_moves(plan, outcome, bars):
+                    db.execute(f"UPDATE zec_shadow_live_trials SET outcomes={p} WHERE slot={p} AND outcomes={p}",
+                               (json.dumps(outcome), key, saved))
+                recent_shadow.append({"plan": plan, "outcome": outcome, "baseline_at": baseline_at})
+            recent = []
+            for key, payload, saved in db.execute("""SELECT slot, plans, outcomes
+                FROM zec_limit_trials ORDER BY slot DESC LIMIT 100""").fetchall():
+                plans = json.loads(payload)
+                outcomes = json.loads(saved) if saved else None
+                if outcomes is not None:
+                    for plan, outcome in zip(plans, outcomes):
+                        if plan.get("variant") == "BASELINE" and snapshot_moves(plan, outcome, bars):
+                            db.execute(f"UPDATE zec_limit_trials SET outcomes={p} WHERE slot={p} AND outcomes={p}",
+                                       (json.dumps(outcomes), key, saved))
+                recent.append({"plans": plans, "outcomes": outcomes})
+        self.state = {"status": "ok", "records": recent, "shadow_records": recent_shadow,
             "macro_records": [{"event_id": event_id, "phase": phase, "observation": json.loads(payload)}
                               for event_id, phase, payload in recent_macro]}
