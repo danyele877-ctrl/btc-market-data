@@ -1,0 +1,67 @@
+name: Gold Radar Diagnostic
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['.github/workflows/gold-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/gold-radar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe public OKX EEA endpoints
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, time, urllib.request, urllib.parse
+          from datetime import datetime, timezone
+          base = "https://eea.okx.com/api/v5"
+          candidate = "XAU-USD_UM_XPERP-310502"
+          report = {"candidate": candidate, "orders_enabled": False, "sizing_enabled": False, "signals_enabled": False, "checks": {}}
+          def get(name, path, **params):
+              start = time.monotonic()
+              rec = {"captured_at": datetime.now(timezone.utc).isoformat()}
+              try:
+                  url = base + path + "?" + urllib.parse.urlencode(params)
+                  req = urllib.request.Request(url, headers={"User-Agent": "GoldRadarDiagnostic/1.0"})
+                  with urllib.request.urlopen(req, timeout=12) as response:
+                      rec["http_status"] = response.status
+                      payload = json.load(response)
+                  rec["payload"] = payload
+                  rec["ok"] = payload.get("code") == "0" and bool(payload.get("data"))
+              except Exception as exc:
+                  rec.update(ok=False, error=str(exc))
+              rec["latency_ms"] = round((time.monotonic()-start)*1000)
+              report["checks"][name] = rec
+              return rec.get("payload", {}).get("data", []) if rec["ok"] else []
+          rows = get("instrument", "/public/instruments", instType="FUTURES", instId=candidate)
+          exact = [r for r in rows if r.get("instId") == candidate and r.get("instType") == "FUTURES"]
+          report["exact_match"] = len(exact) == 1
+          if report["exact_match"]:
+              for name, path, params in [
+                  ("ticker","/market/ticker",{}),
+                  ("book","/market/books",{"sz":"20"}),
+                  ("trades","/market/trades",{"limit":"100"}),
+                  ("oi","/public/open-interest",{"instType":"FUTURES"}),
+                  ("mark","/public/mark-price",{"instType":"FUTURES"}),
+                  ("funding","/public/funding-rate",{}),
+              ]:
+                  get(name,path,instId=candidate,**params)
+              for bar in ("1m","5m","15m","1H","4H","1Dutc"):
+                  get("candles_"+bar,"/market/candles",instId=candidate,bar=bar,limit="300")
+          else:
+              rows = get("discovery","/public/instruments",instType="FUTURES")
+              report["gold_candidates"] = [r for r in rows if "XAU" in r.get("instId","").upper()]
+              report["checks"]["discovery"].pop("payload",None)
+          with open("gold-diagnostic.json","w") as f:
+              json.dump(report,f,indent=2)
+          print(json.dumps({"exact_match":report["exact_match"],"checks":{k:{a:v for a,v in r.items() if a!="payload"} for k,r in report["checks"].items()}},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gold-diagnostic
+          path: gold-diagnostic.json
+          retention-days: 7
