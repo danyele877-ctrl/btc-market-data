@@ -17,7 +17,8 @@ def request(path, **params):
     url = BASE + path + "?" + urllib.parse.urlencode(params)
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(url, timeout=15) as response:
+            req = urllib.request.Request(url, headers={"User-Agent": "GoldRadarDiagnostic/1.0", "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=15) as response:
                 obj = json.load(response)
             if obj.get("code") != "0" or not isinstance(obj.get("data"), list):
                 raise ValueError(str(obj)[:300])
