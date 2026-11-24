@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-24T14:57:18.593722+00:00",
-  "snapshot_generated_at": "2026-11-24T14:57:18.507902+00:00",
+  "generated_at": "2026-11-24T15:58:18.695253+00:00",
+  "snapshot_generated_at": "2026-11-24T15:58:18.592583+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -70,7 +70,7 @@
     "edge_funding_all_exchanges": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "swole_funding_btc_1d": {
@@ -100,7 +100,7 @@
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_open_interest_btc": {
@@ -112,19 +112,19 @@
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "bitcoin_etf_flows_tftc": {
