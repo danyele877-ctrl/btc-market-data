@@ -10,7 +10,7 @@ def ema(values, n):
         out.append(out[-1]+2/(n+1)*(v-out[-1]))
     return out
 
-def evaluate(rows, horizon, fee=.001):
+def evaluate(rows, horizon, fee=.001, breakout=False):
     rows=sorted(rows,key=lambda r:int(r[0]))
     c=[float(r[4]) for r in rows]
     e20,e50,e200=(ema(c,n) for n in (20,50,200))
@@ -24,6 +24,8 @@ def evaluate(rows, horizon, fee=.001):
         trades=[]; i=start
         while i+horizon<end:
             direction=1 if e20[i]>e50[i]>e200[i] else -1 if e20[i]<e50[i]<e200[i] else 0
+            if breakout and not ((direction == 1 and c[i] > max(float(z[2]) for z in rows[i-20:i])) or (direction == -1 and c[i] < min(float(z[3]) for z in rows[i-20:i]))):
+                direction = 0
             if not direction or float(rows[i][5])<=0:
                 i+=1; continue
             entry=float(rows[i+1][1])
@@ -64,6 +66,6 @@ if __name__=='__main__':
     rows=x['series']['1H']['candles']
     assert all(r[8]=='1' for r in rows)
     assert all(int(b[0])-int(a[0])==3600000 for a,b in zip(rows,rows[1:]))
-    report={'research_only':True,'round_trip_fee_assumption':.001,'spread_slippage_funding_included':False,'baseline':{h:evaluate(rows,h) for h in (1,4,6,12,24)},'macro':macro() if a.macro else None}
+    report={'research_only':True,'round_trip_fee_assumption':.001,'spread_slippage_funding_included':False,'baseline':{h:evaluate(rows,h) for h in (1,4,6,12,24)},'breakout':{h:evaluate(rows,h,breakout=True) for h in (1,4,6,12,24)},'macro':macro() if a.macro else None}
     Path('gold-research.json').write_text(json.dumps(report,indent=2))
     print(json.dumps(report,indent=2))
