@@ -2,7 +2,7 @@ name: Gold Historical Backfill
 on:
   push:
     branches: [gold-radar]
-    paths: ['.github/workflows/gold-history.yml']
+    paths: ['.github/workflows/gold-history.yml', 'gold_history.py']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Validate syntax and pagination with synthetic candles
         run: |
           python -m py_compile gold_history.py
