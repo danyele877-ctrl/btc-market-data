@@ -1,0 +1,28 @@
+name: Gold Research Validation
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['.github/workflows/gold-research.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  research:
+    if: github.ref == 'refs/heads/gold-radar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate Python
+        run: python -m py_compile gold_history.py gold_research.py
+      - name: Acquire historical data
+        run: python gold_history.py
+      - name: Compare models and probe FRED
+        run: python gold_research.py gold-history.json --macro
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gold-research
+          path: |
+            gold-research.json
+            gold-history.json
+          retention-days: 7
