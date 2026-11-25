@@ -7,6 +7,7 @@ from gold_history import metadata
 import threading
 from gold_calendar_cache import refresh
 from gold_status import publish
+from gold_ws_shadow import worker as ws_worker
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -28,6 +29,8 @@ def main():
                 time.sleep(max(1,15-(time.monotonic()-started)))
         if os.environ.get('GOLD_EARLY_ENABLED','0')=='1':
             threading.Thread(target=early_loop,daemon=True,name='gold-early').start()
+        if os.environ.get('GOLD_WS_SHADOW_ENABLED','1')=='1':
+            threading.Thread(target=ws_worker,args=(root,),daemon=True,name='gold-ws-shadow').start()
         def calendar_loop():
             while True:
                 try:
