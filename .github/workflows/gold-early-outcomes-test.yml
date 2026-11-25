@@ -1,0 +1,30 @@
+name: Gold Early Outcomes Test
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_early_outcomes.py','gold_divergence.py','.github/workflows/gold-early-outcomes-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python - <<'PY'
+          from gold_early_outcomes import settle
+          from gold_divergence import evaluate
+          t=1800000000
+          obs={"observed_at":t+10,"candidate":"SHORT","v1":{"candidate":"LONG"}}
+          rows=[[str((t+60*i)*1000),"100","103","99","102","1","0","0","1"] for i in range(1,46)]
+          assert not settle(obs,rows,t+300)["early_v1"]
+          result=settle(obs,rows,t+2760)
+          assert abs(result["early_v1"]["45"]["net_fee_only"]-.019)<1e-9
+          assert abs(result["early_v2"]["45"]["net_fee_only"]+.021)<1e-9
+          assert not settle(obs,rows[1:],t+2760)["early_v1"]
+          x={"v1":{"volume_ratio":3,"momentum_3m":.001,"book_imbalance":-.8,"book_age_seconds":1},"sampled_flow":{k:{"count":40,"imbalance":.8} for k in ("60","180","300")}}
+          assert evaluate(x)["candidate"]=="LONG"
+          x["v1"]["book_age_seconds"]=31
+          assert evaluate(x)["candidate"]=="NONE"
+          PY
