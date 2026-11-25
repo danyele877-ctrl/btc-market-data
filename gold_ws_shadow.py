@@ -14,10 +14,13 @@ def worker(root):
             logging.info("WS shadow: connected=%s ready=%s trades5m=%s book_age=%s",status["connected"],status["transport_ready"],status["trade_count_5m"],status["book_age_seconds"])
         except Exception:
             logging.exception("WS status write failed")
+    def live(status):
+        try: save(Path(root)/"live_quote.json",status)
+        except Exception: logging.exception("live quote write failed")
     while True:
         try:
             metadata()
-            asyncio.run(run(Feed(),publish))
+            asyncio.run(run(Feed(),publish,live))
         except Exception:
             logging.exception("WS shadow worker failed")
             time.sleep(60)
