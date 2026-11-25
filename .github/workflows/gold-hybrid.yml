@@ -1,0 +1,22 @@
+name: Gold Hybrid Validation
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_hybrid.py', '.github/workflows/gold-hybrid.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    if: github.ref == 'refs/heads/gold-radar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+      - run: python -m py_compile gold_hybrid.py gold_history.py gold_macro_probe.py gold_research.py
+      - run: python gold_hybrid.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gold-hybrid
+          path: gold-hybrid.json
+          retention-days: 7
