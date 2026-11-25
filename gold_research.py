@@ -1,6 +1,6 @@
 """Research only. Fixed rules, chronological holdout, no execution."""
 import json, math, csv, io, urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import argparse
 
@@ -10,7 +10,7 @@ def ema(values, n):
         out.append(out[-1]+2/(n+1)*(v-out[-1]))
     return out
 
-def evaluate(rows, horizon, fee=.001, breakout=False, pullback=False):
+def evaluate(rows, horizon, fee=.001, breakout=False, pullback=False, regime=False):
     rows=sorted(rows,key=lambda r:int(r[0]))
     c=[float(r[4]) for r in rows]
     e20,e50,e200=(ema(c,n) for n in (20,50,200))
@@ -26,9 +26,20 @@ def evaluate(rows, horizon, fee=.001, breakout=False, pullback=False):
         trades=[]; i=start
         while i+horizon<end:
             direction=1 if e20[i]>e50[i]>e200[i] else -1 if e20[i]<e50[i]<e200[i] else 0
-            if breakout and not ((direction == 1 and c[i] > max(float(z[2]) for z in rows[i-20:i])) or (direction == -1 and c[i] < min(float(z[3]) for z in rows[i-20:i]))):
+            if regime:
+                atr_now=sum(tr[i-13:i+1])/14
+                trend=abs(e20[i]-e50[i])>=atr_now and atr_now>0
+                expansion=atr_now>sum(tr[i-49:i+1])/50
+                if not trend:
+                    direction=0
+                use_breakout=expansion
+                use_pullback=not expansion
+            else:
+                use_breakout=breakout
+                use_pullback=pullback
+            if use_breakout and not ((direction == 1 and c[i] > max(float(z[2]) for z in rows[i-20:i])) or (direction == -1 and c[i] < min(float(z[3]) for z in rows[i-20:i]))):
                 direction = 0
-            if pullback:
+            if use_pullback:
                 changes=[c[k]-c[k-1] for k in range(i-13,i+1)]
                 gain=sum(max(0,v) for v in changes)
                 loss=sum(max(0,-v) for v in changes)
@@ -62,9 +73,9 @@ def macro():
     out={}
     for series in ('DTWEXBGS','DGS10','DFII10','FEDFUNDS','CPIAUCSL','PCEPI','PAYEMS'):
         try:
-            url='https://fred.stlouisfed.org/graph/fredgraph.csv?id='+series
+            url='https://fred.stlouisfed.org/graph/fredgraph.csv?id='+series+'&cosd='+(datetime.now(timezone.utc)-timedelta(days=180)).date().isoformat()
             req=urllib.request.Request(url,headers={'User-Agent':'GoldRadarDiagnostic/1.0'})
-            with urllib.request.urlopen(req,timeout=15) as r:
+            with urllib.request.urlopen(req,timeout=30) as r:
                 rows=list(csv.reader(io.StringIO(r.read().decode())))
             valid=[(d,float(v)) for d,v in rows[1:] if v not in ('','.')]
             out[series]={'latest':valid[-1],'previous':valid[-2],'retrieved_at':datetime.now(timezone.utc).isoformat(),'historical_backtest_allowed':False}
@@ -79,6 +90,6 @@ if __name__=='__main__':
     rows=x['series']['1H']['candles']
     assert all(r[8]=='1' for r in rows)
     assert all(int(b[0])-int(a[0])==3600000 for a,b in zip(rows,rows[1:]))
-    report={'research_only':True,'round_trip_fee_assumption':.001,'spread_slippage_funding_included':False,'baseline':{h:evaluate(rows,h) for h in (1,4,6,12,24)},'breakout':{h:evaluate(rows,h,breakout=True) for h in (1,4,6,12,24)},'pullback':{h:evaluate(rows,h,pullback=True) for h in (1,4,6,12,24)},'macro':macro() if a.macro else None}
+    report={'research_only':True,'round_trip_fee_assumption':.001,'spread_slippage_funding_included':False,'baseline':{h:evaluate(rows,h) for h in (1,4,6,12,24)},'breakout':{h:evaluate(rows,h,breakout=True) for h in (1,4,6,12,24)},'pullback':{h:evaluate(rows,h,pullback=True) for h in (1,4,6,12,24)},'regime':{h:{str(cost):evaluate(rows,h,fee=cost,regime=True) for cost in (.001,.0015,.002)} for h in (1,4,6,12,24)},'macro':macro() if a.macro else None}
     Path('gold-research.json').write_text(json.dumps(report,indent=2))
     print(json.dumps(report,indent=2))
