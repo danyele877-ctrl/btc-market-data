@@ -2,6 +2,7 @@
 import json,time,logging
 from http.server import HTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
+from urllib.parse import urlsplit
 
 def serve(root):
     root=Path(root)
@@ -12,9 +13,10 @@ def serve(root):
             self.connection.settimeout(5)
         def do_GET(self):
             try:
-                if self.path=="/":
+                path=urlsplit(self.path).path
+                if path=="/":
                     body=html; typ="text/html; charset=utf-8"; code=200
-                elif self.path=="/dashboard.json":
+                elif path=="/dashboard.json":
                     data=json.loads((root/"dashboard.json").read_text())
                     age=time.time()-float(data["generated_at"])
                     if not 0<=age<=90: raise ValueError("stale snapshot")
