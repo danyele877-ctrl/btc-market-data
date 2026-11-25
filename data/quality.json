@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-25T08:55:14.069915+00:00",
-  "snapshot_generated_at": "2026-11-25T08:55:13.979313+00:00",
+  "generated_at": "2026-11-25T09:59:08.012069+00:00",
+  "snapshot_generated_at": "2026-11-25T09:59:07.929144+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -94,7 +94,7 @@
     "swole_btc_snapshot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_funding_btc": {
