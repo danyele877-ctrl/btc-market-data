@@ -30,6 +30,14 @@ def probe(item):
             valid=[(t,p) for t,p in zip(ts,prices) if p is not None]
             out["last_observation"]=valid[-1]
             out["symbol"]=obj["meta"]["symbol"]
+            expected={"dxy":"DX-Y.NYB","gold_futures_proxy":"GC=F"}[name]
+            now=datetime.now(timezone.utc).timestamp()
+            closed=[(t,p) for t,p in valid if t+3600<=now and p>0]
+            if out["symbol"]!=expected or len(closed)<2: raise ValueError("symbol or history invalid")
+            out["closed_observations"]=closed[-25:]
+            out["age_seconds"]=now-closed[-1][0]-3600
+            out["hourly_change_pct"]=100*(closed[-1][1]/closed[-2][1]-1) if closed[-1][0]-closed[-2][0]==3600 else None
+            out["validated"]=0<=out["age_seconds"]<=7200 and out["hourly_change_pct"] is not None
         elif name=="bls_series":
             obj=json.loads(body)
             if obj["status"]!="REQUEST_SUCCEEDED": raise ValueError(obj["status"])
@@ -39,7 +47,17 @@ def probe(item):
         elif name.startswith("treasury_"):
             import xml.etree.ElementTree as ET
             root=ET.fromstring(body)
-            out["entries"]=len(root.findall(".//{http://www.w3.org/2005/Atom}entry"))
+            entries=root.findall(".//{http://www.w3.org/2005/Atom}entry")
+            out["entries"]=len(entries)
+            field="BC_10YEAR" if name=="treasury_nominal" else "TC_10YEAR"
+            records=[]
+            for entry in entries:
+                values={node.tag.split("}")[-1]:node.text for node in entry.iter()}
+                if values.get("NEW_DATE") and values.get(field):
+                    records.append((values["NEW_DATE"],float(values[field])))
+            out["daily_10y"]=sorted(records)[-5:]
+            out["frequency"]="daily"
+            out["validated"]=False
         out["transport_ok"]=True
     except Exception as exc:
         out["error"]=str(exc)
