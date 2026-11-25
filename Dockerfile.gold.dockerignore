@@ -1,0 +1,9 @@
+*
+!Dockerfile.gold
+!gold_history.py
+!gold_research.py
+!gold_macro_probe.py
+!gold_hybrid.py
+!gold_tracking.py
+!gold_collect.py
+!gold_worker.py
