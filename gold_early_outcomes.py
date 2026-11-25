@@ -10,7 +10,7 @@ def settle(observation,rows,now,fee=.001):
         if r[8]=="1" and ts+60<=now:
             if ts in bars and bars[ts]!=r: raise ValueError("conflicting candle")
             bars[ts]=r
-    models={"early_v1":observation.get("v1",{}),"early_v2":observation,"divergence":observation.get("divergence",{})}
+    models={"early_v1":observation.get("v1",{}),"early_v2":observation,"divergence":observation.get("divergence",{}),"intermarket":observation.get("intermarket",{})}
     result={}
     for name,model in models.items():
         direction=model.get("candidate")
