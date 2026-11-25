@@ -1,0 +1,43 @@
+name: Gold Collection Validation
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_collect.py', 'gold_tracking.py', '.github/workflows/gold-collection-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/gold-radar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - run: python -m py_compile gold_collect.py gold_tracking.py gold_hybrid.py
+      - name: Synthetic prospective ledger test
+        run: |
+          python - <<'PY'
+          from gold_tracking import record, settle
+          from gold_history import INST
+          from datetime import datetime, timezone
+          now=1800000001
+          s=dict(instrument=INST,version="hybrid-shadow-v3",captured_at=datetime.fromtimestamp(now,timezone.utc).isoformat(),trigger="PULLBACK",candidate="LONG",execution_feed_ready=True,blockers=[],trigger_blockers=[],trigger_diagnostics={"bar_close_ts":1800000000})
+          ledger={}
+          assert record(ledger,s,now)
+          assert not record(ledger,s,now)
+          start=1800000300
+          def bar(t,o,c): return [str(t*1000),str(o),str(max(o,c)),str(min(o,c)),str(c),"1","1","1","1"]
+          rows=[bar(start,100,100),bar(start+3300,100,102)]
+          settle(ledger,rows,start+3599)
+          item=next(iter(ledger.values()))
+          assert not item["outcomes"]
+          settle(ledger,rows,start+3600)
+          assert abs(item["outcomes"]["1"]["net_fee_only"]-.019)<1e-9
+          assert "4" not in item["outcomes"]
+          PY
+      - run: python gold_collect.py --state gold-state
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gold-collection-test
+          path: gold-state/
+          retention-days: 7
