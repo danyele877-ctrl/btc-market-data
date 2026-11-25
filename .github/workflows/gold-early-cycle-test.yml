@@ -1,0 +1,34 @@
+name: Gold Early Cycle Test
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_early_cycle.py','.github/workflows/gold-early-cycle-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python - <<'PY'
+          import tempfile,json
+          from pathlib import Path
+          from unittest.mock import patch
+          from gold_early_cycle import cycle
+          now=1800000000
+          rows=[[str((now-(31-i)*60)*1000),"100","105","95",str(100+i*.01),"1","0","0","1"] for i in range(31)]
+          book={"ts":str(now*1000),"bids":[["100","3"]],"asks":[["101","1"]]}
+          trades=[{"ts":str(now*1000),"tradeId":str(i),"sz":"1","side":"buy"} for i in range(10)]
+          def request(path,**kwargs):
+              return {"/market/books":[book],"/market/trades":trades,"/market/candles":rows}[path]
+          with tempfile.TemporaryDirectory() as root, patch("gold_early_cycle.request",request), patch("gold_early_cycle.time.time",return_value=now):
+              state={}
+              cycle(root,state)
+              cycle(root,state)
+              p=Path(root)/"early"
+              assert len(list(p.glob("[0-9]*.json")))==1
+              s=json.loads((p/"summary.json").read_text())
+              assert s["observations"]==1 and len(s["models"])==3
+          PY
