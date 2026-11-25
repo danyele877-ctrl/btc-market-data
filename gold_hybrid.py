@@ -12,7 +12,7 @@ def main():
     rows=request("/market/history-candles",instId=INST,bar="1H",limit="300")
     now=int(time.time())
     rows=sorted([r for r in rows if r[8]=="1" and int(r[0])+3600000<=now*1000],key=lambda r:int(r[0]))
-    out={"version":"hybrid-shadow-v2","instrument":INST,"captured_at":datetime.now(timezone.utc).isoformat(),"research_only":True,"orders_enabled":False,"signals_enabled":False,"macro":macro,"candidate":"NONE","blockers":[],"horizons_hours":[1,4,6,12,24]}
+    out={"version":"hybrid-shadow-v3","instrument":INST,"captured_at":datetime.now(timezone.utc).isoformat(),"research_only":True,"orders_enabled":False,"signals_enabled":False,"macro":macro,"candidate":"NONE","blockers":[],"horizons_hours":[1,4,6,12,24]}
     b=out["blockers"]
     if len(rows)<200 or any(int(y[0])-int(x[0])!=3600000 for x,y in zip(rows,rows[1:])):
         b.append("insufficient_or_gapped_hourly_history")
@@ -56,6 +56,38 @@ def main():
             checks[key]={"ok":False,"error":str(exc)}
     out["execution_feed"]=checks
     out["execution_feed_ready"]=all(v["ok"] for v in checks.values())
+    out["trigger"]="NONE"
+    out["trigger_blockers"]=[]
+    try:
+        data=request("/market/candles",instId=INST,bar="5m",limit="100")
+        t=int(time.time())
+        bars=sorted([r for r in data if r[8]=="1" and int(r[0])/1000+300<=t],key=lambda r:int(r[0]))
+        if len(bars)<60 or any(int(y[0])-int(x[0])!=300000 for x,y in zip(bars,bars[1:])):
+            raise ValueError("insufficient or gapped 5m history")
+        age=t-int(bars[-1][0])/1000-300
+        if not 0<=age<=360 or float(bars[-1][5])<=0:
+            raise ValueError("stale or empty trigger bar")
+        c=[float(r[4]) for r in bars]
+        e=ema(c,20)
+        tr=[max(float(bars[i][2])-float(bars[i][3]),abs(float(bars[i][2])-c[i-1]),abs(float(bars[i][3])-c[i-1])) for i in range(1,len(bars))]
+        atr=sum(tr[-14:])/14
+        changes=[b-a for a,b in zip(c[-15:-1],c[-14:])]
+        gain=sum(max(0,v) for v in changes); loss=sum(max(0,-v) for v in changes)
+        rsi=100*gain/(gain+loss) if gain+loss else 50
+        macd=[a-b for a,b in zip(ema(c,12),ema(c,26))]
+        sig=ema(macd,9)
+        d=1 if out["candidate"]=="LONG" else -1 if out["candidate"]=="SHORT" else 0
+        breakout=(d==1 and c[-1]>max(float(r[2]) for r in bars[-21:-1])) or (d==-1 and c[-1]<min(float(r[3]) for r in bars[-21:-1]))
+        near=abs(c[-2]-e[-2])<=atr
+        pullback=near and ((d==1 and c[-1]>e[-1] and c[-1]>c[-2] and 50<=rsi<=70 and macd[-1]>sig[-1]) or (d==-1 and c[-1]<e[-1] and c[-1]<c[-2] and 30<=rsi<=50 and macd[-1]<sig[-1]))
+        out["trigger_diagnostics"]={"bar_close_ts":int(bars[-1][0])//1000+300,"close":c[-1],"atr14":atr,"rsi14":rsi,"breakout":bool(breakout),"pullback":bool(pullback)}
+        if not out["execution_feed_ready"]: out["trigger_blockers"].append("execution_feed_not_ready")
+        elif not d: out["trigger_blockers"].append("no_hybrid_candidate")
+        elif atr<=0: out["trigger_blockers"].append("invalid_atr")
+        elif breakout or pullback: out["trigger"]="BOTH" if breakout and pullback else "BREAKOUT" if breakout else "PULLBACK"
+        else: out["trigger_blockers"].append("no_closed_5m_trigger")
+    except Exception as exc:
+        out["trigger_blockers"].append(str(exc))
     out["calendar_status"]="NOT_VALIDATED"
     out["treasury_role"]="daily_context_only"
     out["execution_status"]="BLOCKED_RESEARCH_ONLY"
