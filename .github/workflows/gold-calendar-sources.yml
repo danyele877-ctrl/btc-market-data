@@ -1,0 +1,27 @@
+name: Gold Calendar Sources
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_calendar_sources.py', '.github/workflows/gold-calendar-sources.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python - <<'PY'
+          from gold_calendar_sources import extract
+          a=extract('<table><tr><td>Personal Income and Outlays</td><td>8:30 AM</td></tr></table>', 'BEA')
+          assert a['matched_lines']==1 and not a['validated'] and not a['events']
+          assert extract('<script>FOMC</script>', 'FED')['matched_lines']==0
+          PY
+      - run: python gold_calendar_sources.py > gold-calendar-sources.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gold-calendar-sources
+          path: gold-calendar-sources.json
+          retention-days: 7
