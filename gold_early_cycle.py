@@ -27,7 +27,9 @@ def cycle(root,state):
     for p in sorted(root.glob("[0-9]*.json"))[-120:]:
         x=json.loads(p.read_text())
         if observed-x["observed_at"]<=7200:
-            outcomes=settle(x,rows,observed)
+            outcomes=dict(x.get("outcomes",{}))
+            for model,values in settle(x,rows,observed).items():
+                outcomes[model]={**outcomes.get(model,{}),**values}
             if outcomes!=x.get("outcomes",{}):
                 x["outcomes"]=outcomes
                 save(p,x)
