@@ -9,6 +9,7 @@ from gold_calendar_cache import refresh
 from gold_status import publish
 from gold_ws_shadow import worker as ws_worker
 from gold_web import serve
+from gold_market_view import worker as market_worker
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -33,6 +34,7 @@ def main():
         if os.environ.get('GOLD_WS_SHADOW_ENABLED','1')=='1':
             threading.Thread(target=ws_worker,args=(root,),daemon=True,name='gold-ws-shadow').start()
         threading.Thread(target=serve,args=(root,),daemon=True,name='gold-web').start()
+        threading.Thread(target=market_worker,args=(root,),daemon=True,name='gold-market').start()
         def calendar_loop():
             while True:
                 try:
