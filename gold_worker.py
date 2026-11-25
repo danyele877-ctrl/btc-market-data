@@ -6,6 +6,7 @@ from gold_early_cycle import cycle
 from gold_history import metadata
 import threading
 from gold_calendar_cache import refresh
+from gold_status import publish
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -34,6 +35,14 @@ def main():
                 except Exception:
                     logging.exception('calendar refresh failed')
                 time.sleep(300)
+        def status_loop():
+            while True:
+                try:
+                    publish(root)
+                except Exception:
+                    logging.exception('status publish failed')
+                time.sleep(30)
+        threading.Thread(target=status_loop,daemon=True,name='gold-status').start()
         threading.Thread(target=calendar_loop,daemon=True,name='gold-calendar').start()
         while True:
             try:
