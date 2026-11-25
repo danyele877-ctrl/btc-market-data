@@ -9,6 +9,12 @@ def summarize(observations):
         for x in observations:
             m=get(x); counts[m.get("candidate","NONE")]+=1; blockers.update(m.get("blockers",[]))
         result["models"][name]={"counts":dict(counts),"blockers":dict(blockers)}
+    comparisons=[x.get("transport_comparison",{}) for x in observations]
+    result["transport_coverage"]={"statuses":dict(Counter(c.get("status","UNAVAILABLE") for c in comparisons)),"windows":{}}
+    for key in ("60","180","300"):
+        pairs=[c["windows"][key] for c in comparisons if c.get("status")=="READY" and key in c.get("windows",{}) and c["windows"][key].get("ws_window_observed")]
+        usable=[p for p in pairs if p.get("imbalance_difference") is not None]
+        result["transport_coverage"]["windows"][key]={"paired":len(pairs),"mean_ws_count":sum(p["ws_count"] for p in pairs)/len(pairs) if pairs else None,"mean_rest_count":sum(p["rest_count"] for p in pairs)/len(pairs) if pairs else None,"mean_abs_imbalance_difference":sum(abs(p["imbalance_difference"]) for p in usable)/len(usable) if usable else None,"exactly_aligned":False}
     result["latest"]=observations[-1] if observations else None
     return result
 
