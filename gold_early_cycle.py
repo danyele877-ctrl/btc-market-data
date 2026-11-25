@@ -1,5 +1,5 @@
 """Single-writer early research cycle; separate from HYBRID state."""
-import json,time
+import json,time,logging
 from pathlib import Path
 from gold_history import request,INST
 from gold_tracking import save
@@ -38,3 +38,4 @@ def cycle(root,state):
     summary["notification_preview"]=preview(summary)
     summary["transport"]="REST_SAMPLED"
     save(root/"summary.json",summary)
+    logging.info("EARLY collection complete: observations=%s V1=%s V2=%s divergence=%s",summary["observations"],result.get("v1",{}).get("candidate"),result.get("candidate"),result.get("divergence",{}).get("candidate"))
