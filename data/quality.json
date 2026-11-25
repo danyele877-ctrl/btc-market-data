@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-25T02:00:37.389823+00:00",
-  "snapshot_generated_at": "2026-11-25T02:00:37.332514+00:00",
+  "generated_at": "2026-11-25T03:03:51.512982+00:00",
+  "snapshot_generated_at": "2026-11-25T03:03:51.442251+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -118,7 +118,7 @@
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
@@ -136,7 +136,7 @@
     "fred_macro": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "okx_eea_btc_usdc_ticker": {
