@@ -2,7 +2,7 @@
 from collections import Counter
 
 def summarize(observations):
-    models={"EARLY V1":lambda x:x.get("v1",{}),"EARLY V2":lambda x:x,"DIVERGENCE":lambda x:x.get("divergence",{})}
+    models={"EARLY V1":lambda x:x.get("v1",{}),"EARLY V2":lambda x:x,"DIVERGENCE":lambda x:x.get("divergence",{}),"INTERMARKET":lambda x:x.get("intermarket",{})}
     result={"research_only":True,"orders_enabled":False,"observations":len(observations),"models":{}}
     for name,get in models.items():
         counts=Counter(); blockers=Counter()
