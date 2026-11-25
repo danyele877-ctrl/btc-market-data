@@ -2,7 +2,7 @@ name: Gold Early Cycle Test
 on:
   push:
     branches: [gold-radar]
-    paths: ['gold_early_cycle.py','.github/workflows/gold-early-cycle-test.yml']
+    paths: ['gold_*.py','.github/workflows/gold-early-cycle-test.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,5 +30,5 @@ jobs:
               p=Path(root)/"early"
               assert len(list(p.glob("[0-9]*.json")))==1
               s=json.loads((p/"summary.json").read_text())
-              assert s["observations"]==1 and len(s["models"])==3
+              assert s["observations"]==1 and len(s["models"])==5
           PY
