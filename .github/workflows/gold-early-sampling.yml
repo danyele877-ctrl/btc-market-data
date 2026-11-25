@@ -1,0 +1,22 @@
+name: Gold Early Sampling
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_early_sampler.py', '.github/workflows/gold-early-sampling.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - run: python -m py_compile gold_early.py gold_early_v2.py gold_early_sampler.py
+      - run: python gold_early_sampler.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gold-early-sampling
+          path: early-experiment/early-sampling.json
+          retention-days: 7
