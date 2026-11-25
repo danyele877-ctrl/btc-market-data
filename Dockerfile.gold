@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 WORKDIR /app
-COPY gold_history.py gold_research.py gold_macro_probe.py gold_hybrid.py gold_tracking.py gold_collect.py gold_worker.py ./
+COPY gold_history.py gold_research.py gold_macro_probe.py gold_hybrid.py gold_tracking.py gold_collect.py gold_worker.py gold_early.py gold_early_v2.py gold_divergence.py gold_early_outcomes.py gold_dashboard.py gold_early_cycle.py gold_plan.py ./
 ENV PYTHONUNBUFFERED=1 GOLD_STATE_DIR=/gold-state
 RUN python -m py_compile *.py
 CMD ["python","gold_worker.py"]
