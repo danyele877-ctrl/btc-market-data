@@ -1,0 +1,22 @@
+name: Gold WebSocket Probe
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_ws_probe.py','.github/workflows/gold-ws-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: pip install websockets==15.0.1
+      - run: python gold_ws_probe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gold-ws-probe
+          path: gold-ws-probe.json
+          retention-days: 7
