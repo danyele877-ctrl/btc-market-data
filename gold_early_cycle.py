@@ -8,6 +8,31 @@ from gold_divergence import evaluate
 from gold_early_outcomes import settle
 from gold_dashboard import summarize,preview
 
+def compare_transport(rest,ws,observed):
+    """Paired diagnostics only; never promote a source from a single snapshot."""
+    out={"status":"UNAVAILABLE","research_only":True,"windows":{}}
+    if not isinstance(ws,dict): return out
+    try:
+        age=observed-float(ws["observed_at"])
+        out["ws_snapshot_age_seconds"]=age
+        if not 0<=age<=45 or not ws.get("connected"): return out
+        out["status"]="CONNECTED" if not ws.get("transport_ready") else "READY"
+        out["ws_book_age_seconds"]=ws.get("book_age_seconds")
+        out["ws_trade_age_seconds"]=ws.get("trade_age_seconds")
+        for key in ("60","180","300"):
+            w=ws.get("flow",{}).get(key,{})
+            r=rest.get("sampled_flow",{}).get(key,{})
+            if not w or not r: continue
+            wi=w.get("imbalance"); ri=r.get("imbalance")
+            out["windows"][key]={"ws_count":w.get("count"),"rest_count":r.get("count"),
+                "ws_delta_contracts":w.get("delta_contracts"),"rest_delta_contracts":r.get("delta_contracts"),
+                "ws_window_observed":bool(w.get("window_observed")),
+                "imbalance_difference":wi-ri if wi is not None and ri is not None else None,
+                "complete_tape":False,"exactly_aligned":False}
+    except (ValueError,TypeError,KeyError):
+        out["status"]="INVALID"
+    return out
+
 def cycle(root,state):
     root=Path(root)/"early"; root.mkdir(parents=True,exist_ok=True)
     book=request("/market/books",instId=INST,limit="5")[0]
@@ -20,6 +45,11 @@ def cycle(root,state):
     observed=time.time()
     result=assess(rows,state,book,observed)
     result.update(divergence=evaluate(result),observed_at=observed,instrument=INST)
+    try:
+        ws=json.loads((root.parent/"ws_status.json").read_text())
+    except (OSError,ValueError):
+        ws=None
+    result["transport_comparison"]=compare_transport(result,ws,observed)
     path=root/(str(minute)+".json")
     if not path.exists(): save(path,result)
     state["last_minute"]=minute
