@@ -2,12 +2,12 @@
 from collections import Counter
 
 def summarize(observations):
-    models={"EARLY V1":lambda x:x.get("v1",{}),"EARLY V2":lambda x:x,"DIVERGENCE":lambda x:x.get("divergence",{}),"INTERMARKET":lambda x:x.get("intermarket",{})}
+    models={"EARLY V1":lambda x:x.get("v1",{}),"EARLY V2":lambda x:x,"DIVERGENCE":lambda x:x.get("divergence",{}),"INTERMARKET":lambda x:x.get("intermarket",{}),"WS SHADOW":lambda x:x.get("ws_shadow",{})}
     result={"research_only":True,"orders_enabled":False,"observations":len(observations),"models":{}}
     for name,get in models.items():
         counts=Counter(); blockers=Counter()
         for x in observations:
-            m=get(x); counts[m.get("candidate","NONE")]+=1; blockers.update(m.get("blockers",[]))
+            m=get(x); counts[m.get("candidate","NONE") if m else "NOT_EVALUATED"]+=1; blockers.update(m.get("blockers",[]))
         result["models"][name]={"counts":dict(counts),"blockers":dict(blockers)}
     comparisons=[x.get("transport_comparison",{}) for x in observations]
     result["transport_coverage"]={"statuses":dict(Counter(c.get("status","UNAVAILABLE") for c in comparisons)),"windows":{}}
