@@ -5,6 +5,7 @@ from gold_collect import run
 from gold_early_cycle import cycle
 from gold_history import metadata
 import threading
+from gold_calendar_cache import refresh
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -26,6 +27,14 @@ def main():
                 time.sleep(max(1,15-(time.monotonic()-started)))
         if os.environ.get('GOLD_EARLY_ENABLED','0')=='1':
             threading.Thread(target=early_loop,daemon=True,name='gold-early').start()
+        def calendar_loop():
+            while True:
+                try:
+                    refresh(root)
+                except Exception:
+                    logging.exception('calendar refresh failed')
+                time.sleep(300)
+        threading.Thread(target=calendar_loop,daemon=True,name='gold-calendar').start()
         while True:
             try:
                 run(root)
