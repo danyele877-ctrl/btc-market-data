@@ -4,6 +4,7 @@ from pathlib import Path
 from gold_history import request,metadata,INST
 from gold_early_v2 import update,assess
 from gold_tracking import save
+from gold_divergence import evaluate as divergence
 
 def run(root,cycles=25,interval=15):
     if not 1<=cycles<=25 or interval<15: raise ValueError("sampling budget")
@@ -22,6 +23,7 @@ def run(root,cycles=25,interval=15):
                 rows=request("/market/candles",instId=INST,bar="1m",limit="100")
                 observed=time.time()
                 result=assess(rows,state,book,observed)
+                result['divergence']=divergence(result)
                 observations.append(dict(result,observed_at=observed,instrument=INST))
                 last_minute=minute
         except Exception as exc:
