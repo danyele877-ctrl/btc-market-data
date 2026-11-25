@@ -7,6 +7,7 @@ from gold_early_v2 import update,assess
 from gold_divergence import evaluate
 from gold_early_outcomes import settle
 from gold_dashboard import summarize,preview
+from gold_intermarket import assess as intermarket_assess
 
 def compare_transport(rest,ws,observed):
     """Paired diagnostics only; never promote a source from a single snapshot."""
@@ -50,6 +51,12 @@ def cycle(root,state):
     except (OSError,ValueError):
         ws=None
     result["transport_comparison"]=compare_transport(result,ws,observed)
+    try:
+        hybrid=json.loads((root.parent/"latest_hybrid.json").read_text())
+        macro=hybrid.get("macro",{})
+    except (OSError,ValueError):
+        macro={}
+    result["intermarket"]=intermarket_assess(rows,macro,observed)
     path=root/(str(minute)+".json")
     if not path.exists(): save(path,result)
     state["last_minute"]=minute
