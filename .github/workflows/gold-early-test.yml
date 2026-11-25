@@ -1,0 +1,42 @@
+name: Gold Early Signal Test
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_early.py', '.github/workflows/gold-early-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python - <<'PY'
+          from gold_early import evaluate
+          now=1800000000
+          for direction in (1,-1):
+              rows=[[str((now-(31-i)*60)*1000),"100","105","95",str(100+direction*i*.01),str(3 if i>=28 else 1),"0","0","1"] for i in range(31)]
+              book={"ts":str(now*1000),"bids":[["100",str(3 if direction==1 else 1)]],"asks":[["101",str(1 if direction==1 else 3)]]}
+              trades=[{"ts":str(now*1000),"tradeId":str(i),"sz":"1","side":"buy" if direction==1 else "sell"} for i in range(5)]
+              assert evaluate(rows,now,book,trades)["candidate"]==("LONG" if direction==1 else "SHORT")
+              assert evaluate(rows,now+181,book,trades)["candidate"]=="NONE"
+              assert evaluate(rows,now,None,trades)["candidate"]=="NONE"
+              assert evaluate(rows[:-1],now,book,trades)["candidate"]=="NONE"
+          PY
+      - run: |
+          python - <<'PY' > gold-early.json
+          import json,time
+          from gold_history import request,INST
+          from gold_early import evaluate
+          rows=request("/market/candles",instId=INST,bar="1m",limit="100")
+          book=request("/market/books",instId=INST,limit="5")[0]
+          trades=request("/market/trades",instId=INST,limit="100")
+          print(json.dumps(evaluate(rows,time.time(),book,trades),indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gold-early
+          path: gold-early.json
+          retention-days: 7
