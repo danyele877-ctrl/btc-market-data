@@ -31,7 +31,7 @@ def normalize(sources,now,bls=None):
                 title=row.select_one(".release-title"); date=row.select_one(".release-date"); clock=row.select_one(".scheduled-date small")
                 if not title or not date or not clock: continue
                 title=title.get_text(" ",strip=True)
-                kind="PCE" if "Personal Income and Outlays" in title else "GDP" if "Gross Domestic Product" in title else None
+                kind="PCE" if "Personal Income and Outlays" in title else "GDP" if ("Gross Domestic Product" in title or re.match(r"^GDP \((?:Advance|Second|Third) Estimate\)",title,re.I)) else None
                 if not kind: continue
                 events.append(dict(kind=kind,source=name,title=title,display_date=date.get_text(strip=True),display_time=clock.get_text(strip=True),scheduled_at=None,status="YEAR_AND_TIMEZONE_UNVERIFIED",retrieved_at=src.get("retrieved_at")))
     bls=bls or {}
