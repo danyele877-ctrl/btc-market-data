@@ -1,0 +1,15 @@
+name: Gold Statistics Test
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_*.py','.github/workflows/gold-statistics-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: python -m unittest -v gold_statistics_test
