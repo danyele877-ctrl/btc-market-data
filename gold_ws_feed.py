@@ -52,7 +52,7 @@ class Feed:
             sell=sum(float(v["sz"]) for v in rows if v["side"]=="sell")
             flow[str(window)]={"count":len(rows),"delta_contracts":buy-sell,"imbalance":(buy-sell)/(buy+sell) if buy+sell else None,"window_observed":self.connected_at is not None and now-self.connected_at>=window,"complete_tape":False}
         return {"flow":flow,"book":self.book,"connected":self.connected,"acks":sorted(self.acks),"book_age_seconds":book_age,"trade_age_seconds":trade_age,"trade_count_5m":len(self.trades),"research_only":True,"complete_tape":False,"transport_ready":self.connected and self.acks=={"books5","trades"} and book_age is not None and 0<=book_age<=30 and trade_age is not None and 0<=trade_age<=180}
-async def run(feed,on_status=None):
+async def run(feed,on_status=None,on_live=None):
     delay=1
     while True:
         feed.reset()
@@ -62,6 +62,7 @@ async def run(feed,on_status=None):
                 feed.connected_at=time.time()
                 await ws.send(json.dumps({"op":"subscribe","args":[{"channel":c,"instId":INST} for c in ("books5","trades")]}))
                 last_status=0
+                last_live=0
                 while True:
                     try: raw=await asyncio.wait_for(ws.recv(),timeout=15)
                     except asyncio.TimeoutError:
@@ -73,6 +74,10 @@ async def run(feed,on_status=None):
                         if msg.get("event")=="error": raise RuntimeError(str(msg))
                         feed.ingest(msg,now)
                     if now-feed.connected_at>20 and len(feed.acks)!=2: raise RuntimeError("missing subscription acknowledgement")
+                    if on_live and now-last_live>=1:
+                        latest=max(feed.trades.values(),key=lambda v:(int(v["ts"]),str(v["tradeId"])),default=None)
+                        on_live({"observed_at":now,"connected":feed.connected,"book":feed.book,"last_trade":latest,"flow":feed.status(now)["flow"]})
+                        last_live=now
                     if now-last_status>=15:
                         status=feed.status(now)
                         if on_status: on_status(status)
@@ -84,5 +89,6 @@ async def run(feed,on_status=None):
         finally:
             feed.reset()
             if on_status: on_status(feed.status(time.time()))
+            if on_live: on_live({"observed_at":time.time(),"connected":False,"book":None,"last_trade":None,"flow":{}})
         await asyncio.sleep(delay)
         delay=min(60,delay*2)
