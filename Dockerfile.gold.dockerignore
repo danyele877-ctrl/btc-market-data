@@ -19,3 +19,5 @@
 !gold_calendar_unified.py
 !gold_calendar_cache.py
 !gold_status.py
+!gold_ws_feed.py
+!gold_ws_shadow.py
