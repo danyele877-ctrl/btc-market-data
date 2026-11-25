@@ -1,0 +1,34 @@
+name: Gold Integration Test
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_*.py','Dockerfile.gold','Dockerfile.gold.dockerignore','.github/workflows/gold-integration-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -f Dockerfile.gold -t gold-test .
+      - run: |
+          docker run --rm -i --entrypoint python gold-test - <<'PY'
+          import tempfile,time
+          from pathlib import Path
+          from gold_plan import plan
+          from gold_status import publish
+          from gold_tracking import save
+          for d in ("LONG","SHORT"):
+              p=plan(d,3500,4)
+              assert p["status"]=="SIMULATION_ONLY" and p["rr1"]>=1.4
+              assert not p["orders_enabled"]
+          with tempfile.TemporaryDirectory() as root:
+              root=Path(root)
+              save(root/"latest_hybrid.json",{"plan":{"expires_at":time.time()-1}})
+              s=publish(root)
+              assert s["hybrid"]["data"]["plan"]["status"]=="EXPIRED_OR_BLOCKED"
+              assert not s["early"]["fresh"] and not s["notifications_enabled"]
+          import gold_worker
+          PY
