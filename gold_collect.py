@@ -5,6 +5,7 @@ from datetime import datetime
 from gold_hybrid import main as snapshot
 from gold_history import collect
 from gold_tracking import record, settle, save
+from gold_plan import plan
 
 def run(root):
     root=Path(root); root.mkdir(parents=True,exist_ok=True)
@@ -13,6 +14,13 @@ def run(root):
     snapshot()
     s=json.loads(Path("gold-hybrid.json").read_text())
     now=time.time()
+    diag=s.get("trigger_diagnostics",{})
+    s["plan"]={"status":"BLOCKED","research_only":True}
+    if s.get("trigger") in ("BREAKOUT","PULLBACK","BOTH") and s.get("execution_feed_ready") and not s.get("blockers") and not s.get("trigger_blockers") and 0<=now-diag.get("bar_close_ts",0)<=360:
+        s["plan"]=plan(s["candidate"],diag["close"],diag["atr14"])
+        s["plan"]["observed_at"]=now
+        s["plan"]["expires_at"]=now+300
+    save(root/"latest_hybrid.json",s)
     # Persist observation before fetching outcomes; never reconstruct a missed signal.
     stamp=datetime.fromisoformat(s["captured_at"]).timestamp()
     key=str(int(stamp*1000))
