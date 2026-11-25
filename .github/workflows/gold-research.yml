@@ -2,7 +2,7 @@ name: Gold Research Validation
 on:
   push:
     branches: [gold-radar]
-    paths: ['.github/workflows/gold-research.yml']
+    paths: ['.github/workflows/gold-research.yml', 'gold_research.py']
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,7 +10,7 @@ jobs:
   research:
     if: github.ref == 'refs/heads/gold-radar'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - name: Validate Python
