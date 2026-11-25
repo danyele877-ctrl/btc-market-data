@@ -21,7 +21,17 @@ def serve(root):
                     age=time.time()-float(data["generated_at"])
                     if not 0<=age<=90: raise ValueError("stale snapshot")
                     body=json.dumps(data,allow_nan=False).encode(); typ="application/json"; code=200
-                elif self.path=="/healthz":
+                elif path=="/live.json":
+                    data=json.loads((root/"live_quote.json").read_text())
+                    now=time.time()
+                    if not 0<=now-float(data["observed_at"])<=5 or not data.get("connected"): raise ValueError("live feed unavailable")
+                    book=data.get("book")
+                    if not book or not 0<=now-int(book["ts"])/1000<=5: data["book"]=None
+                    trade=data.get("last_trade")
+                    if trade and not 0<=now-int(trade["ts"])/1000<=180: data["last_trade"]=None
+                    data["server_ts"]=now
+                    body=json.dumps(data,allow_nan=False).encode(); typ="application/json"; code=200
+                elif path=="/healthz":
                     body=b'{"web":"ok"}'; typ="application/json"; code=200
                 else:
                     body=b"Not found"; typ="text/plain"; code=404
