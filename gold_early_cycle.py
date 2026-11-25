@@ -8,6 +8,7 @@ from gold_divergence import evaluate
 from gold_early_outcomes import settle
 from gold_dashboard import summarize,preview
 from gold_intermarket import assess as intermarket_assess
+from gold_ws_model import assess as ws_assess
 
 def compare_transport(rest,ws,observed):
     """Paired diagnostics only; never promote a source from a single snapshot."""
@@ -57,6 +58,7 @@ def cycle(root,state):
     except (OSError,ValueError):
         macro={}
     result["intermarket"]=intermarket_assess(rows,macro,observed)
+    result["ws_shadow"]=ws_assess(result,ws,observed)
     path=root/(str(minute)+".json")
     if not path.exists(): save(path,result)
     state["last_minute"]=minute
