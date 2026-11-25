@@ -1,0 +1,39 @@
+name: Gold Web Test
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_web.py','gold_web.html','Dockerfile.gold','gold_worker.py','.github/workflows/gold-web-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python - <<'PY'
+          import tempfile,time,json,threading,urllib.request,urllib.error
+          from pathlib import Path
+          from gold_web import serve
+          with tempfile.TemporaryDirectory() as d:
+              p=Path(d)/"dashboard.json"
+              p.write_text(json.dumps({"generated_at":time.time(),"research_only":True}))
+              threading.Thread(target=serve,args=(d,),daemon=True).start()
+              base="http://127.0.0.1:8080"
+              for i in range(30):
+                  try:
+                      urllib.request.urlopen(base+"/healthz",timeout=1).close()
+                      break
+                  except OSError: time.sleep(.1)
+              assert b"GOLD RADAR" in urllib.request.urlopen(base+"/").read()
+              assert json.load(urllib.request.urlopen(base+"/dashboard.json"))["research_only"]
+              def expect(path,status):
+                  try: urllib.request.urlopen(base+path)
+                  except urllib.error.HTTPError as e: assert e.code==status
+                  else: raise AssertionError(path)
+              expect("/ledger.json",404)
+              p.write_text(json.dumps({"generated_at":time.time()-120}))
+              expect("/dashboard.json",503)
+          PY
