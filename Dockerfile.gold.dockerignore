@@ -14,3 +14,7 @@
 !gold_dashboard.py
 !gold_early_cycle.py
 !gold_plan.py
+!gold_calendar.py
+!gold_calendar_sources.py
+!gold_calendar_unified.py
+!gold_calendar_cache.py
