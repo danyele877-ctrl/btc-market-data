@@ -1,0 +1,28 @@
+name: Gold Calendar Validation
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_calendar.py', '.github/workflows/gold-calendar-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python - <<'PY'
+          from gold_calendar import parse
+          from datetime import datetime, timezone
+          raw="BEGIN:VCALENDAR\nBEGIN:VEVENT\nSUMMARY:Consumer Price Index\nDTSTART;TZID=America/New_York:20261125T083000\nEND:VEVENT\nEND:VCALENDAR"
+          events=parse(raw,datetime(2026,11,25,13,15,tzinfo=timezone.utc))
+          assert len(events)==1 and events[0]["seconds_to_event"]==900 and events[0]["phase"]=="IMMINENT"
+          PY
+      - run: python gold_calendar.py > gold-calendar.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gold-calendar
+          path: gold-calendar.json
+          retention-days: 7
