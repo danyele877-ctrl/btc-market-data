@@ -7,3 +7,10 @@
 !gold_tracking.py
 !gold_collect.py
 !gold_worker.py
+!gold_early.py
+!gold_early_v2.py
+!gold_divergence.py
+!gold_early_outcomes.py
+!gold_dashboard.py
+!gold_early_cycle.py
+!gold_plan.py
