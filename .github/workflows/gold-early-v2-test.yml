@@ -1,0 +1,33 @@
+name: Gold Early V2 Test
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_early_v2.py', '.github/workflows/gold-early-v2-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python - <<'PY'
+          from gold_early_v2 import update, assess
+          now=1800000000
+          for d in (1,-1):
+              state={}
+              rows=[[str((now-(31-i)*60)*1000),"100","105","95",str(100+d*i*.01),str(3 if i>=28 else 1),"0","0","1"] for i in range(31)]
+              trades=[{"ts":str((now-i*8)*1000),"tradeId":str(i),"sz":"1","side":"buy" if d==1 else "sell"} for i in range(36)]
+              # Ten recent trades and sufficient longer-window observations.
+              trades += [{"ts":str((now-i)*1000),"tradeId":"extra"+str(i),"sz":"1","side":"buy" if d==1 else "sell"} for i in range(5)]
+              for t in (now-30,now-15,now):
+                  book={"ts":str(t*1000),"bids":[["100",str(3 if d==1 else 1)]],"asks":[["101",str(1 if d==1 else 3)]]}
+                  update(state,book,trades,t)
+              assert len(state["trades"])==41
+              assert assess(rows,state,book,now)["candidate"]==("LONG" if d==1 else "SHORT")
+              assert assess(rows,{"trades":state["trades"],"books":state["books"][-1:]},book,now)["candidate"]=="NONE"
+              update(state,book,trades,now+301)
+              assert not state["trades"] and not state["books"]
+          PY
