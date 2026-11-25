@@ -37,7 +37,14 @@ def probe(item):
         with urllib.request.urlopen(req,timeout=20) as r:
             body=r.read(2000001); out["http_status"]=r.status
         if len(body)>2000000: raise ValueError("response too large")
-        out.update(extract(body.decode("utf-8",errors="replace"),name))
+        raw=body.decode("utf-8",errors="replace")
+        out.update(extract(raw,name))
+        # Preserve source markup for offline verification of date/title associations.
+        # Public source only; never execute the markup.
+        out["source_html"]=raw
+        import hashlib
+        out["source_sha256"]=hashlib.sha256(body).hexdigest()
+        out["schema_version"]=2
         out["status"]="STRUCTURE_REVIEW_REQUIRED" if out["matched_lines"] else "NO_MATCH"
     except Exception as e:
         out.update(status="UNAVAILABLE",error=str(e))
