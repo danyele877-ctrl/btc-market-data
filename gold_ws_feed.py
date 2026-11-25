@@ -45,7 +45,13 @@ class Feed:
         self.prune(now)
         book_age=now-int(self.book["ts"])/1000 if self.book else None
         trade_age=now-max(int(v["ts"])/1000 for v in self.trades.values()) if self.trades else None
-        return {"connected":self.connected,"acks":sorted(self.acks),"book_age_seconds":book_age,"trade_age_seconds":trade_age,"trade_count_5m":len(self.trades),"research_only":True,"complete_tape":False,"transport_ready":self.connected and self.acks=={"books5","trades"} and book_age is not None and 0<=book_age<=30 and trade_age is not None and 0<=trade_age<=180}
+        flow={}
+        for window in (60,180,300):
+            rows=[v for v in self.trades.values() if 0<=now-int(v["ts"])/1000<=window]
+            buy=sum(float(v["sz"]) for v in rows if v["side"]=="buy")
+            sell=sum(float(v["sz"]) for v in rows if v["side"]=="sell")
+            flow[str(window)]={"count":len(rows),"delta_contracts":buy-sell,"imbalance":(buy-sell)/(buy+sell) if buy+sell else None,"window_observed":self.connected_at is not None and now-self.connected_at>=window,"complete_tape":False}
+        return {"flow":flow,"book":self.book,"connected":self.connected,"acks":sorted(self.acks),"book_age_seconds":book_age,"trade_age_seconds":trade_age,"trade_count_5m":len(self.trades),"research_only":True,"complete_tape":False,"transport_ready":self.connected and self.acks=={"books5","trades"} and book_age is not None and 0<=book_age<=30 and trade_age is not None and 0<=trade_age<=180}
 async def run(feed,on_status=None):
     delay=1
     while True:
