@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-25T07:53:40.862536+00:00",
-  "snapshot_generated_at": "2026-11-25T07:53:40.779831+00:00",
+  "generated_at": "2026-11-25T08:55:14.069915+00:00",
+  "snapshot_generated_at": "2026-11-25T08:55:13.979313+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -40,31 +40,31 @@
     "okx_spot": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_futures_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_open_interest": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "deribit_btc_perpetual": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "edge_funding_all_exchanges": {
@@ -76,31 +76,31 @@
     "swole_funding_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "swole_open_interest_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "swole_liquidations_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "swole_btc_snapshot": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_open_interest_btc": {
@@ -118,7 +118,7 @@
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
@@ -130,13 +130,13 @@
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "fred_macro": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_btc_usdc_ticker": {
