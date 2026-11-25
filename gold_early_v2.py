@@ -34,7 +34,9 @@ def assess(rows,state,book,now):
     elif d and sum(d*s["imbalance"]>=.15 for s in samples)/len(samples)<.75: out["blockers"].append("book_not_persistent")
     for seconds,minimum in ((60,10),(180,20),(300,30)):
         f=out["sampled_flow"][str(seconds)]
-        if f["count"]<minimum or f["imbalance"] is None or d*f["imbalance"]<.2:
+        if f["count"]<minimum or f["imbalance"] is None:
+            out["blockers"].append("insufficient_flow_sample_"+str(seconds))
+        elif d and d*f["imbalance"]<.2:
             out["blockers"].append("flow_not_confirmed_"+str(seconds))
     if not out["blockers"]: out["candidate"]=v1["candidate"]
     return out
