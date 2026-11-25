@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 WORKDIR /app
-COPY gold_history.py gold_research.py gold_macro_probe.py gold_hybrid.py gold_tracking.py gold_collect.py gold_worker.py gold_early.py gold_early_v2.py gold_divergence.py gold_early_outcomes.py gold_dashboard.py gold_early_cycle.py gold_plan.py gold_calendar.py gold_calendar_sources.py gold_calendar_unified.py gold_calendar_cache.py gold_status.py gold_ws_feed.py gold_ws_shadow.py gold_intermarket.py gold_ws_model.py gold_web.py gold_web.html ./
+COPY gold_history.py gold_research.py gold_macro_probe.py gold_hybrid.py gold_tracking.py gold_collect.py gold_worker.py gold_early.py gold_early_v2.py gold_divergence.py gold_early_outcomes.py gold_dashboard.py gold_early_cycle.py gold_plan.py gold_calendar.py gold_calendar_sources.py gold_calendar_unified.py gold_calendar_cache.py gold_status.py gold_ws_feed.py gold_ws_shadow.py gold_intermarket.py gold_ws_model.py gold_web.py gold_web.html gold_market_view.py ./
 ENV PYTHONUNBUFFERED=1 GOLD_STATE_DIR=/gold-state
 RUN pip install --no-cache-dir beautifulsoup4==4.13.4 websockets==15.0.1
 RUN python -m py_compile *.py
