@@ -1,0 +1,22 @@
+name: Gold Macro Probe
+on:
+  push:
+    branches: [gold-radar]
+    paths: ['gold_macro_probe.py', '.github/workflows/gold-macro-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/gold-radar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: python -m py_compile gold_macro_probe.py
+      - run: python gold_macro_probe.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gold-macro-probe
+          path: gold-macro-probe.json
+          retention-days: 7
