@@ -2,9 +2,9 @@
 import json,re,sys
 from datetime import datetime,timezone
 from bs4 import BeautifulSoup
-from gold_calendar import parse
+from gold_calendar import fetch as fetch_bls
 
-def normalize(sources,now):
+def normalize(sources,now,bls=None):
     events=[]
     for name in ("FED","BEA"):
         src=sources.get(name,{})
@@ -34,8 +34,13 @@ def normalize(sources,now):
                 kind="PCE" if "Personal Income and Outlays" in title else "GDP" if "Gross Domestic Product" in title else None
                 if not kind: continue
                 events.append(dict(kind=kind,source=name,title=title,display_date=date.get_text(strip=True),display_time=clock.get_text(strip=True),scheduled_at=None,status="YEAR_AND_TIMEZONE_UNVERIFIED",retrieved_at=src.get("retrieved_at")))
-    return {"research_only":True,"notifications_enabled":False,"events":events}
+    bls=bls or {}
+    if bls.get("status")=="RESEARCH_ONLY":
+        for event in bls.get("events",[]):
+            events.append(dict(event,source="BLS",status="TIMESTAMP_PARSED",retrieved_at=bls.get("retrieved_at")))
+    return {"research_only":True,"notifications_enabled":False,"events":events,
+            "coverage":{"BLS":bls.get("status","UNAVAILABLE"),**{name:{"status":sources.get(name,{}).get("status","UNAVAILABLE"),"matched_events":sum(e["source"]==name for e in events)} for name in ("FED","BEA")}}}
 
 if __name__=="__main__":
     with open(sys.argv[1]) as f: sources=json.load(f)
-    print(json.dumps(normalize(sources,datetime.now(timezone.utc)),indent=2))
+    print(json.dumps(normalize(sources,datetime.now(timezone.utc),fetch_bls()),indent=2))
