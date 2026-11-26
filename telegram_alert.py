@@ -254,14 +254,20 @@ class TelegramAlert:
         if self.last_prebreakout_slot.get(side) == slot or not observed_at <= now.timestamp() < expires:
             return
         local_time = datetime.fromtimestamp(observed_at, ZoneInfo("Europe/Rome"))
-        level_label = "Resistenza ancora intatta" if side == "LONG" else "Supporto ancora intatto"
+        is_long = side == "LONG"
+        direction = "🟢 Possibile LONG" if is_long else "🔴 Possibile SHORT"
+        watch = "sopra la resistenza" if is_long else "sotto il supporto"
+        cancel = "↓" if is_long else "↑"
+        price, level, invalidation = (
+            f"{observation[key]:.2f}".replace(".", ",") for key in ("price", "level", "invalidation")
+        )
         text = (
-            f"🔎 <b>ZEC {side} IN PREPARAZIONE · SHADOW</b>\n"
-            f"{local_time:%H:%M:%S %Z} · ZEC X-Perp <b>{observation['price']:.2f} USD</b>\n"
-            f"{level_label}: <b>{observation['level']:.2f} USD</b>\n"
-            f"Invalidazione del preavviso: <b>{observation['invalidation']:.2f} USD</b>\n"
-            "Book e scambi in accelerazione nella stessa direzione.\n"
-            "Avviso diagnostico · LIMIT NON ATTIVABILE."
+            f"<b>{direction} · ZEC X-Perp</b>\n"
+            "⏳ <b>Aspetta conferma · LIMIT non attivo</b>\n\n"
+            f"Ora <b>{price} USD</b> · {local_time:%H:%M:%S %Z}\n"
+            f"👀 Rottura da seguire: {watch} <b>{level} USD</b>\n"
+            f"✖️ Annullato a <b>{invalidation} USD</b> o oltre {cancel}\n"
+            "<i>Preavviso SHADOW</i>"
         )
         if self.deliver_context("prebreakout", slot, text, now, expires, observation=observation):
             self.last_prebreakout_slot[side] = slot
