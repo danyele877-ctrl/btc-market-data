@@ -5,6 +5,9 @@ def evaluate(observation):
     out={"version":"divergence-shadow-v1","research_only":True,"candidate":"NONE","blockers":[]}
     v=observation.get("v1",{})
     f=observation.get("sampled_flow",{})
+    if not all(k in v for k in ("volume_ratio","momentum_3m","book_imbalance","book_age_seconds")):
+        out["blockers"].append("upstream_microstructure_unavailable")
+        return out
     try:
         ratio=float(v["volume_ratio"]); momentum=float(v["momentum_3m"]); book=float(v["book_imbalance"])
         age=float(v["book_age_seconds"])
