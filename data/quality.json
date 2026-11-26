@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-26T21:20:01.947363+00:00",
-  "snapshot_generated_at": "2026-11-26T21:20:01.871435+00:00",
+  "generated_at": "2026-11-26T21:44:33.000789+00:00",
+  "snapshot_generated_at": "2026-11-26T21:44:32.897523+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -64,7 +64,7 @@
     "deribit_btc_perpetual": {
       "status": "ok",
       "required": true,
-      "age_seconds": 2,
+      "age_seconds": 1,
       "reason": null
     },
     "edge_funding_all_exchanges": {
@@ -100,25 +100,25 @@
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_overview": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_btc": {
       "status": "ok",
       "required": false,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_market_tickers_btc": {
