@@ -8,7 +8,9 @@ from capture_render_feed import HYBRID_MODE, collect_rest_snapshot, now, websock
 from render_bridge_publication import _timestamp, build_compact_alert
 from telegram_alert import TelegramAlert
 from zec_impulse_shadow import first_impulse
-from zec_limit_tracking import LimitTracker, build_limit_plans, shadow_live_plan, shadow_microstructure, shadow_prebreakout
+from zec_limit_tracking import (
+    LimitTracker, build_limit_plans, live_prebreakout, shadow_live_plan, shadow_microstructure, shadow_prebreakout,
+)
 from zec_macro_shadow import live_macro_context
 from zec_sec_news import StrategyNews, market_reactions
 
@@ -51,6 +53,8 @@ class LiveRadar:
         self.telegram = TelegramAlert()
         self.strategy_news = StrategyNews()
         self.limit_tracker = LimitTracker(self.telegram.connection) if self.telegram.postgres_dsn else None
+        if self.limit_tracker is None and self.telegram.token and self.telegram.chat_id.isdecimal():
+            self.limit_tracker = LimitTracker(self.telegram.connection, prebreakout_only=True)
 
     def current(self):
         now = datetime.now(timezone.utc)
@@ -143,6 +147,21 @@ class LiveRadar:
                             plan["reason"] = "retest senza conferma di book e CVD."
                 self.completed_limit_plans = plans
 
+    async def run_prebreakout_shadow(self):
+        while not self.feed.stop_event.is_set():
+            now = datetime.now(timezone.utc)
+            service = self.feed.state["service"]
+            last_message = service.get("last_message_at")
+            if (service.get("connected") and last_message
+                    and 0 <= (now - _timestamp(last_message)).total_seconds() <= 30):
+                zec = self.feed.state["instruments"].get("ZEC-USD_UM_XPERP", {})
+                health = self.feed.microstructure_health()
+                now = datetime.now(timezone.utc)
+                notice = live_prebreakout(now, zec.get("5m", ()), zec.get("1m", ()), health)
+                if notice:
+                    await asyncio.to_thread(self.telegram.publish_prebreakout, notice, now)
+            await asyncio.sleep(3)
+
     async def run_impulse_shadow(self):
         while not self.feed.stop_event.is_set():
             now = datetime.now(timezone.utc)
@@ -186,7 +205,7 @@ class LiveRadar:
                     microstructure = self.feed.microstructure_health()
                     zec = self.feed.state["instruments"].get("ZEC-USD_UM_XPERP", {})
                     shadow = None
-                    if microstructure.get("connected") and connected:
+                    if not self.limit_tracker.prebreakout_only and microstructure.get("connected") and connected:
                         shadow = shadow_live_plan(now, zec.get("5m", []), self.feed.micro_trade_events)
                         if shadow:
                             shadow["microstructure"] = shadow_microstructure(microstructure, shadow["side"])
