@@ -3,6 +3,7 @@ import json,time
 from pathlib import Path
 from gold_tracking import save
 from gold_swing import assess as swing_assess
+from gold_technical import assess as technical_assess
 
 def publish(root):
     root=Path(root); now=time.time()
@@ -25,6 +26,11 @@ def publish(root):
         if not hybrid["fresh"] or p.get("expires_at",0)<=now:
             hybrid["data"]["plan"]={"status":"EXPIRED_OR_BLOCKED","research_only":True}
     swing=swing_assess(market["data"] or {},now)
-    result={"swing":swing,"generated_at":now,"research_only":True,"orders_enabled":False,"notifications_enabled":False,"hybrid":hybrid,"early":early,"calendar":calendar,"websocket":ws,"market_view":market}
+    try:
+        quote=json.loads((root/"live_quote.json").read_text())
+    except (OSError,ValueError):
+        quote={}
+    technical=technical_assess(market["data"] or {},quote,now)
+    result={"technical":technical,"swing":swing,"generated_at":now,"research_only":True,"orders_enabled":False,"notifications_enabled":False,"hybrid":hybrid,"early":early,"calendar":calendar,"websocket":ws,"market_view":market}
     save(root/"dashboard.json",result)
     return result
