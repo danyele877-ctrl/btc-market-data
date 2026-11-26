@@ -578,10 +578,47 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
         if all(value is not None for value in vector.values()):
             valid_pool.append((event, vector))
 
-    filled_proxy_pool = [e for e, _ in valid_pool if e["label"].get("filled_proxy") is True]
+    # Regime-aware analog selection: separate directional structure from
+    # volatility conditions. The trend score is normalized by recent ATR so
+    # thresholds adapt to the instrument's current volatility.
+    regime_name = None
+    regime_pool = []
+    volatility_cut = None
+    if valid_current and valid_pool:
+        atr_values = sorted(vector["atr_pct"] for _, vector in valid_pool)
+        volatility_cut = atr_values[len(atr_values) // 2]
+
+        def regime_key(vector: dict[str, float]) -> tuple[str, str]:
+            normalized_trend = vector["trend"] / max(
+                vector["atr_pct"] * math.sqrt(20.0), 1e-6
+            )
+            if normalized_trend >= 0.75:
+                trend_regime = "UP"
+            elif normalized_trend <= -0.75:
+                trend_regime = "DOWN"
+            else:
+                trend_regime = "RANGE"
+            volatility_regime = "HIGH_VOL" if vector["atr_pct"] >= volatility_cut else "LOW_VOL"
+            return trend_regime, volatility_regime
+
+        regime_name = "/".join(regime_key(current_vector))
+        regime_pool = [
+            item for item in valid_pool
+            if regime_key(item[1]) == tuple(regime_name.split("/"))
+        ]
+
+    # Do not create a fragile tiny-sample model: fall back to the broad pool
+    # until the current regime has at least MIN_ANALOGS complete observations.
+    regime_fallback = len(regime_pool) < MIN_ANALOGS
+    model_pool = valid_pool if regime_fallback else regime_pool
+    filled_proxy_pool = [e for e, _ in model_pool if e["label"].get("filled_proxy") is True]
     filled_pool = [e for e in filled_proxy_pool if isinstance(e["label"].get("tp_before_sl"), bool)]
     base = {
-        "samples": len(valid_pool),
+        "samples": len(model_pool),
+        "regime": regime_name,
+        "regime_samples": len(regime_pool),
+        "regime_fallback_to_broad_pool": regime_fallback,
+        "regime_volatility_cut_atr_pct": round(volatility_cut, 8) if volatility_cut is not None else None,
         "archive_samples": archive_count,
         "temporal_samples": len(pool),
         "overlap_excluded_samples": overlap_excluded,
@@ -609,7 +646,7 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
 
     means, scales = {}, {}
     for key in feature_names:
-        vals = [vector[key] for _, vector in valid_pool]
+        vals = [vector[key] for _, vector in model_pool]
         means[key] = sum(vals) / len(vals)
         variance = sum((value - means[key]) ** 2 for value in vals) / len(vals)
         scales[key] = max(math.sqrt(variance), 1e-6)
@@ -621,7 +658,7 @@ def _analogs(archive: dict[str, Any], family: str, side: str, horizon: int,
             for key in feature_names
         ))
 
-    nearest_items = sorted(valid_pool, key=distance)[:min(50, len(valid_pool))]
+    nearest_items = sorted(model_pool, key=distance)[:min(50, len(model_pool))]
     nearest = [event for event, _ in nearest_items]
     if len(nearest) < MIN_ANALOGS:
         return {
