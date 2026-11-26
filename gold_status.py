@@ -32,7 +32,7 @@ def publish(root):
     except (OSError,ValueError):
         quote={}
     technical=technical_assess(market["data"] or {},quote,now)
-    paper=paper_update(root,technical,swing,market["data"] or {},now)
+    paper=paper_update(root,technical,swing,market["data"] or {},now,quote)
     result={"paper":paper,"technical":technical,"swing":swing,"generated_at":now,"research_only":True,"orders_enabled":False,"notifications_enabled":False,"hybrid":hybrid,"early":early,"calendar":calendar,"websocket":ws,"market_view":market}
     save(root/"dashboard.json",result)
     return result
