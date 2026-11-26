@@ -50,6 +50,15 @@ def update(root,technical,swing,market,now,quote=None):
         if item["state"] in ("PENDING","TOUCHED"):
             bars=series.get(item["bar"],{}).get("bars",[])
             advance(item,bars,now)
+    # Live indications are separate from candle-confirmed outcomes.
+    live_book=None
+    try:
+        if quote and quote.get("connected") and 0<=now-float(quote["observed_at"])<=5:
+            b=quote["book"]
+            bid=float(b["bids"][0][0]); ask=float(b["asks"][0][0])
+            if 0<=now-int(b["ts"])/1000<=5 and 0<bid<=ask and all(map(math.isfinite,(bid,ask))):
+                live_book=(bid,ask)
+    except (KeyError,TypeError,ValueError,IndexError): pass
     # One immutable proposal per closed reference bar and model, no retroactive registrations.
     def add(model,direction,p,bar,ref,validity,holding,cohort,blockers):
         if direction not in ("LONG","SHORT") or not p: return
@@ -65,6 +74,16 @@ def update(root,technical,swing,market,now,quote=None):
     if swing.get("candidate") in ("LONG","SHORT") and series.get("4H"):
         direction=swing["candidate"]
         add("SWING",direction,swing.get("plans",{}).get(direction),"5m",series["4H"]["bar_end"],21600,259200,"STRUCTURAL_ONLY",["funding_unverified","macro_unverified"])
+    for x in ledger.values():
+        if x["state"] not in ("PENDING","TOUCHED"): continue
+        x["live_check"]={"status":"UNAVAILABLE","observed_at":now}
+        if live_book:
+            bid,ask=live_book; p=x["plan"]; long=x["direction"]=="LONG"
+            stop=bid<=p["stop"] if long else ask>=p["stop"]
+            entry=ask<=p["entry_limit"] if long else bid>=p["entry_limit"]
+            status="STOP_ZONE" if stop else "ENTRY_ZONE" if entry and x["state"]=="PENDING" else "MONITORING"
+            if x["state"]=="PENDING" and now>=x["expires_at"]: status="EXPIRED_AWAITING_CANDLES"
+            x["live_check"]={"status":status,"observed_at":now,"bid":bid,"ask":ask}
     save(path,ledger)
     counts={}; targets={}; blocked={}
     for x in ledger.values():
