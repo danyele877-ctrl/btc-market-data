@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-26T00:14:48.639685+00:00",
-  "snapshot_generated_at": "2026-11-26T00:14:48.548811+00:00",
+  "generated_at": "2026-11-26T01:36:33.426498+00:00",
+  "snapshot_generated_at": "2026-11-26T01:36:33.359263+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -106,7 +106,7 @@
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_liquidations_overview": {
@@ -178,25 +178,25 @@
     "okx_eea_zec_index": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_oi": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "okx_eea_zec_xperp_spec": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     }
   }
