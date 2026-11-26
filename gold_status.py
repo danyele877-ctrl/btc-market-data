@@ -4,6 +4,7 @@ from pathlib import Path
 from gold_tracking import save
 from gold_swing import assess as swing_assess
 from gold_technical import assess as technical_assess
+from gold_paper import update as paper_update
 
 def publish(root):
     root=Path(root); now=time.time()
@@ -31,6 +32,7 @@ def publish(root):
     except (OSError,ValueError):
         quote={}
     technical=technical_assess(market["data"] or {},quote,now)
-    result={"technical":technical,"swing":swing,"generated_at":now,"research_only":True,"orders_enabled":False,"notifications_enabled":False,"hybrid":hybrid,"early":early,"calendar":calendar,"websocket":ws,"market_view":market}
+    paper=paper_update(root,technical,swing,market["data"] or {},now)
+    result={"paper":paper,"technical":technical,"swing":swing,"generated_at":now,"research_only":True,"orders_enabled":False,"notifications_enabled":False,"hybrid":hybrid,"early":early,"calendar":calendar,"websocket":ws,"market_view":market}
     save(root/"dashboard.json",result)
     return result
