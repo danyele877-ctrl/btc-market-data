@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 from read_current_alert import validated_side
 from render_bridge_publication import ZEC_ID, _timestamp
 from zec_limit_costs import limit_economics
+from zec_prebreakout_tracking import ensure_table
 
 
 def limit_levels(side, last, invalidation, candles, signal_time, entry_fraction=0.25, retest=False):
@@ -83,6 +84,7 @@ class TelegramAlert:
         self.last_slot = None
         self.last_macro_slot = None
         self.last_impulse_slot = None
+        self.last_prebreakout_slot = {}
         self.last_macro_reaction_slot = None
         self.last_strategy_slot = None
         self.postgres_dsn = os.getenv("RADAR_TELEGRAM_DATABASE_URL")
@@ -243,6 +245,27 @@ class TelegramAlert:
             self.last_impulse_slot = slot
             print(f"Telegram impulse close age_s={time.time()-closed_at:.3f} slot={slot}", flush=True)
 
+    def publish_prebreakout(self, observation, now):
+        observed_at = observation["observed_at"]
+        side = observation["side"]
+        bucket = int(observed_at) // 900
+        slot = -(4 * 10**11 + 2 * bucket + int(side == "SHORT"))
+        expires = min(observed_at + 10, (bucket + 1) * 900)
+        if self.last_prebreakout_slot.get(side) == slot or not observed_at <= now.timestamp() < expires:
+            return
+        local_time = datetime.fromtimestamp(observed_at, ZoneInfo("Europe/Rome"))
+        level_label = "Resistenza ancora intatta" if side == "LONG" else "Supporto ancora intatto"
+        text = (
+            f"🔎 <b>ZEC {side} IN PREPARAZIONE · SHADOW</b>\n"
+            f"{local_time:%H:%M:%S %Z} · ZEC X-Perp <b>{observation['price']:.2f} USD</b>\n"
+            f"{level_label}: <b>{observation['level']:.2f} USD</b>\n"
+            f"Invalidazione del preavviso: <b>{observation['invalidation']:.2f} USD</b>\n"
+            "Book e scambi in accelerazione nella stessa direzione.\n"
+            "Avviso diagnostico · LIMIT NON ATTIVABILE."
+        )
+        if self.deliver_context("prebreakout", slot, text, now, expires, observation=observation):
+            self.last_prebreakout_slot[side] = slot
+
     def publish_macro_reaction(self, event, released_at, reactions, now):
         if not self.token or not self.chat_id.isdecimal() or not {1, 5} <= reactions.keys():
             return
@@ -286,12 +309,21 @@ class TelegramAlert:
         if self.deliver_context("strategy", slot, text, now, published.timestamp() + 900):
             self.last_strategy_slot = slot
 
-    def deliver_context(self, kind, slot, text, now, expires):
+    def deliver_context(self, kind, slot, text, now, expires, *, observation=None):
         deadline = datetime.fromtimestamp(expires, timezone.utc)
         try:
             with self.connection() as (db, param):
+                if observation is not None:
+                    ensure_table(db)
                 if self.reserve(db, param, slot, now):
-                    status, retry_at = self.send(self.message_request(text), {"feed": {"expires_at": deadline.isoformat()}})
+                    if observation is not None and time.time() >= expires:
+                        status, retry_at = "expired", None
+                    else:
+                        status, retry_at = self.send(self.message_request(text), {"feed": {"expires_at": deadline.isoformat()}})
+                    if observation is not None and status == "accepted":
+                        db.execute(f"""INSERT INTO zec_prebreakout_notices (slot, accepted_at, payload)
+                            VALUES ({param}, {param}, {param}) ON CONFLICT DO NOTHING""",
+                                   (slot, time.time(), json.dumps(observation)))
                     db.execute(f"UPDATE delivery SET status={param}, retry_at={param} WHERE slot={param}",
                                (status, retry_at, slot))
                     print(f"Telegram {kind} {status} slot={slot}", flush=True)

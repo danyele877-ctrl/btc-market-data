@@ -8,6 +8,7 @@ from read_current_alert import validated_side
 from render_bridge_publication import ZEC_ID, _timestamp
 from telegram_alert import limit_levels
 from zec_limit_costs import ADVERSE_EXIT_SLIPPAGE_BPS, execution_pnl, limit_economics
+from zec_prebreakout_tracking import update_notices
 
 
 def build_limit_plans(compact, slot, candles):
@@ -214,7 +215,7 @@ def shadow_prebreakout(plan, closed, minutes, health):
 
     if not all(isfinite(value) for value in (distance, prior_move, book_change)):
         return result
-    result.update(level=level, distance_in_ranges=round(distance, 4),
+    result.update(level=level, typical_range=typical, distance_in_ranges=round(distance, 4),
                   prior_move_in_ranges=round(prior_move, 4), book_change=round(book_change, 6))
     aligned = plan["microstructure"]["aligned"]
     if aligned is None or not previous or not recent:
@@ -224,6 +225,33 @@ def shadow_prebreakout(plan, closed, minutes, health):
                   qualified=bool(aligned and book_change > 0 and sum(recent) > 0 and flow_change > 0
                                  and 0 <= distance <= 0.5 and prior_move <= 0.5))
     return result
+
+
+def live_prebreakout(now, closed, minutes, health):
+    """Require a continuous tape and an untouched level in the current 5m bar."""
+    cvd = health.get("cvd") or {}
+    trade_age = health.get("trade_age_seconds")
+    if cvd.get("ready_5m") is not True or trade_age is None or not 0 <= trade_age <= 10:
+        return None
+    events = health.get("trade_events", ())
+    plan = shadow_live_plan(now, closed, events)
+    if not plan:
+        return None
+    plan["microstructure"] = shadow_microstructure(health, plan["side"])
+    setup = shadow_prebreakout(plan, closed, minutes, health)
+    if setup["qualified"] is not True:
+        return None
+    sign = 1 if plan["side"] == "LONG" else -1
+    level = setup["level"]
+    crossed = any(sign * (float(trade["price"]) - level) >= 0 for trade in events
+                  if plan["slot"] * 300_000 <= trade["ts_ms"] <= plan["signal_at"] * 1000)
+    if crossed:
+        return None
+    invalidation = round(plan["quote"] - sign * setup["typical_range"] / 2, 2)
+    if invalidation <= 0 or sign * (plan["quote"] - invalidation) <= 0:
+        return None
+    return {"side": plan["side"], "observed_at": plan["signal_at"], "price": plan["quote"],
+            "level": level, "invalidation": invalidation}
 
 
 def directional_moves(plan, bars):
@@ -263,8 +291,9 @@ def snapshot_moves(plan, outcome, bars):
 
 
 class LimitTracker:
-    def __init__(self, connect):
+    def __init__(self, connect, *, prebreakout_only=False):
         self.connect = connect
+        self.prebreakout_only = prebreakout_only
         self.state = {"status": "starting", "records": []}
 
     def update(self, compact, slot, candles, rows, now, shadow=None, macro=None):
@@ -290,6 +319,10 @@ class LimitTracker:
             except (KeyError, TypeError, ValueError, AttributeError):
                 continue
         with self.connect() as (db, p):
+            prebreakouts = update_notices(db, p, bars)
+            if self.prebreakout_only:
+                self.state = {"status": "ok", "records": [], "prebreakout_notices": prebreakouts}
+                return
             db.execute("""CREATE TABLE IF NOT EXISTS zec_limit_trials (
                 slot BIGINT PRIMARY KEY, due BIGINT NOT NULL, plans TEXT NOT NULL, outcomes TEXT
             )""")
@@ -378,5 +411,6 @@ class LimitTracker:
                                        (json.dumps(outcomes), key, saved))
                 recent.append({"plans": plans, "outcomes": outcomes})
         self.state = {"status": "ok", "records": recent, "shadow_records": recent_shadow,
+            "prebreakout_notices": prebreakouts,
             "macro_records": [{"event_id": event_id, "phase": phase, "observation": json.loads(payload)}
                               for event_id, phase, payload in recent_macro]}

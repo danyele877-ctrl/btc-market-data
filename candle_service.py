@@ -1056,6 +1056,7 @@ async def main() -> None:
     if radar.telegram.token and radar.telegram.chat_id.isdecimal():
         tasks.append(asyncio.create_task(radar.run_strategy_news()))
         tasks.append(asyncio.create_task(radar.run_impulse_shadow()))
+        tasks.append(asyncio.create_task(radar.run_prebreakout_shadow()))
     print(f"Read-only OKX candle feed listening on 0.0.0.0:{port}", flush=True)
     try:
         async with server:
