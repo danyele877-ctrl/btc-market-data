@@ -33,11 +33,16 @@ def advance(item,bars,now):
                 item["state"]="INVALIDATED"; return
         elif item["state"]=="TOUCHED":
             if stop: item["state"]="STOP_OR_AMBIGUOUS"; return
-            if target: item["state"]="TP1_TOUCHED"; return
+            for key in ("tp1","tp2","tp3"):
+                if key in p and (h>=p[key] if d==1 else l<=p[key]):
+                    item.setdefault("targets_touched",{}).setdefault(key,t+step)
+            final="tp3" if "tp3" in p else "tp2" if "tp2" in p else "tp1"
+            if final in item.get("targets_touched",{}):
+                item["state"]="FINAL_TARGET_TOUCHED"; return
     if item["state"]=="PENDING" and now>=item["expires_at"] and item["cursor"]>=item["expires_at"]:
         item["state"]="EXPIRED"
 
-def update(root,technical,swing,market,now):
+def update(root,technical,swing,market,now,quote=None):
     path=Path(root)/"paper_ledger.json"
     ledger=json.loads(path.read_text()) if path.exists() else {}
     series=market.get("series",{})
@@ -61,8 +66,12 @@ def update(root,technical,swing,market,now):
         direction=swing["candidate"]
         add("SWING",direction,swing.get("plans",{}).get(direction),"5m",series["4H"]["bar_end"],21600,259200,"STRUCTURAL_ONLY",["funding_unverified","macro_unverified"])
     save(path,ledger)
-    counts={}
+    counts={}; targets={}; blocked={}
+    for x in ledger.values():
+        k=x["model"]+":"+x["cohort"]
+        targets.setdefault(k,Counter()).update(x.get("targets_touched",{}).keys())
+        if x["cohort"]=="CONDITIONAL_WATCH": blocked.setdefault(k,Counter()).update(x.get("blockers",[]))
     for x in ledger.values():
         k=x["model"]+":"+x["cohort"]
         counts.setdefault(k,Counter())[x["state"]]+=1
-    return {"research_only":True,"fill_verified":False,"counts":{k:dict(v) for k,v in counts.items()},"recent":sorted(ledger.values(),key=lambda x:x["observed_at"],reverse=True)[:12]}
+    return {"research_only":True,"fill_verified":False,"counts":{k:dict(v) for k,v in counts.items()},"targets":{k:dict(v) for k,v in targets.items()},"blocked_reasons":{k:dict(v) for k,v in blocked.items()},"recent":sorted(ledger.values(),key=lambda x:x["observed_at"],reverse=True)[:12]}
