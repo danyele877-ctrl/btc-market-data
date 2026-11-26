@@ -51,8 +51,11 @@ class PrebreakoutTests(unittest.TestCase):
             alert.publish_prebreakout({**notice, "observed_at": stamp + 15}, now + timedelta(seconds=15))
             send.assert_called_once()
             text = json.loads(send.call_args.args[0].data)["text"]
-            self.assertIn("Supporto ancora intatto: <b>800.00 USD</b>", text)
-            self.assertIn("LIMIT NON ATTIVABILE", text)
+            self.assertTrue(text.startswith("<b>🔴 Possibile SHORT · ZEC X-Perp</b>"))
+            self.assertIn("Aspetta conferma · LIMIT non attivo", text)
+            self.assertIn("Ora <b>801,00 USD</b> · 22:02:15 CET", text)
+            self.assertIn("Rottura da seguire: sotto il supporto <b>800,00 USD</b>", text)
+            self.assertIn("Annullato a <b>805,00 USD</b> o oltre ↑", text)
             first_close = int(stamp) // 60 * 60 + 60
             bars = {first_close + offset * 60: (801, 804) for offset in range(16)}
             bars[first_close + 6 * 60] = (799, 804)
@@ -61,6 +64,18 @@ class PrebreakoutTests(unittest.TestCase):
             self.assertEqual(record["telegram_accepted_at"], stamp + 1)
             self.assertEqual(record["outcomes"]["5m"]["status"], "no_touch")
             self.assertEqual(record["outcomes"]["15m"], {"status": "breakout", "elapsed_s_bounds": [344, 404]})
+
+    def test_long_notice_has_the_opposite_watch_and_invalidation_directions(self):
+        now = datetime(2026, 11, 26, 21, 2, 15, tzinfo=timezone.utc)
+        notice = {"observed_at": now.timestamp(), "side": "LONG", "price": 799.3,
+                  "level": 800, "invalidation": 795}
+        alert = TelegramAlert()
+        with patch.object(alert, "deliver_context") as delivery:
+            alert.publish_prebreakout(notice, now)
+        text = delivery.call_args.args[2]
+        self.assertTrue(text.startswith("<b>🟢 Possibile LONG · ZEC X-Perp</b>"))
+        self.assertIn("Rottura da seguire: sopra la resistenza <b>800,00 USD</b>", text)
+        self.assertIn("Annullato a <b>795,00 USD</b> o oltre ↓", text)
 
     def test_partial_candles_and_missing_data_cannot_prove_a_breakout(self):
         notice = {"side": "LONG", "level": 804, "invalidation": 799}
