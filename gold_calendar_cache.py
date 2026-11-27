@@ -14,10 +14,11 @@ def refresh(root,now=None):
     try:
         age=(now-datetime.fromisoformat(old["retrieved_at"])).total_seconds()
     except (KeyError,ValueError,TypeError): age=1e9
-    if not 0<=age<3600:
+    if old.get("schema_version") != 2 or not 0<=age<3600:
         sources=dict(probe(item) for item in SOURCES.items())
         old=normalize(sources,now,fetch())
         old["retrieved_at"]=now.isoformat()
+        old["schema_version"]=2
         save(path,old)
     result=dict(old)
     result["events"]=[]

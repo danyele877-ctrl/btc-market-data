@@ -103,6 +103,11 @@ class GoldRadar(unittest.TestCase):
         self.assertEqual((s["candidate"],s["status"]),("SHORT","CONDITIONAL_WATCH"))
         self.assertLess(s["plan"]["tp3"],s["plan"]["entry_limit"])
         self.assertGreater(s["plan"]["stop"],s["plan"]["entry_limit"])
+        book={"ts":"14401000","bids":[["3502"]],"asks":[["3502.1"]]}
+        quote={"book":book,"connected":True,"observed_at":14401}
+        s=evaluate(frames,14401,quote)["strategies"]["TECHNICAL_V2_SCALP"]
+        self.assertIn("limit_already_marketable",s["blockers"])
+        self.assertNotIn("plan",s)
 
     def test_stale_ws_and_fresh_rest_are_distinguished(self):
         with tempfile.TemporaryDirectory() as path:

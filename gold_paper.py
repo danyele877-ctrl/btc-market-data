@@ -70,6 +70,8 @@ def advance(item, bars, now, historical_complete=False):
                 crossed = low < entry if long else high > entry
                 invalidation = plan.get("invalidation", plan["stop"])
                 invalidated = low <= invalidation if long else high >= invalidation
+                if crossed:
+                    item["entry_crossed_at"] = cursor
                 if crossed and stop:
                     item.update(state="AMBIGUOUS", ended_at=cursor, ambiguity="entry_and_stop")
                     return
@@ -107,7 +109,7 @@ def advance(item, bars, now, historical_complete=False):
 def replay_legacy(item, bars, now):
     if item.get("schema") == 2 or item.get("legacy_outcome") or item["state"] not in LEGACY_REPLAY:
         return False
-    replay = {k: v for k, v in item.items() if k not in ("filled_at", "targets_touched", "live_check")}
+    replay = {k: v for k, v in item.items() if k not in ("filled_at", "targets_touched", "live_check", "entry_crossed_at")}
     replay.update(state="PENDING", cursor=start_at(item))
     advance(replay, bars, now, historical_complete=True)
     if replay["state"] == "DATA_GAP":

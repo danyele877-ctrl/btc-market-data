@@ -197,8 +197,12 @@ def evaluate(frames, now, quote=None, historical=False):
                 blockers.append("ws_quote_unavailable")
             elif book[1] - book[0] > .15 * f["atr"]:
                 blockers.append("spread_large_relative_to_atr")
-            elif d * ((book[0] + book[1]) / 2 - plan["invalidation"]) <= 0:
+            elif d * ((book[0] if d > 0 else book[1]) - plan["invalidation"]) <= 0:
                 blockers.append("plan_already_invalidated")
+                continue
+            if book and d * ((book[1] if d > 0 else book[0]) - plan["entry_limit"]) <= 0:
+                blockers.append("limit_already_marketable")
+                signal["candidate"] = "LONG" if d > 0 else "SHORT"
                 continue
         signal.update(candidate="LONG" if d > 0 else "SHORT",
                       status="CONDITIONAL_WATCH" if blockers else "PAPER_TEST_CANDIDATE",

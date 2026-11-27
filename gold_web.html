@@ -72,7 +72,7 @@ const labels = {TECHNICAL:'TECHNICAL V1',TECHNICAL_V2_SCALP:'TECHNICAL V2 · Sca
  PAPER_TEST_CANDIDATE:'Confermato per simulazione',CONDITIONAL_WATCH:'Condizionato',STRUCTURAL_ONLY:'Strutturale',WATCH:'In osservazione',DATA_BLOCKED:'Dati insufficienti',
  PENDING:'Attesa entry',TOUCHED:'Entry attraversata',STOP:'Stop confermato',STOP_OR_AMBIGUOUS:'Esito da rielaborare',AMBIGUOUS:'Sequenza intrabar incerta',
  FINAL_TARGET_TOUCHED:'Target finale raggiunto',EXPIRED:'Limit scaduto',DATA_GAP:'Storico incompleto',TIMEOUT:'Durata esaurita',INVALIDATED:'Invalidato',
- no_closed_trigger:'Trigger assente',ws_quote_unavailable:'Book WebSocket assente',spread_large_relative_to_atr:'Spread elevato',stale_or_insufficient_multitimeframe:'Storico multitimeframe insufficiente',extended_or_dislocated_market:'Movimento esteso o mercato dislocato'};
+ no_closed_trigger:'Trigger assente',limit_already_marketable:'Il book ha già attraversato il limit',plan_already_invalidated:'Livello di invalidazione già attraversato',ws_quote_unavailable:'Book WebSocket assente',spread_large_relative_to_atr:'Spread elevato',stale_or_insufficient_multitimeframe:'Storico multitimeframe insufficiente',extended_or_dislocated_market:'Movimento esteso o mercato dislocato'};
 const name = key => labels[key] || key;
 let market=null, live=null, page=1, paperRequest=0;
 function node(tag,text='',cls=''){const item=document.createElement(tag);item.textContent=text;if(cls)item.className=cls;return item}
@@ -122,7 +122,7 @@ function chart(refreshIndicators=false){
 function displayPlan(parent,title,signal){
   const box=node('div','','plan'), p=signal.plan;
   box.append(node('h3',title),node('div',signal.candidate==='NONE'?name(signal.status):signal.candidate,'value '+dirClass(signal.candidate)));
-  box.append(node('small',name(signal.status)));
+  box.append(node('small',signal.candidate==='NONE'?'':name(signal.status)));
   if(p){
     const list=node('dl');
     for(const [k,v] of [['Entry limit',p.entry_limit],['Stop loss',p.stop],['TP1 · R/R '+fmt(p.rr1),p.tp1],['TP2 · R/R '+fmt(p.rr2),p.tp2],['TP3 · R/R '+fmt(p.rr3),p.tp3],['Invalidazione',p.invalidation]])if(Number.isFinite(v))list.append(node('dt',k),node('dd',fmt(v),'num'));
@@ -190,7 +190,7 @@ async function loadPaper(){
     if(!res.ok)throw Error();
     const p=await res.json();if(token!==paperRequest)return;
     el('paperRows').replaceChildren();el('paperMetrics').replaceChildren();
-    for(const key of filters){const select=el(key),current=select.value;select.replaceChildren(new Option('Tutti',''),...(p.options[key]||[]).map(v=>new Option(name(v),v)));select.value=current}
+    for(const key of filters){const select=el(key),current=select.value;select.replaceChildren(new Option('Tutti',''),...(p.options[key]||[]).map(v=>new Option(key==='horizon'?v:name(v),v)));select.value=current}
     el('paperStatus').textContent=p.total+' simulazioni nei filtri selezionati';
     for(const [key,value] of Object.entries(p.metrics))metric(el('paperMetrics'),key,value,p.counts[key],p.blocked_reasons[key]);
     for(const row of p.rows){

@@ -132,7 +132,7 @@ def funding_adjustment(item, rates, series):
 
 def stats(items):
     states = Counter(item["state"] for item in items)
-    entries = sum("filled_at" in item for item in items)
+    entries = sum("entry_crossed_at" in item or "filled_at" in item for item in items)
     targets = Counter(k for item in items for k in item.get("targets_touched", {}))
     values = [v for item in items if (v := return_after_fees(item)) is not None]
     high, equity, drawdown = 1., 1., 0.
