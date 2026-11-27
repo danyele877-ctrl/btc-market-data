@@ -13,7 +13,7 @@ from gold_paper import summarize
 from gold_quotes import snapshot
 
 PERIODS = {"24h": 86400, "7d": 604800, "30d": 2592000, "all": None}
-FILTERS = {"strategy": "model", "direction": "direction", "horizon": "horizon", "state": "state", "cohort": "cohort"}
+FILTERS = {"strategy": "model", "direction": "direction", "horizon": "horizon", "timeframe": "bar", "state": "state", "cohort": "cohort"}
 
 
 def paper_page(ledger, query, now):

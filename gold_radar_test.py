@@ -124,6 +124,7 @@ class GoldRadar(unittest.TestCase):
         two=dict(one,direction="SHORT",cohort="CONDITIONAL_WATCH")
         value=paper_page({"a":one,"b":two},{"direction":["SHORT"],"period":["24h"]},100100)
         self.assertEqual(value["total"],1)
+        self.assertEqual(value["options"]["timeframe"],["1m"])
         self.assertEqual(list(value["metrics"]),["TECHNICAL:CONDITIONAL_WATCH"])
 
     def test_setup_and_targets_have_stable_notifications(self):

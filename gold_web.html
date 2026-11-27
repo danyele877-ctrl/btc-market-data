@@ -30,7 +30,7 @@ details{margin-top:10px}summary{cursor:pointer}a{color:var(--gold)}
 .filters{grid-template-columns:repeat(auto-fit,minmax(135px,1fr))}
 .scroll{overflow:auto;margin-top:12px}table{width:100%;border-collapse:collapse;white-space:nowrap}
 th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:13px}
-.metric canvas{height:95px}.bars{display:flex;height:6px;overflow:hidden;border-radius:6px;margin:7px 0}.bars span:first-child{background:var(--long)}.bars span:last-child{background:var(--short)}
+.metric canvas{height:95px}.cause{margin-top:5px}.cause div{height:3px;background:var(--gold);border-radius:4px;margin-top:3px}.bars{display:flex;height:6px;overflow:hidden;border-radius:6px;margin:7px 0}.bars span:first-child{background:var(--long)}.bars span:last-child{background:var(--short)}
 #paperNavigation{margin-top:12px} #paperMetrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))}
 @media(max-width:720px){.plans{grid-template-columns:1fr}.scenarios{grid-template-columns:repeat(2,1fr)}header{display:block}}
 </style>
@@ -51,7 +51,7 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
   <div class="filters">
     <label>Periodo<select id="period"><option value="24h">Ultime 24 ore</option><option value="7d">Ultimi 7 giorni</option><option value="30d">Ultimi 30 giorni</option><option value="all">Storico completo</option></select></label>
     <label>Strategia<select id="strategy"></select></label><label>Direzione<select id="direction"></select></label>
-    <label>Timeframe<select id="horizon"></select></label><label>Stato<select id="state"></select></label><label>Gruppo<select id="cohort"></select></label>
+    <label>Orizzonte<select id="horizon"></select></label><label>Timeframe esiti<select id="timeframe"></select></label><label>Stato<select id="state"></select></label><label>Gruppo<select id="cohort"></select></label>
   </div>
   <p id="paperStatus" class="muted" aria-live="polite"></p>
   <div class="grid" id="paperMetrics"></div>
@@ -178,10 +178,19 @@ function metric(parent, group, m, counts, exclusions){
     const ctx=c.getContext('2d'), points=m.curve, yMin=Math.min(-.0001,...points.flat()),yMax=Math.max(.0001,...points.flat());
     for(const [idx,color] of [[0,'#e6be73'],[1,'#ff858d']]){ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();points.forEach((p,i)=>{const x=4+i*382/Math.max(1,points.length-1),y=5+(yMax-p[idx])/(yMax-yMin)*105;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}
   }
-  if(Object.keys(exclusions||{}).length)card.append(node('small',Object.entries(exclusions).map(([k,v])=>name(k)+' '+v).join(' · ')));
+  const blocked=Object.entries(exclusions||{}).sort((a,b)=>b[1]-a[1]);
+  if(blocked.length){
+    const details=node('details');details.append(node('summary','Motivi di esclusione'));
+    for(const [k,v] of blocked){
+      const row=node('div','','cause'), bar=node('div');
+      bar.style.width=100*v/blocked[0][1]+'%';
+      row.append(node('small',name(k)+' · '+v),bar);details.append(row);
+    }
+    card.append(details);
+  }
   parent.append(card);
 }
-const filters=['strategy','direction','horizon','state','cohort'];
+const filters=['strategy','direction','horizon','timeframe','state','cohort'];
 async function loadPaper(){
   const token=++paperRequest, params=new URLSearchParams({page,period:el('period').value});
   for(const key of filters)if(el(key).value)params.set(key,el(key).value);
