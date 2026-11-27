@@ -32,3 +32,4 @@ jobs:
               assert not s["early"]["fresh"] and not s["notifications_enabled"]
           import gold_worker
           PY
+      - run: docker run --rm -i --entrypoint python gold-test - < gold_radar_test.py

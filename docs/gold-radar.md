@@ -10,3 +10,34 @@ Independent gold model, BTC not mandatory filter. Primary 1–24h (evaluate 6/12
 Walk-forward with chronological splits, closed candles, no look-ahead, costs and funding, conservative ambiguous TP/SL ordering, compare matched risk and time windows to ZEC. Measure sample size, fill, TP-before-SL, expectancy, drawdown, lead time, spread/slippage. Observe 14–30 days initially and extend if insufficient. No promotion without reviewed evidence.
 ## Deployment
 Keep existing BTC/ZEC code, workflows, alerts and production untouched. Check free infrastructure capacity and API limits before adding collector. Gold dashboard and Telegram only after feed validation; no automatic execution or sizing. No duplicated scheduled tasks. 
+
+## Registro e replay
+
+Il registro salva livelli e scadenze all'apertura dell'ipotesi. Il riconciliatore legge
+soltanto candele chiuse del contratto XAU su OKX Europe e richiede continuità dal cursore.
+Un attraversamento con volume positivo è un'evidenza di prezzo per il modello. Il
+registro distingue stop, livelli raggiunti, scadenza, invalidazione e ordine intrabar
+indeterminato. Gli esiti legacy recuperati conservano il risultato precedente in
+`legacy_outcome`. Il processo usa le finestre REST in background su `/gold-state`.
+
+TECHNICAL V1 e SWING V1 restano riferimenti. TECHNICAL V2 Scalping, TECHNICAL V2
+Intraday, Reversal, Breakout, Pullback e Swing V2 sono strategie sperimentali.
+`CONDITIONAL_WATCH` e `PAPER_TEST_CANDIDATE` sono coorti separate. Il backtest
+usa l'ora di chiusura delle candele, periodi cronologici separati, una simulazione
+alla volta per strategia e validità, e commissioni teoriche maker 0,02% e taker
+0,05%. Rendimento e drawdown si riferiscono a esposizione teorica senza leva.
+Passare `--funding` con una mappa JSON fundingTime → realizedRate consente di
+misurare anche il funding osservato sulle posizioni applicabili. Il mark al
+settlement è approssimato con la candela XAU confermata. Spread storico, coda e
+slippage richiedono dati di microstruttura che il replay non presuppone.
+
+```sh
+python gold_backtest.py --data /tmp/xau-history --fetch --output /tmp/xau-replay.json
+python -m unittest discover -p '*test.py'
+docker build -f Dockerfile.gold -t gold-test .
+```
+
+L'interfaccia usa `GET /dashboard.json`, `GET /live.json`, `GET /paper.json`
+e `GET /healthz`. Il canale Telegram GOLD si attiva soltanto con le variabili
+`GOLD_TELEGRAM_BOT_TOKEN` e `GOLD_TELEGRAM_CHAT_ID` configurate sul servizio.
+`GOLD_TELEGRAM_INCLUDE_CONDITIONAL=1` include le coorti condizionate.

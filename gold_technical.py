@@ -3,7 +3,7 @@ import math
 from gold_plan import plan
 from gold_history import INST
 
-def assess(market,quote,now):
+def assess(market,quote,now,reference_price=None):
     out={"version":"technical-shadow-v1","candidate":"NONE","status":"DATA_BLOCKED","research_only":True,"orders_enabled":False,"blockers":[],"observed_at":now}
     try:
         if market.get("instrument")!=INST: raise ValueError("instrument_unverified")
@@ -26,13 +26,16 @@ def assess(market,quote,now):
         if not all(math.isfinite(x) for x in (rsi,macd,signal,atr)) or atr<=0: raise ValueError("invalid_indicators")
         if not (35<=rsi<=70 if d==1 else 30<=rsi<=65): out["blockers"].append("rsi_extended")
         if d*(macd-signal)<=0: out["blockers"].append("macd_not_confirmed")
-        if not quote.get("connected") or not 0<=now-float(quote["observed_at"])<=5: raise ValueError("quote_unavailable")
-        b=quote["book"]
-        if not 0<=now-int(b["ts"])/1000<=5: raise ValueError("quote_stale")
-        bid=float(b["bids"][0][0]); ask=float(b["asks"][0][0])
-        if not all(math.isfinite(x) and x>0 for x in (bid,ask)) or ask<bid: raise ValueError("invalid_quote")
-        mid=(bid+ask)/2
-        if ask-bid>.15*atr: out["blockers"].append("spread_large_relative_to_atr")
+        if reference_price is None:
+            if quote.get("book_source", "OKX_EEA_WS") != "OKX_EEA_WS" or not quote.get("connected") or not 0<=now-float(quote["observed_at"])<=5: raise ValueError("quote_unavailable")
+            b=quote["book"]
+            if not 0<=now-int(b["ts"])/1000<=5: raise ValueError("quote_stale")
+            bid=float(b["bids"][0][0]); ask=float(b["asks"][0][0])
+            if not all(math.isfinite(x) and x>0 for x in (bid,ask)) or ask<bid: raise ValueError("invalid_quote")
+            mid=(bid+ask)/2
+            if ask-bid>.15*atr: out["blockers"].append("spread_large_relative_to_atr")
+        else:
+            mid=reference_price  # Historical close proxy. No historical quote is assumed.
         p=plan(out["candidate"],mid,atr)
         if p["status"]!="SIMULATION_ONLY": raise ValueError("invalid_plan")
         out["reference_mid"]=mid

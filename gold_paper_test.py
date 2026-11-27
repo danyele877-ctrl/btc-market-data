@@ -14,7 +14,7 @@ class PaperTest(unittest.TestCase):
     def test_ambiguous(self):
         x=self.item()
         advance(x,[[60,101,116,94,105,1]],120)
-        self.assertEqual(x["state"],"STOP_OR_AMBIGUOUS")
+        self.assertEqual(x["state"],"AMBIGUOUS")
         self.assertFalse(x.get("targets_touched"))
     def test_gap(self):
         x=self.item()

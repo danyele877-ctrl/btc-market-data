@@ -1,5 +1,5 @@
 """Research-only connectivity probe; no trading signals."""
-import json, urllib.request, concurrent.futures, time
+import json, math, urllib.request, concurrent.futures, time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -27,13 +27,16 @@ def probe(item):
         if name in ("dxy","gold_futures_proxy"):
             obj=json.loads(body)["chart"]["result"][0]
             ts=obj["timestamp"]; prices=obj["indicators"]["quote"][0]["close"]
-            valid=[(t,p) for t,p in zip(ts,prices) if p is not None]
+            valid=sorted({int(t): float(p) for t,p in zip(ts,prices) if p is not None and math.isfinite(p) and p>0}.items())
+            out["timeliness"]="DELAYED"
+            out["provider"]="Yahoo Finance"
             out["last_observation"]=valid[-1]
             out["symbol"]=obj["meta"]["symbol"]
             expected={"dxy":"DX-Y.NYB","gold_futures_proxy":"GC=F"}[name]
             now=datetime.now(timezone.utc).timestamp()
             closed=[(t,p) for t,p in valid if t+3600<=now and p>0]
             if out["symbol"]!=expected or len(closed)<2: raise ValueError("symbol or history invalid")
+            out["identity_verified"]=True
             out["closed_observations"]=closed[-25:]
             out["age_seconds"]=now-closed[-1][0]-3600
             out["hourly_change_pct"]=100*(closed[-1][1]/closed[-2][1]-1) if closed[-1][0]-closed[-2][0]==3600 else None
@@ -57,6 +60,8 @@ def probe(item):
                     records.append((values["NEW_DATE"],float(values[field])))
             out["daily_10y"]=sorted(records)[-5:]
             out["frequency"]="daily"
+            out["timeliness"]="DAILY"
+            out["daily_available"]=bool(records)
             out["validated"]=False
         out["transport_ok"]=True
     except Exception as exc:
@@ -68,3 +73,45 @@ if __name__=="__main__":
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         result=dict(pool.map(probe,SOURCES.items()))
     Path("gold-macro-probe.json").write_text(json.dumps({"research_only":True,"sources":result},indent=2))
+
+
+def aligned_hour(macro, now, max_age=5400):
+    """Compare matched closed proxy intervals, keeping vendor timestamps intact."""
+    from math import isfinite
+    series = []
+    for key in ("dxy", "gold_futures_proxy"):
+        source = macro.get(key, {})
+        if not source.get("validated") and not source.get("identity_verified"):
+            return None
+        rows = source.get("closed_observations", [])
+        series.append({int(t): p for t, p in rows if p > 0 and isfinite(p)})
+    common = series[0].keys() & series[1].keys()
+    eligible = [t for t in common if t-3600 in common and 0 <= now-(t+3600) <= max_age]
+    if not eligible:
+        return None
+    anchor = max(eligible)
+    return dict(start=anchor, end=anchor+3600,
+                dxy_return=series[0][anchor]/series[0][anchor-3600]-1,
+                gc_return=series[1][anchor]/series[1][anchor-3600]-1,
+                timeliness="DELAYED")
+
+
+def xau_same_hour(rows, interval):
+    from gold_history import BARS
+    start, end = interval["start"], interval["end"]
+    records = {}
+    for row in rows:
+        stamp = int(row[0])
+        if stamp % BARS["1m"] or row[8] != "1" or not start*1000 <= stamp < end*1000:
+            continue
+        stamp //= 1000
+        if stamp in records and records[stamp] != row:
+            return None
+        records[stamp] = row
+    if any(t not in records for t in range(start,end,60)):
+        return None
+    o, c = float(records[start][1]), float(records[end-60][4])
+    from math import isfinite
+    if not (0 < o and 0 < c and isfinite(o) and isfinite(c)):
+        return None
+    return c/o-1

@@ -4,11 +4,14 @@ from pathlib import Path
 from datetime import datetime, timezone
 from gold_history import metadata, request, INST
 from gold_research import ema
-from gold_macro_probe import probe, SOURCES
+from gold_macro_probe import aligned_hour, probe, SOURCES, xau_same_hour
+from concurrent.futures import ThreadPoolExecutor
 
 def main():
     meta=metadata()
-    macro=dict(probe((k,SOURCES[k])) for k in ("dxy","gold_futures_proxy","treasury_nominal","treasury_real"))
+    keys = ("dxy", "gold_futures_proxy", "treasury_nominal", "treasury_real")
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        macro=dict(pool.map(probe, ((k, SOURCES[k]) for k in keys)))
     rows=request("/market/history-candles",instId=INST,bar="1H",limit="300")
     now=int(time.time())
     rows=sorted([r for r in rows if r[8]=="1" and int(r[0])+3600000<=now*1000],key=lambda r:int(r[0]))
@@ -24,14 +27,22 @@ def main():
         e20,e50,e200=[ema(c,n) for n in (20,50,200)]
         direction=1 if e20[-1]>e50[-1]>e200[-1] else -1 if e20[-1]<e50[-1]<e200[-1] else 0
         out["technical_direction"]=direction
-        for k in ("dxy","gold_futures_proxy"):
-            m=macro[k]
-            obs=m.get("closed_observations",[])
-            if not m.get("validated") or len(obs)<2 or obs[-1][0]+3600!=end:
-                b.append(k+"_not_aligned")
+        interval = aligned_hour(macro, now)
+        if interval:
+            out["macro_alignment"] = interval
+            try:
+                minute_rows = request("/market/candles", instId=INST, bar="1m", limit="180")
+                match = xau_same_hour(minute_rows, interval)
+            except (OSError, ValueError, KeyError, IndexError, TypeError):
+                match = None
+            if match is None:
+                b.append("xau_proxy_window_incomplete")
+            else:
+                interval["xau_return"] = match
+        else:
+            b.append("dxy_gc_no_fresh_common_hour")
         if not b:
-            d=macro["dxy"]["hourly_change_pct"]
-            g=macro["gold_futures_proxy"]["hourly_change_pct"]
+            d, g = interval["dxy_return"], interval["gc_return"]
             if direction and direction*d<0 and direction*g>0:
                 out["candidate"]="LONG" if direction==1 else "SHORT"
             else: b.append("no_intermarket_convergence")

@@ -10,6 +10,10 @@ from gold_status import publish
 from gold_ws_shadow import worker as ws_worker
 from gold_web import serve
 from gold_market_view import worker as market_worker
+from gold_notifications import settings as telegram_settings, worker as telegram_worker
+from gold_news import refresh as refresh_news
+from gold_quotes import rest_worker
+from gold_paper_history import worker as paper_history_worker
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -33,8 +37,13 @@ def main():
             threading.Thread(target=early_loop,daemon=True,name='gold-early').start()
         if os.environ.get('GOLD_WS_SHADOW_ENABLED','1')=='1':
             threading.Thread(target=ws_worker,args=(root,),daemon=True,name='gold-ws-shadow').start()
+        credentials = telegram_settings()
+        if credentials:
+            threading.Thread(target=telegram_worker,args=(root,credentials),daemon=True,name="gold-telegram").start()
         threading.Thread(target=serve,args=(root,),daemon=True,name='gold-web').start()
+        threading.Thread(target=rest_worker,args=(root,),daemon=True,name='gold-rest-quote').start()
         threading.Thread(target=market_worker,args=(root,),daemon=True,name='gold-market').start()
+        threading.Thread(target=paper_history_worker,args=(root,),daemon=True,name='gold-paper-history').start()
         def calendar_loop():
             while True:
                 try:
@@ -42,13 +51,21 @@ def main():
                 except Exception:
                     logging.exception('calendar refresh failed')
                 time.sleep(300)
+        def news_loop():
+            while True:
+                try:
+                    refresh_news(root)
+                except Exception:
+                    logging.exception("news refresh failed")
+                time.sleep(300)
+        threading.Thread(target=news_loop,daemon=True,name="gold-news").start()
         def status_loop():
             while True:
                 try:
                     publish(root)
                 except Exception:
                     logging.exception('status publish failed')
-                time.sleep(30)
+                time.sleep(12)
         threading.Thread(target=status_loop,daemon=True,name='gold-status').start()
         threading.Thread(target=calendar_loop,daemon=True,name='gold-calendar').start()
         while True:

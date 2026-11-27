@@ -5,6 +5,9 @@ from gold_tracking import save
 from gold_swing import assess as swing_assess
 from gold_technical import assess as technical_assess
 from gold_paper import update as paper_update
+from gold_notifications import settings as telegram_settings
+from gold_quotes import load as load_json, snapshot as quote_snapshot
+from gold_strategies import assess as strategy_assess
 
 def publish(root):
     root=Path(root); now=time.time()
@@ -27,12 +30,13 @@ def publish(root):
         if not hybrid["fresh"] or p.get("expires_at",0)<=now:
             hybrid["data"]["plan"]={"status":"EXPIRED_OR_BLOCKED","research_only":True}
     swing=swing_assess(market["data"] or {},now)
-    try:
-        quote=json.loads((root/"live_quote.json").read_text())
-    except (OSError,ValueError):
-        quote={}
+    quote=quote_snapshot(root,now)
     technical=technical_assess(market["data"] or {},quote,now)
-    paper=paper_update(root,technical,swing,market["data"] or {},now,quote)
-    result={"paper":paper,"technical":technical,"swing":swing,"generated_at":now,"research_only":True,"orders_enabled":False,"notifications_enabled":False,"hybrid":hybrid,"early":early,"calendar":calendar,"websocket":ws,"market_view":market}
+    research=strategy_assess(market["data"] or {},quote,now)
+    paper=paper_update(root,technical,swing,market["data"] or {},now,quote,research["strategies"])
+    news=load_json(root/"news.json")
+    if not 0<=now-news.get("captured_at",0)<=1200:
+        news={}
+    result={"news":news,**research,"paper":paper,"technical":technical,"swing":swing,"generated_at":now,"research_only":True,"orders_enabled":False,"notifications_enabled":telegram_settings() is not None,"hybrid":hybrid,"early":early,"calendar":calendar,"websocket":ws,"market_view":market}
     save(root/"dashboard.json",result)
     return result

@@ -1,17 +1,23 @@
 """Research display data, isolated from existing prediction thresholds."""
 import math,time,logging
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 from gold_history import request,INST,BARS
 from gold_tracking import save
 from gold_research import ema
-CADENCE={"1m":60,"5m":300,"15m":900,"1H":1800,"4H":3600,"1Dutc":14400}
 
-def analyze(rows,bar,now):
+def analyze(rows,bar,now,history_limit=220):
     step=BARS[bar]/1000
     records={}
+    forming=None
     for r in rows:
         t=int(r[0])/1000
+        if r[8]=="0" and t<=now<t+step and len(r)>=9:
+            provisional=[t,*map(float,r[1:6])]
+            if all(map(math.isfinite,provisional)) and 0<provisional[3]<=min(provisional[1],provisional[4])<=max(provisional[1],provisional[4])<=provisional[2] and provisional[5]>=0:
+                forming=provisional
         if r[8]!="1" or t+step>now: continue
+        if t % step: raise ValueError("misaligned candle")
         a=[float(x) for x in r[1:6]]
         o,h,l,c,v=a
         if not all(map(math.isfinite,a)) or min(o,h,l,c)<=0 or h<max(o,c,l) or l>min(o,c,h) or v<0: raise ValueError("invalid candle")
@@ -20,7 +26,7 @@ def analyze(rows,bar,now):
     bars=[[t,*records[t]] for t in sorted(records)]
     if not bars: raise ValueError("no closed bars")
     age=now-bars[-1][0]-step
-    out={"bars":bars[-200:],"close_age_seconds":age,"bar_end":bars[-1][0]+step,"captured_at":now,"indicators":{}}
+    out={"bars":bars[-history_limit:] if history_limit else bars,"close_age_seconds":age,"bar_end":bars[-1][0]+step,"captured_at":now,"indicators":{}}
     tail=[bars[-1]]
     for b in reversed(bars[:-1]):
         if tail[-1][0]-b[0]!=step: break
@@ -43,19 +49,32 @@ def analyze(rows,bar,now):
         window=tail[-20:]; total=sum(b[5] for b in window)
         ind.update(support20=min(b[3] for b in window),resistance20=max(b[2] for b in window),vwap20=sum((b[2]+b[3]+b[4])/3*b[5] for b in window)/total if total else None)
     out["contiguous_bars"]=len(tail)
+    out["forming_rest"]=forming
     return out
 
 def worker(root):
-    state={"instrument":INST,"series":{}}
-    due={}
-    while True:
-        for bar,interval in CADENCE.items():
-            if time.monotonic()<due.get(bar,0): continue
-            try:
-                rows=request("/market/history-candles",instId=INST,bar=bar,limit="300")
-                state["series"][bar]=analyze(rows,bar,time.time())
-            except Exception:
-                logging.exception("chart refresh failed: %s",bar)
-            due[bar]=time.monotonic()+interval
-            save(Path(root)/"market_view.json",state)
-        time.sleep(5)
+    state = {"instrument": INST, "series": {}}
+    due, pending = {}, {}
+    def fetch(bar):
+        rows = request("/market/candles", instId=INST, bar=bar, limit="300")
+        return analyze(rows, bar, time.time())
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        while True:
+            now = time.time()
+            for bar, job in list(pending.items()):
+                if not job.done():
+                    continue
+                del pending[bar]
+                step = BARS[bar] // 1000
+                try:
+                    series = job.result()
+                    state["series"][bar] = series
+                    due[bar] = (int(now) // step + 1) * step + 8 if now - series["bar_end"] < step else now + 12
+                    save(Path(root) / "market_view.json", state)
+                except Exception:
+                    due[bar] = now + 30
+                    logging.exception("chart refresh failed: %s", bar)
+            for bar in BARS:
+                if bar not in pending and now >= due.get(bar, 0):
+                    pending[bar] = pool.submit(fetch, bar)
+            time.sleep(2)

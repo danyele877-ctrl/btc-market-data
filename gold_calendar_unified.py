@@ -1,6 +1,7 @@
 """Research calendar: date-only Fed and timezone-unverified BEA events."""
 import json,re,sys
 from datetime import datetime,timezone
+from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 from gold_calendar import fetch as fetch_bls
 
@@ -33,7 +34,18 @@ def normalize(sources,now,bls=None):
                 title=title.get_text(" ",strip=True)
                 kind="PCE" if "Personal Income and Outlays" in title else "GDP" if ("Gross Domestic Product" in title or re.match(r"^GDP \((?:Advance|Second|Third) Estimate\)",title,re.I)) else None
                 if not kind: continue
-                events.append(dict(kind=kind,source=name,title=title,display_date=date.get_text(strip=True),display_time=clock.get_text(strip=True),scheduled_at=None,status="YEAR_AND_TIMEZONE_UNVERIFIED",retrieved_at=src.get("retrieved_at")))
+                display_date, display_time = date.get_text(strip=True), clock.get_text(strip=True)
+                table = row.find_parent("table")
+                year = table.find("th", string=re.compile(r"^Year 20\d{2}$")) if table else None
+                scheduled, status = None, "YEAR_AND_TIMEZONE_UNVERIFIED"
+                if year and src.get("source", "").startswith("https://www.bea.gov/news/schedule"):
+                    try:
+                        local = datetime.strptime(f"{year.get_text(strip=True)} {display_date} {display_time}", "Year %Y %B %d %I:%M %p")
+                        scheduled = local.replace(tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc).isoformat()
+                        status = "TIMESTAMP_PARSED"
+                    except ValueError:
+                        pass
+                events.append(dict(kind=kind,source=name,title=title,display_date=display_date,display_time=display_time,scheduled_at=scheduled,status=status,retrieved_at=src.get("retrieved_at")))
     bls=bls or {}
     if bls.get("status")=="RESEARCH_ONLY":
         for event in bls.get("events",[]):
