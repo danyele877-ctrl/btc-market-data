@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-27T05:54:54.885097+00:00",
-  "snapshot_generated_at": "2026-11-27T05:54:54.791761+00:00",
+  "generated_at": "2026-11-27T06:59:43.833306+00:00",
+  "snapshot_generated_at": "2026-11-27T06:59:43.760356+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -106,7 +106,7 @@
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "coinboss_liquidations_overview": {
