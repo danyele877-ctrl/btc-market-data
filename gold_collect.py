@@ -6,6 +6,8 @@ from gold_hybrid import main as snapshot
 from gold_history import collect
 from gold_tracking import record, settle, save
 from gold_plan import plan
+from gold_macro_probe import macro_for_display
+from gold_quotes import load
 
 def run(root):
     root=Path(root); root.mkdir(parents=True,exist_ok=True)
@@ -20,6 +22,8 @@ def run(root):
         s["plan"]=plan(s["candidate"],diag["close"],diag["atr14"])
         s["plan"]["observed_at"]=now
         s["plan"]["expires_at"]=now+300
+    previous = load(root/"latest_hybrid.json")
+    s["macro_display"] = macro_for_display(s.get("macro", {}), previous.get("macro_display", previous.get("macro", {})))
     save(root/"latest_hybrid.json",s)
     # Persist observation before fetching outcomes; never reconstruct a missed signal.
     stamp=datetime.fromisoformat(s["captured_at"]).timestamp()

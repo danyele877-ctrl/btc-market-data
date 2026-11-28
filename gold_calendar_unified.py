@@ -1,9 +1,53 @@
-"""Research calendar: date-only Fed and timezone-unverified BEA events."""
+"""Combine verified release schedules from Fed, BEA and BLS."""
 import json,re,sys
 from datetime import datetime,timezone
 from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 from gold_calendar import fetch as fetch_bls
+
+EASTERN = ZoneInfo("America/New_York")
+
+
+def monthly_events(raw, month, source):
+    soup = BeautifulSoup(raw, "html.parser")
+    if source == "BLS":
+        for row in soup.select("tr"):
+            date, clock, title = (row.select_one(cls) for cls in (".date-cell", ".time-cell", ".desc-cell"))
+            if not (date and clock and title):
+                continue
+            text = title.get_text(" ", strip=True)
+            kind = next((k for label,k in (("Consumer Price Index","CPI"),("Employment Situation","NFP"))
+                         if text.startswith(label)), None)
+            if not kind:
+                continue
+            try:
+                stamp = datetime.strptime(date.get_text(strip=True).split(", ",1)[1] + " " + clock.get_text(strip=True),
+                                          "%B %d, %Y %I:%M %p")
+            except (IndexError,ValueError):
+                continue
+            if (stamp.year,stamp.month) == (month.year,month.month):
+                yield dict(kind=kind,title=text,source=source,status="TIMESTAMP_PARSED",
+                           scheduled_at=stamp.replace(tzinfo=EASTERN).astimezone(timezone.utc).isoformat())
+        return
+
+    heading = soup.select_one(".row-title h4")
+    if not heading or heading.get_text(strip=True) != month.strftime("%B %Y"):
+        return
+    for row in soup.select(".panel-unstyled .panel-body > .row"):
+        clock, title, day = (row.select_one(sel) for sel in (".col-xs-2 p", ".col-xs-7 p", ".col-xs-3 p"))
+        if not (clock and title and day):
+            continue
+        text = title.get_text(" ", strip=True)
+        kind = {"FOMC Meeting":"FOMC", "FOMC Press Conference":"FOMC_PRESS"}.get(text)
+        if not kind:
+            continue
+        try:
+            time = datetime.strptime(clock.get_text(strip=True).replace(".","").upper(), "%I:%M %p").time()
+            stamp = datetime.combine(month.replace(day=int(day.get_text(strip=True))), time, EASTERN)
+        except ValueError:
+            continue
+        yield dict(kind=kind, date=stamp.date().isoformat(), source=source, title=text,
+                   status="TIMESTAMP_PARSED", scheduled_at=stamp.astimezone(timezone.utc).isoformat())
 
 def normalize(sources,now,bls=None):
     events=[]

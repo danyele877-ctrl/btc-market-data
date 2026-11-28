@@ -23,16 +23,16 @@ def parse(raw, now):
             if not k.startswith("DTSTART"): continue
             try:
                 if v.endswith("Z"): dt=datetime.strptime(v,"%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
-                elif k=="DTSTART;TZID=America/New_York": dt=datetime.strptime(v,"%Y%m%dT%H%M%S").replace(tzinfo=ZoneInfo("America/New_York"))
+                elif k in ("DTSTART;TZID=America/New_York", "DTSTART;TZID=US-Eastern", "DTSTART;TZID=US/Eastern"): dt=datetime.strptime(v,"%Y%m%dT%H%M%S").replace(tzinfo=ZoneInfo("America/New_York"))
                 else: continue
             except ValueError: continue
             delta=(dt-now).total_seconds()
-            if -3600<=delta<=7*86400:
+            if -3600<=delta<=45*86400:
                 events.append(dict(kind=kind,title=title,scheduled_at=dt.astimezone(timezone.utc).isoformat(),seconds_to_event=round(delta),phase="POST_RELEASE" if delta<=0 else "IMMINENT" if delta<=1800 else "UPCOMING",uid=fields.get("UID")))
     return sorted(events,key=lambda x:x["scheduled_at"])
 
-def fetch():
-    now=datetime.now(timezone.utc)
+def fetch(now=None):
+    now=now or datetime.now(timezone.utc)
     try:
         req=urllib.request.Request(URL,headers={"User-Agent":"GoldRadarDiagnostic/1.0","Accept":"text/calendar"})
         with urllib.request.urlopen(req,timeout=20) as r: raw=r.read(2000001)

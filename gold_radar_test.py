@@ -6,11 +6,14 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from datetime import date, datetime, timezone
 from urllib.error import HTTPError
 from urllib.request import Request,urlopen
 
 from gold_history import INST
-from gold_macro_probe import aligned_hour, xau_same_hour
+from gold_calendar import parse as parse_bls
+from gold_calendar_unified import monthly_events
+from gold_macro_probe import aligned_hour, xau_same_hour, macro_for_display
 from gold_market_view import analyze
 from gold_notifications import events
 from gold_paper import advance, replay_legacy
@@ -89,6 +92,29 @@ class GoldRadar(unittest.TestCase):
         self.assertAlmostEqual(xau_same_hour(rows,interval),.01)
         self.assertIsNone(xau_same_hour(rows[:-1],interval))
         self.assertIsNone(aligned_hour(macro,15000))
+
+    def test_macro_display_keeps_historical_close_on_source_error(self):
+        prior = {"dxy":{"identity_verified":True,"closed_observations":[[1800,104.05]],"hourly_change_pct":None}}
+        failed = {"dxy":{"error":"unavailable"}}
+        retained = macro_for_display(failed,prior)
+        self.assertTrue(retained["dxy"]["cached"])
+        self.assertEqual(retained["dxy"]["closed_observations"][-1][1],104.05)
+        self.assertIsNone(aligned_hour(failed,5401))
+
+    def test_bls_eastern_alias_next_month_and_html_fallback(self):
+        now = datetime(2026,11,28,tzinfo=timezone.utc)
+        wire = "BEGIN:VCALENDAR\nBEGIN:VEVENT\nSUMMARY:Consumer Price Index\nDTSTART;TZID=US-Eastern:20261210T083000\nEND:VEVENT\nEND:VCALENDAR"
+        self.assertEqual(parse_bls(wire,now)[0]["scheduled_at"],"2026-12-10T13:30:00+00:00")
+        html = '<table><tr><td class="date-cell">Friday, December 04, 2026</td><td class="time-cell">08:30 AM</td><td class="desc-cell">Employment Situation</td></tr></table>'
+        self.assertEqual(list(monthly_events(html,date(2026,12,1),"BLS"))[0]["scheduled_at"],"2026-12-04T13:30:00+00:00")
+
+    def test_fed_monthly_time_used_only_for_requested_month(self):
+        html = ('<div class="row-title"><h4>December 2026</h4></div><div class="panel-unstyled"><div class="panel-body">'
+                '<div class="row"><div class="col-xs-2"><p>2:30 p.m.</p></div><div class="col-xs-7"><p>FOMC Press Conference</p></div>'
+                '<div class="col-xs-3"><p>9</p></div></div></div></div>')
+        row, = monthly_events(html,date(2026,12,1),"FED")
+        self.assertEqual((row["kind"],row["scheduled_at"]),("FOMC_PRESS","2026-12-09T19:30:00+00:00"))
+        self.assertFalse(list(monthly_events(html,date(2027,1,1),"FED")))
 
     def test_countertrend_v2_without_macro(self):
         frame={"end":14400,"momentum":-3,"trend":5,"move":-1.2,"acceleration":-1,"volume":1.5,"atr":2,

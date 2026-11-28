@@ -32,6 +32,17 @@ details{margin-top:10px}summary{cursor:pointer}a{color:var(--gold)}
 th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:13px}
 .metric canvas{height:95px}.cause{margin-top:5px}.cause div{height:3px;background:var(--gold);border-radius:4px;margin-top:3px}.bars{display:flex;height:6px;overflow:hidden;border-radius:6px;margin:7px 0}.bars span:first-child{background:var(--long)}.bars span:last-child{background:var(--short)}
 #paperNavigation{margin-top:12px} #paperMetrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))}
+.macro-quotes{grid-template-columns:repeat(4,minmax(0,1fr))}
+.macro-quote .value{margin:.25rem 0;font-variant-numeric:tabular-nums}
+.macro-note{margin-top:8px}
+.macro-columns{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;margin-top:18px}
+.macro-list{list-style:none;margin:8px 0 0;padding:0}
+.macro-row{display:grid;grid-template-columns:minmax(6.5rem,auto) minmax(0,1fr);gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.macro-when{color:var(--muted);font-variant-numeric:tabular-nums}
+.macro-event-name{font-weight:650}
+.macro-row small,.macro-story small{display:block}
+.macro-story{padding:9px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+@media(max-width:720px){.macro-quotes{grid-template-columns:repeat(2,minmax(0,1fr))}.macro-columns{grid-template-columns:1fr}}
 @media(max-width:720px){.plans{grid-template-columns:1fr}.scenarios{grid-template-columns:repeat(2,1fr)}header{display:block}}
 </style>
 </head>
@@ -59,7 +70,19 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
   <div id="paperNavigation" class="controls"><button id="prev" type="button">Precedente</button><small id="page"></small><button id="next" type="button">Successiva</button></div>
   <small>Gli attraversamenti di prezzo sono evidenza per la simulazione. Le curve usano solo esiti con prezzo d’uscita osservabile, commissioni maker/taker teoriche e una simulazione alla volta per strategia e gruppo.</small>
 </section>
-<section><h2>Macro e notizie</h2><div class="grid" id="macro"></div><details open><summary>Calendario e notizie rilevanti</summary><div class="grid" id="events"></div></details></section>
+<section aria-labelledby="macroTitle">
+  <h2 id="macroTitle">Macro e notizie</h2>
+  <div class="grid macro-quotes" id="macro"></div>
+  <p class="muted macro-note" id="macroNote"></p>
+  <div class="macro-columns">
+    <div>
+      <div class="section-head"><h3>Prossimi eventi USA</h3><small>Ora italiana</small></div>
+      <ul class="macro-list" id="events"></ul>
+      <details id="laterEvents"><summary>Calendario successivo</summary><ul class="macro-list" id="laterRows"></ul></details>
+    </div>
+    <div><h3>Notizie recenti</h3><ul class="macro-list" id="macroNews"></ul></div>
+  </div>
+</section>
 </main>
 <script>
 const el = id => document.getElementById(id);
@@ -134,8 +157,8 @@ function displayPlan(parent,title,signal){
   parent.append(box);
 }
 function render(){
-  for(const id of ['bias','plans','legacy','macro','events'])el(id).replaceChildren();
-  if(!market){el('status').textContent='Motori temporaneamente non disponibili';chart(true);return}
+  for(const id of ['bias','plans','legacy'])el(id).replaceChildren();
+  if(!market){el('status').textContent='Motori temporaneamente non disponibili';renderMacro({});chart(true);return}
   el('status').textContent='Motori aggiornati · '+date(market.generated_at);
   for(const [key, value] of Object.entries(market.scenarios||{}))tile(el('bias'),key,value,'',dirClass(value));
   for(const [horizon,title] of [['SCALPING','Scalping · 5–45 min'],['INTRADAY','Intraday · 1–6 ore'],['SWING','Swing · 6–72 ore']]){
@@ -150,20 +173,69 @@ function render(){
   const hybrid=market.hybrid?.fresh?market.hybrid.data:{}, early=market.early?.fresh?market.early.data?.latest||{}:{};
   const t=market.technical||{}, s=market.swing||{};
   for(const [k,m] of [['TECHNICAL V1',t],['SWING V1',s],['HYBRID',hybrid],['EARLY V1',early.v1],['EARLY V2',early],['DIVERGENZA',early.divergence],['INTERMARKET',early.intermarket],['WS SHADOW',early.ws_shadow]])tile(el('legacy'),k,m?.candidate||'N/D',m?.blockers?.map(name).join(' · ')||m?.status||'',dirClass(m?.candidate));
-  for(const [key,title] of [['dxy','Indice del dollaro · DXY'],['gold_futures_proxy','Future oro · GC'],['treasury_nominal','Treasury USA nominale 10Y'],['treasury_real','Treasury USA reale 10Y']]){
-    const row=hybrid.macro?.[key];
-    const daily=row?.daily_10y?.at(-1);
-    const hourly=row?.closed_observations?.at(-1);
-    const label=daily?'Giornaliero · '+daily[0]:hourly?(row.validated?'Ritardato · ':'Non sincronizzato o scaduto · ')+date(hourly[0]+3600):'Fonte non disponibile';
-    tile(el('macro'),title,daily?fmt(daily[1])+'%':Number.isFinite(row?.hourly_change_pct)?fmt(row.hourly_change_pct)+'% / 1h':'N/D',label);
-  }
-  for(const event of (market.calendar?.fresh?market.calendar.data?.events:[])||[])tile(el('events'),event.kind||'Evento',event.scheduled_at?date(Date.parse(event.scheduled_at)/1000):event.date||event.display_date||'Orario da verificare',event.source+' · '+(event.title||event.phase||''));
-  for(const story of market.news?.items||[]){
-    const box=node('div','','tile'), a=node('a',story.title);
-    if(/^https:\/\//.test(story.url)){a.href=story.url;a.target='_blank';a.rel='noopener noreferrer'}
-    box.append(node('small',story.source+' · '+date(story.published_at)),node('br'),a);el('events').append(box);
-  }
+  renderMacro(market);
   chart(true);
+}
+const italianDay=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',day:'numeric',month:'short'});
+const italianClock=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',hour:'2-digit',minute:'2-digit'});
+const italianDate=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',day:'numeric',month:'short',year:'numeric'});
+const eventNames={FOMC:'Decisione Fed',FOMC_PRESS:'Conferenza stampa Fed',NFP:'Lavoro USA · NFP',CPI:'Inflazione USA · CPI',GDP:'PIL USA',PCE:'Inflazione PCE USA'};
+const calendarSources={FED:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',BEA:'https://www.bea.gov/news/schedule',BLS:'https://www.bls.gov/schedule/'};
+function renderMacro(snapshot){
+  for(const id of ['macro','events','laterRows','macroNews'])el(id).replaceChildren();
+  const source=snapshot.hybrid?.data||{}, macro=source.macro_display||source.macro||{};
+  const now=Date.now(), specs=[
+    ['dxy','Indice del dollaro · DXY'],['gold_futures_proxy','Future oro · GC'],
+    ['treasury_nominal','Treasury USA · 10 anni'],['treasury_real','Treasury reale USA · 10 anni'],
+  ];
+  for(const [key,title] of specs){
+    const row=macro[key]||{}, daily=row.daily_10y?.at(-1), hourly=row.closed_observations?.at(-1);
+    const card=node('div','','tile macro-quote');
+    card.append(node('small',title));
+    if(daily){
+      const day=Date.parse(daily[0].slice(0,10)+'T12:00:00Z');
+      card.append(node('p',fmt(daily[1])+'%','value'),node('small','Dato giornaliero · '+italianDay.format(day)));
+    }else if(hourly){
+      const stamp=hourly[0]*1000, recent=snapshot.hybrid?.fresh && !row.cached && row.validated && now-stamp-3600000<=7200000;
+      const change=row.hourly_change_pct;
+      card.append(node('p',fmt(hourly[1])+(key==='gold_futures_proxy'?' USD':''),'value'),
+        node('small',(recent?'Ritardato':'Ultimo dato storico')+' · Barra del '+italianDay.format(stamp)+', '+italianClock.format(stamp)));
+      if(Number.isFinite(change))card.append(node('small',' '+(change>0?'+':'')+fmt(change)+'% nella barra oraria',change>0?'long':change<0?'short':'muted'));
+    }else{
+      card.append(node('p','N/D','value'),node('small','Fonte al momento non disponibile'));
+    }
+    el('macro').append(card);
+  }
+  const interval=source.macro_alignment;
+  const aligned=snapshot.hybrid?.fresh && interval && Number.isFinite(interval.xau_return) && now-interval.end*1000<=5400000;
+  el('macroNote').textContent=aligned?'DXY, GC e XAU allineati sulla finestra con chiusura alle '+italianClock.format(interval.end*1000)+'.':'Nessuna finestra recente comune tra DXY, GC e XAU.';
+  const calendar=snapshot.calendar?.fresh?snapshot.calendar.data:null;
+  const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(now);
+  const rows=(calendar?.events||[]).map(event=>{
+    const exact=event.status==='TIMESTAMP_PARSED'?Date.parse(event.scheduled_at):NaN;
+    const stamp=Number.isFinite(exact)?exact:Date.parse(event.date+'T12:00:00Z');
+    return {event,exact,stamp};
+  }).filter(x=>Number.isFinite(x.stamp)&&(Number.isFinite(x.exact)?x.exact>=now:x.event.date>=day)).sort((a,b)=>a.stamp-b.stamp);
+  for(const {event,exact,stamp} of rows){
+    const close=stamp-now<=30*86400000, row=node('li','','macro-row'), when=node('div','','macro-when');
+    when.append(node('div',close?italianDay.format(stamp):italianDate.format(stamp)),node('small',Number.isFinite(exact)?italianClock.format(exact):'Orario da confermare'));
+    const text=node('div'), a=node('a',event.source||'Fonte'), url=event.source_url||calendarSources[event.source];
+    if(/^https:\/\//.test(url||'')){a.href=url;a.target='_blank';a.rel='noopener noreferrer'}
+    text.append(node('div',eventNames[event.kind]||event.kind,'macro-event-name'));
+    const detail=node('small');detail.append(a);
+    if(event.projections)detail.append(' · Proiezioni economiche');
+    text.append(detail);row.append(when,text);
+    el(close?'events':'laterRows').append(row);
+  }
+  el('laterEvents').hidden=!el('laterRows').children.length;
+  if(!el('events').children.length)el('events').append(node('li',calendar?'Nessun evento disponibile nei prossimi 30 giorni.':'Calendario al momento non disponibile.','muted'));
+  for(const story of (snapshot.news?.items||[]).slice(0,4)){
+    const row=node('li','','macro-story'), a=node('a',story.title);
+    if(/^https:\/\//.test(story.url)){a.href=story.url;a.target='_blank';a.rel='noopener noreferrer'}
+    row.append(a,node('small',story.source+' · '+italianDay.format(story.published_at*1000)+', '+italianClock.format(story.published_at*1000)));
+    el('macroNews').append(row);
+  }
+  if(!el('macroNews').children.length)el('macroNews').append(node('li',Object.values(snapshot.news?.coverage||{}).includes('AVAILABLE')?'Nessuna notizia rilevante nelle fonti consultate.':'Fonti notizie al momento non disponibili.','muted'));
 }
 function metric(parent, group, m, counts, exclusions){
   const [model,cohort]=group.split(':'), card=node('div','','metric');

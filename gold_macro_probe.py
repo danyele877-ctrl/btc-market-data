@@ -75,6 +75,19 @@ if __name__=="__main__":
     Path("gold-macro-probe.json").write_text(json.dumps({"research_only":True,"sources":result},indent=2))
 
 
+def macro_for_display(current, previous):
+    """Keep last verified readings for presentation while probes are unavailable."""
+    display = {}
+    for name in ("dxy", "gold_futures_proxy", "treasury_nominal", "treasury_real"):
+        row = current.get(name, {})
+        if ((row.get("identity_verified") and row.get("closed_observations"))
+                or row.get("daily_available")):
+            display[name] = row
+        elif previous.get(name):
+            display[name] = dict(previous[name], cached=True)
+    return display
+
+
 def aligned_hour(macro, now, max_age=5400):
     """Compare matched closed proxy intervals, keeping vendor timestamps intact."""
     from math import isfinite
