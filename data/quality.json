@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-28T15:27:15.547184+00:00",
-  "snapshot_generated_at": "2026-11-28T15:27:15.455810+00:00",
+  "generated_at": "2026-11-28T16:18:10.912541+00:00",
+  "snapshot_generated_at": "2026-11-28T16:18:10.837701+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -40,31 +40,31 @@
     "okx_spot": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_futures_ticker": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_funding": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_open_interest": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "deribit_btc_perpetual": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "edge_funding_all_exchanges": {
@@ -130,7 +130,7 @@
     "bitcoin_etf_flows_tftc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "fred_macro": {
