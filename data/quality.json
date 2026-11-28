@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-28T03:20:56.826442+00:00",
-  "snapshot_generated_at": "2026-11-28T03:20:56.764468+00:00",
+  "generated_at": "2026-11-28T04:27:25.780659+00:00",
+  "snapshot_generated_at": "2026-11-28T04:27:25.702773+00:00",
   "snapshot_age_seconds": 0,
   "overall_status": "ok",
   "successful_sources": 28,
@@ -40,7 +40,7 @@
     "okx_spot": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "okx_futures_ticker": {
@@ -64,13 +64,13 @@
     "deribit_btc_perpetual": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "edge_funding_all_exchanges": {
       "status": "ok",
       "required": false,
-      "age_seconds": 0,
+      "age_seconds": 1,
       "reason": null
     },
     "swole_funding_btc_1d": {
@@ -82,7 +82,7 @@
     "swole_open_interest_btc_1d": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 2,
       "reason": null
     },
     "swole_liquidations_btc_1d": {
@@ -100,13 +100,13 @@
     "coinboss_funding_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_open_interest_btc": {
       "status": "ok",
       "required": true,
-      "age_seconds": 1,
+      "age_seconds": 0,
       "reason": null
     },
     "coinboss_liquidations_overview": {
