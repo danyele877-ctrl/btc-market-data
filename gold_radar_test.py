@@ -12,6 +12,7 @@ from urllib.request import Request,urlopen
 
 from gold_history import INST
 from gold_calendar import parse as parse_bls
+from gold_calendar_cache import retain_verified_bls
 from gold_calendar_unified import monthly_events
 from gold_macro_probe import aligned_hour, xau_same_hour, macro_for_display
 from gold_market_view import analyze
@@ -107,6 +108,17 @@ class GoldRadar(unittest.TestCase):
         self.assertEqual(parse_bls(wire,now)[0]["scheduled_at"],"2026-12-10T13:30:00+00:00")
         html = '<table><tr><td class="date-cell">Friday, December 04, 2026</td><td class="time-cell">08:30 AM</td><td class="desc-cell">Employment Situation</td></tr></table>'
         self.assertEqual(list(monthly_events(html,date(2026,12,1),"BLS"))[0]["scheduled_at"],"2026-12-04T13:30:00+00:00")
+
+    def test_bls_official_archive_only_fills_missing_future_events(self):
+        live = {"source":"BLS","kind":"NFP","status":"TIMESTAMP_PARSED","scheduled_at":"2026-12-04T14:30:00+00:00"}
+        result = {"events":[live],"coverage":{"BLS":"UNAVAILABLE"}}
+        now = datetime(2026,11,28,tzinfo=timezone.utc)
+        out = retain_verified_bls(result,{},now)
+        self.assertEqual([(e["kind"],e["status"]) for e in out["events"]],
+                         [("NFP","TIMESTAMP_PARSED"),("CPI","OFFICIAL_ARCHIVE")])
+        expired = retain_verified_bls({"events":[],"coverage":{"BLS":"UNAVAILABLE"}},{},
+                                      datetime(2026,12,11,tzinfo=timezone.utc))
+        self.assertFalse(expired["events"])
 
     def test_fed_monthly_time_used_only_for_requested_month(self):
         html = ('<div class="row-title"><h4>December 2026</h4></div><div class="panel-unstyled"><div class="panel-body">'

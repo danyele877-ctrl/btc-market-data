@@ -8,7 +8,37 @@ from gold_calendar import fetch
 from gold_calendar_unified import monthly_events, normalize
 from gold_tracking import save
 
-SCHEMA = 3
+SCHEMA = 4
+# Checked against the BLS December 2026 list and ICS on November 28.
+BLS_VERIFIED_AT = "2026-11-28"
+BLS_VERIFIED_EVENTS = {
+    "NFP": "2026-12-04T13:30:00+00:00",
+    "CPI": "2026-12-10T13:30:00+00:00",
+}
+BLS_VERIFIED_URL = "https://www.bls.gov/schedule/2026/12_sched_list.htm"
+
+
+def retain_verified_bls(result, previous, now):
+    months = {(e["kind"], e["scheduled_at"][:7]) for e in result["events"]
+              if e["source"] == "BLS" and e.get("scheduled_at")}
+    candidates = [e for e in previous.get("events", [])
+                  if e["source"] == "BLS" and e.get("scheduled_at") and
+                  (e["status"] == "OFFICIAL_ARCHIVE" or e.get("retrieved_at") or e.get("source_url"))]
+    candidates.extend(dict(kind=kind, scheduled_at=when, source="BLS", source_url=BLS_VERIFIED_URL,
+                           verified_on=BLS_VERIFIED_AT) for kind,when in BLS_VERIFIED_EVENTS.items())
+    for event in candidates:
+        key = event["kind"], event["scheduled_at"][:7]
+        if key in months or datetime.fromisoformat(event["scheduled_at"]) < now:
+            continue
+        verified_on = event.get("verified_on") or (event.get("retrieved_at") or previous.get("retrieved_at") or "")[:10]
+        if not verified_on or not 0 <= (now.date() - datetime.fromisoformat(verified_on).date()).days <= 45:
+            continue
+        archived = dict(event, status="OFFICIAL_ARCHIVE", verified_on=verified_on)
+        months.add(key)
+        result["events"].append(archived)
+        if result["coverage"]["BLS"] == "UNAVAILABLE":
+            result["coverage"]["BLS"] = "OFFICIAL_ARCHIVE"
+    return result
 
 
 def enrich(result, now):
@@ -27,7 +57,11 @@ def enrich(result, now):
         futures = [(source, month, url, pool.submit(probe, (source, url))) for source, month, url in jobs]
         for source, month, url, future in futures:
             raw = future.result()[1].get("source_html", "")
-            for event in monthly_events(raw, month, source):
+            events = list(monthly_events(raw, month, source))
+            if source == "BLS" and not events:
+                url = url.replace("www.bls.gov", "blsmon1.bls.gov")
+                events = list(monthly_events(probe((source, url))[1].get("source_html", ""), month, source))
+            for event in events:
                 event["source_url"] = url
                 if source == "BLS":
                     key = event["kind"], month.strftime("%Y-%m")
@@ -56,7 +90,7 @@ def refresh(root, now=None):
         with ThreadPoolExecutor(max_workers=3) as pool:
             bls = pool.submit(fetch, now)
             sources = dict(pool.map(probe, SOURCES.items()))
-            old = enrich(normalize(sources, now, bls.result()), now)
+            old = retain_verified_bls(enrich(normalize(sources, now, bls.result()), now), old, now)
         old.update(retrieved_at=now.isoformat(), schema_version=SCHEMA)
         save(path, old)
     result = dict(old, events=[])

@@ -212,7 +212,7 @@ function renderMacro(snapshot){
   const calendar=snapshot.calendar?.fresh?snapshot.calendar.data:null;
   const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(now);
   const rows=(calendar?.events||[]).map(event=>{
-    const exact=event.status==='TIMESTAMP_PARSED'?Date.parse(event.scheduled_at):NaN;
+    const exact=['TIMESTAMP_PARSED','OFFICIAL_ARCHIVE'].includes(event.status)?Date.parse(event.scheduled_at):NaN;
     const stamp=Number.isFinite(exact)?exact:Date.parse(event.date+'T12:00:00Z');
     return {event,exact,stamp};
   }).filter(x=>Number.isFinite(x.stamp)&&(Number.isFinite(x.exact)?x.exact>=now:x.event.date>=day)).sort((a,b)=>a.stamp-b.stamp);
@@ -224,6 +224,7 @@ function renderMacro(snapshot){
     text.append(node('div',eventNames[event.kind]||event.kind,'macro-event-name'));
     const detail=node('small');detail.append(a);
     if(event.projections)detail.append(' · Proiezioni economiche');
+    if(event.status==='OFFICIAL_ARCHIVE')detail.append(' · Calendario verificato il '+italianDay.format(Date.parse(event.verified_on+'T12:00:00Z')));
     text.append(detail);row.append(when,text);
     el(close?'events':'laterRows').append(row);
   }
